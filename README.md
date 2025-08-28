@@ -9,6 +9,3 @@ Sistema de gestão de folha de pagamento para um software de gestão de recursos
 
 - Acesso a Documentação de Testes Unitários: https://1drv.ms/w/c/50e1956f2083f077/EXs04REg8GtIkump7POHaUQBrrrQnK4EFKYA_BpuluzzgA?e=vQrUDW
 
-
-    <img width="901" height="595" alt="Diagrama sem nome-Página-2 drawio" src="https://github.com/user-attachments/assets/4ed2eb79-7966-4b31-9d44-0efc48107e3b" />
-
