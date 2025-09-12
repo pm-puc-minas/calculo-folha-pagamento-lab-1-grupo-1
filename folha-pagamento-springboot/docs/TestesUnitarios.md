@@ -248,5 +248,3 @@
 | Folha vazia | Folha sem dados | chamar `exibirDemonstrativo` | mensagem apropriada ou vazio | Sistema trata folha vazia |
 | Dados inconsistentes | Folha com valores nulos ou negativos | chamar `exibirDemonstrativo` | tratamento de erro ou aviso | Sistema não deve quebrar |
 
-
-| Cenário | Entrada | Ação
