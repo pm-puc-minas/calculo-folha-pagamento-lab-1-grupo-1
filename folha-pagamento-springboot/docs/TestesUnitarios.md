@@ -179,4 +179,74 @@
 
 ## Método: calcularAdicionalInsalubridade(salarioMinimo, grau)
 
+| Cenário | Entrada | Ação | Saída Esperada | Observações |
+|---------|---------|------|----------------|-------------|
+| Grau baixo | salarioMinimo=1320, grau=baixo | chamar `calcularAdicionalInsalubridade` | 132 | Percentual 10% sobre salário mínimo |
+| Grau médio | salarioMinimo=1320, grau=médio | chamar `calcularAdicionalInsalubridade` | 264 | Percentual 20% sobre salário mínimo |
+| Grau alto | salarioMinimo=1320, grau=alto | chamar `calcularAdicionalInsalubridade` | 528 | Percentual 40% sobre salário mínimo |
+| Salário mínimo zero | salarioMinimo=0, grau=alto | chamar `calcularAdicionalInsalubridade` | 0 | Sem adicional |
+| Grau inválido | salarioMinimo=1320, grau=invalido | chamar `calcularAdicionalInsalubridade` | erro ou 0 | Sistema deve validar entrada |
+
+---
+
+## Método: calcularDescontoValeTransporte(salarioBruto, valorEntregue)
+
+| Cenário | Entrada | Ação | Saída Esperada | Observações |
+|---------|---------|------|----------------|-------------|
+| Desconto normal | salarioBruto=3000, valorEntregue=100 | chamar `calcularDescontoValeTransporte` | 100 | Cálculo correto |
+| Valor entregue maior que limite | salarioBruto=3000, valorEntregue=500 | chamar `calcularDescontoValeTransporte` | valor limitado | Aplica teto máximo |
+| Salário bruto zero | salarioBruto=0, valorEntregue=100 | chamar `calcularDescontoValeTransporte` | 0 | Sem desconto |
+
+---
+
+## Método: calcularValeAlimentacao(valorDiario, diasTrabalhados)
+
+| Cenário | Entrada | Ação | Saída Esperada | Observações |
+|---------|---------|------|----------------|-------------|
+| Cálculo normal | valorDiario=50, diasTrabalhados=20 | chamar `calcularValeAlimentacao` | 1000 | Valor total = valorDiario × diasTrabalhados |
+| Dias trabalhados zero | valorDiario=50, diasTrabalhados=0 | chamar `calcularValeAlimentacao` | 0 | Sem dias, resultado zero |
+| Dias trabalhados negativos | valorDiario=50, diasTrabalhados=-5 | chamar `calcularValeAlimentacao` | erro ou 0 | Sistema valida entrada |
+
+---
+
+## Método: calcularINSS(salarioContribuicao)
+
+| Cenário | Entrada | Ação | Saída Esperada | Observações |
+|---------|---------|------|----------------|-------------|
+| Salário dentro de faixa | salarioContribuicao=2500 | chamar `calcularINSS` | valor correto conforme tabela | Cálculo INSS conforme faixa |
+| Salário zero | salarioContribuicao=0 | chamar `calcularINSS` | 0 | Sem contribuição |
+| Salário negativo | salarioContribuicao=-1000 | chamar `calcularINSS` | erro ou 0 | Sistema valida entrada |
+
+---
+
+## Método: calcularFGTS(baseCalculoFGTS)
+
+| Cenário | Entrada | Ação | Saída Esperada | Observações |
+|---------|---------|------|----------------|-------------|
+| Base normal | baseCalculoFGTS=3000 | chamar `calcularFGTS` | 240 (8%) | Cálculo correto |
+| Base zero | baseCalculoFGTS=0 | chamar `calcularFGTS` | 0 | Sem contribuição |
+| Base negativa | baseCalculoFGTS=-2000 | chamar `calcularFGTS` | erro ou 0 | Sistema valida entrada |
+
+---
+
+## Método: calcularIRRF(salarioBruto, descontoINSS, numDependentes)
+
+| Cenário | Entrada | Ação | Saída Esperada | Observações |
+|---------|---------|------|----------------|-------------|
+| Cálculo normal | salarioBruto=5000, descontoINSS=500, numDependentes=2 | chamar `calcularIRRF` | valor correto | Cálculo conforme tabela IRRF |
+| Sem dependentes | salarioBruto=5000, descontoINSS=500, numDependentes=0 | chamar `calcularIRRF` | valor correto | Confirma dedução zero dependentes |
+| Desconto INSS zero | salarioBruto=5000, descontoINSS=0, numDependentes=2 | chamar `calcularIRRF` | valor correto | Verifica efeito no IRRF |
+| Salário bruto zero | salarioBruto=0, descontoINSS=0, numDependentes=2 | chamar `calcularIRRF` | 0 | Sem imposto |
+
+---
+
+## Método: exibirDemonstrativo(FolhaPagamento)
+
+| Cenário | Entrada | Ação | Saída Esperada | Observações |
+|---------|---------|------|----------------|-------------|
+| Demonstrativo completo | Folha com salário, proventos e descontos | chamar `exibirDemonstrativo` | saída detalhada com salário bruto, descontos, proventos, benefícios e líquido | Deve incluir todos os dados |
+| Folha vazia | Folha sem dados | chamar `exibirDemonstrativo` | mensagem apropriada ou vazio | Sistema trata folha vazia |
+| Dados inconsistentes | Folha com valores nulos ou negativos | chamar `exibirDemonstrativo` | tratamento de erro ou aviso | Sistema não deve quebrar |
+
+
 | Cenário | Entrada | Ação
