@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* RH Pro Design System - Professional HR Management Colors & Gradients */
+
+@layer base {
+  :root {
+    /* Core Background & Text */
+    --background: 220 15% 97%;
+    --foreground: 224 15% 15%;
+
+    /* Card & Surface Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 224 15% 15%;
+
+    /* Popover Colors */
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 15% 15%;
+
+    /* Primary Brand - Professional Blue */
+    --primary: 217 91% 35%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 217 91% 30%;
+    --primary-light: 217 91% 90%;
+
+    /* Secondary - Subtle Gray */
+    --secondary: 220 15% 96%;
+    --secondary-foreground: 224 15% 25%;
+
+    /* Muted Elements */
+    --muted: 220 15% 94%;
+    --muted-foreground: 224 15% 45%;
+
+    /* Accent - Corporate Teal */
+    --accent: 186 77% 40%;
+    --accent-foreground: 0 0% 98%;
+    --accent-light: 186 77% 85%;
+
+    /* Financial Colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 98%;
+    --success-light: 142 71% 90%;
+    
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 98%;
+    --warning-light: 45 93% 90%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Form Elements */
+    --border: 220 15% 88%;
+    --input: 220 15% 96%;
+    --ring: 217 91% 35%;
+
+    --radius: 0.5rem;
+
+    /* Professional Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-hover)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8));
+    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(var(--success) / 0.8));
+    --gradient-surface: linear-gradient(135deg, hsl(var(--card)), hsl(var(--muted)));
+
+    /* Professional Shadows */
+    --shadow-elegant: 0 4px 24px -6px hsl(var(--primary) / 0.15);
+    --shadow-card: 0 2px 12px -4px hsl(224 15% 15% / 0.08);
+    --shadow-input: 0 1px 3px hsl(224 15% 15% / 0.1);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Core Background & Text */
+    --background: 224 15% 8%;
+    --foreground: 220 15% 92%;
+
+    /* Card & Surface Colors */
+    --card: 224 15% 10%;
+    --card-foreground: 220 15% 92%;
+
+    /* Popover Colors */
+    --popover: 224 15% 10%;
+    --popover-foreground: 220 15% 92%;
+
+    /* Primary Brand - Adjusted for dark */
+    --primary: 217 91% 45%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 217 91% 40%;
+    --primary-light: 217 91% 20%;
+
+    /* Secondary - Dark Gray */
+    --secondary: 224 15% 15%;
+    --secondary-foreground: 220 15% 85%;
+
+    /* Muted Elements */
+    --muted: 224 15% 12%;
+    --muted-foreground: 220 15% 65%;
+
+    /* Accent - Corporate Teal for dark */
+    --accent: 186 77% 35%;
+    --accent-foreground: 0 0% 98%;
+    --accent-light: 186 77% 15%;
+
+    /* Financial Colors - Dark adjusted */
+    --success: 142 71% 40%;
+    --success-foreground: 0 0% 98%;
+    --success-light: 142 71% 15%;
+    
+    --warning: 45 93% 42%;
+    --warning-foreground: 0 0% 98%;
+    --warning-light: 45 93% 15%;
+
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Form Elements */
+    --border: 224 15% 20%;
+    --input: 224 15% 15%;
+    --ring: 217 91% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
