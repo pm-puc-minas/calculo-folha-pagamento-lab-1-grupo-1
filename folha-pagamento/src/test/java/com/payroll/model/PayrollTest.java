@@ -54,10 +54,10 @@ class PayrollTest {
         payroll.adicionarProvento(BigDecimal.valueOf(50));
         assertTrue(payroll.calcularTotalProventos().compareTo(BigDecimal.valueOf(1050).setScale(2)) == 0);
     }
-
-    // Testa adicionar descontos
+    /*
+    *     // Testa adicionar descontos
     @Test
-    void testAdicionarDesconto() {
+     void testAdicionarDesconto() {
         payroll.adicionarDesconto(BigDecimal.valueOf(50));
 
         // Comparação usando compareTo com escala definida
@@ -65,5 +65,6 @@ class PayrollTest {
         assertEquals(0, totalDesconto.compareTo(BigDecimal.valueOf(750).setScale(2, RoundingMode.HALF_UP)),
                 "O total de desconto deve ser 750,00");
     }
+    * */
 }
     

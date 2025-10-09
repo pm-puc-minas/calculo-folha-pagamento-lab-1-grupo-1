@@ -27,6 +27,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "src/App.tsx", "src/main.tsx"],
   "exclude": ["node_modules"]
 }
