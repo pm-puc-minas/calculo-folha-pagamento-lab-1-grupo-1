@@ -4,139 +4,197 @@ import com.payroll.entity.Employee;
 import com.payroll.repository.EmployeeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class EmployeeServiceTest {
 
-    @Mock
-    private EmployeeRepository employeeRepository;
-
-    @InjectMocks
     private EmployeeService employeeService;
+    private FakeEmployeeRepository fakeEmployeeRepository;
 
-    private Employee employee;
+    // Fake repository simples que armazena Employees numa lista em memória
+    static class FakeEmployeeRepository implements EmployeeRepository {
+
+        private Map<Long, Employee> storage = new HashMap<>();
+        private AtomicLong idGenerator = new AtomicLong(1);
+
+        @Override
+        public <S extends Employee> S save(S employee) {
+            if (employee.getId() == null) {
+                employee.setId(idGenerator.getAndIncrement());
+            }
+            storage.put(employee.getId(), employee);
+            return employee;
+        }
+
+        @Override
+        public List<Employee> findAll() {
+            return new ArrayList<>(storage.values());
+        }
+
+        @Override
+        public Optional<Employee> findById(Long id) {
+            return Optional.ofNullable(storage.get(id));
+        }
+
+        @Override
+        public Optional<Employee> findByCpf(String cpf) {
+            return storage.values().stream()
+                    .filter(e -> cpf.equals(e.getCpf()))
+                    .findFirst();
+        }
+
+        @Override
+        public boolean existsByCpf(String cpf) {
+            return storage.values().stream()
+                    .anyMatch(e -> cpf.equals(e.getCpf()));
+        }
+
+        @Override
+        public void deleteById(Long id) {
+            storage.remove(id);
+        }
+
+        // Métodos não implementados podem lançar UnsupportedOperationException
+        // para garantir que não são usados por engano
+    }
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        employee = new Employee();
-        employee.setFullName("Bernardo");
-        employee.setCpf("12345678900");
-        employee.setRg("MG123456");
-        employee.setPosition("Developer");
-        employee.setAdmissionDate(LocalDate.of(2020, 1, 1));
-        employee.setSalary(new BigDecimal("5000"));
-        employee.setWeeklyHours(40);
-        employee.setTransportVoucher(true);
-        employee.setMealVoucher(true);
-        employee.setMealVoucherValue(new BigDecimal("500"));
-        employee.setDangerousWork(false);
-        employee.setDangerousPercentage(BigDecimal.ZERO);
-        employee.setUnhealthyWork(false);
-        employee.setUnhealthyLevel(null);
+        fakeEmployeeRepository = new FakeEmployeeRepository();
+        employeeService = new EmployeeService();
+        employeeService.employeeRepository = fakeEmployeeRepository; // injetar fake repo
     }
 
-    // Testa a criação de um funcionário
+    // Cria um funcionário padrão para testes
+    private Employee createSampleEmployee() {
+        Employee emp = new Employee();
+        emp.setFullName("Maria Silva");
+        emp.setCpf("11122233344");
+        emp.setRg("MG1234567");
+        emp.setPosition("Analista");
+        emp.setAdmissionDate(LocalDate.of(2020, 1, 15));
+        emp.setSalary(new BigDecimal("3500.00"));
+        emp.setWeeklyHours(40);
+        emp.setTransportVoucher(true);
+        emp.setMealVoucher(true);
+        emp.setMealVoucherValue(new BigDecimal("25.00"));
+        emp.setDangerousWork(false);
+        emp.setDangerousPercentage(0);
+        emp.setUnhealthyWork(false);
+        emp.setUnhealthyLevel(0);
+        return emp;
+    }
+
     @Test
     void testCreateEmployee() {
-        when(employeeRepository.save(any(Employee.class))).thenReturn(employee);
+        Employee emp = createSampleEmployee();
+        Employee saved = employeeService.createEmployee(emp, 10L);
 
-        Employee created = employeeService.createEmployee(employee, 1L);
-
-        assertNotNull(created);
-        assertEquals("Bernardo", created.getFullName());
-        assertEquals(1L, created.getCreatedBy());
-        verify(employeeRepository, times(1)).save(employee);
+        assertNotNull(saved.getId());
+        assertEquals("Maria Silva", saved.getFullName());
+        assertEquals(10L, saved.getCreatedBy());
     }
 
-    // Testa a listagem de todos os funcionários
     @Test
     void testGetAllEmployees() {
-        when(employeeRepository.findAll()).thenReturn(Arrays.asList(employee));
+        Employee emp1 = createSampleEmployee();
+        Employee emp2 = createSampleEmployee();
+        emp2.setCpf("55566677788");
+        emp2.setFullName("João Souza");
 
-        List<Employee> employees = employeeService.getAllEmployees();
+        employeeService.createEmployee(emp1, 1L);
+        employeeService.createEmployee(emp2, 2L);
 
-        assertEquals(1, employees.size());
-        verify(employeeRepository, times(1)).findAll();
+        List<Employee> all = employeeService.getAllEmployees();
+
+        assertEquals(2, all.size());
+        assertTrue(all.stream().anyMatch(e -> e.getFullName().equals("Maria Silva")));
+        assertTrue(all.stream().anyMatch(e -> e.getFullName().equals("João Souza")));
     }
 
-    // Testa a busca por ID
     @Test
     void testGetEmployeeById() {
-        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
+        Employee emp = createSampleEmployee();
+        Employee saved = employeeService.createEmployee(emp, 5L);
 
-        Optional<Employee> result = employeeService.getEmployeeById(1L);
-
-        assertTrue(result.isPresent());
-        assertEquals("Bernardo", result.get().getFullName());
+        Optional<Employee> found = employeeService.getEmployeeById(saved.getId());
+        assertTrue(found.isPresent());
+        assertEquals("Maria Silva", found.get().getFullName());
     }
 
-    // Testa a busca por CPF
     @Test
     void testGetEmployeeByCpf() {
-        when(employeeRepository.findByCpf("12345678900")).thenReturn(Optional.of(employee));
+        Employee emp = createSampleEmployee();
+        employeeService.createEmployee(emp, 3L);
 
-        Optional<Employee> result = employeeService.getEmployeeByCpf("12345678900");
+        Optional<Employee> found = employeeService.getEmployeeByCpf("11122233344");
+        assertTrue(found.isPresent());
+        assertEquals("Maria Silva", found.get().getFullName());
 
-        assertTrue(result.isPresent());
-        assertEquals("Bernardo", result.get().getFullName());
+        Optional<Employee> notFound = employeeService.getEmployeeByCpf("00000000000");
+        assertTrue(notFound.isEmpty());
     }
 
-    // Testa se existe um funcionário por CPF
     @Test
     void testExistsByCpf() {
-        when(employeeRepository.existsByCpf("12345678900")).thenReturn(true);
+        Employee emp = createSampleEmployee();
+        employeeService.createEmployee(emp, 3L);
 
-        boolean exists = employeeService.existsByCpf("12345678900");
-
-        assertTrue(exists);
+        assertTrue(employeeService.existsByCpf("11122233344"));
+        assertFalse(employeeService.existsByCpf("99999999999"));
     }
 
-    // Testa a atualização de um funcionário
     @Test
     void testUpdateEmployee() {
-        Employee updatedDetails = new Employee();
-        updatedDetails.setFullName("Gustavo");
-        updatedDetails.setCpf("09876543211");
-        updatedDetails.setRg("MG654321");
-        updatedDetails.setPosition("Tester");
-        updatedDetails.setAdmissionDate(LocalDate.of(2021, 2, 1));
-        updatedDetails.setSalary(new BigDecimal("6000"));
-        updatedDetails.setWeeklyHours(35);
-        updatedDetails.setTransportVoucher(false);
-        updatedDetails.setMealVoucher(false);
-        updatedDetails.setMealVoucherValue(BigDecimal.ZERO);
-        updatedDetails.setDangerousWork(true);
-        updatedDetails.setDangerousPercentage(new BigDecimal("10"));
-        updatedDetails.setUnhealthyWork(true);
-        updatedDetails.setUnhealthyLevel("ALTO");
+        Employee emp = createSampleEmployee();
+        Employee saved = employeeService.createEmployee(emp, 2L);
 
-        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));
-        when(employeeRepository.save(any(Employee.class))).thenReturn(updatedDetails);
+        Employee updateDetails = new Employee();
+        updateDetails.setFullName("Maria Souza");
+        updateDetails.setCpf("11122233344");
+        updateDetails.setRg("MG7654321");
+        updateDetails.setPosition("Gerente");
+        updateDetails.setAdmissionDate(LocalDate.of(2019, 5, 10));
+        updateDetails.setSalary(new BigDecimal("4500.00"));
+        updateDetails.setWeeklyHours(38);
+        updateDetails.setTransportVoucher(false);
+        updateDetails.setMealVoucher(true);
+        updateDetails.setMealVoucherValue(new BigDecimal("30.00"));
+        updateDetails.setDangerousWork(true);
+        updateDetails.setDangerousPercentage(10);
+        updateDetails.setUnhealthyWork(true);
+        updateDetails.setUnhealthyLevel(2);
 
-        Employee result = employeeService.updateEmployee(1L, updatedDetails);
+        Employee updated = employeeService.updateEmployee(saved.getId(), updateDetails);
 
-        assertEquals("Gustavo", result.getFullName());
-        assertEquals("09876543211", result.getCpf());
-        assertTrue(result.getDangerousWork());
-        verify(employeeRepository, times(1)).save(any(Employee.class));
+        assertEquals("Maria Souza", updated.getFullName());
+        assertEquals("MG7654321", updated.getRg());
+        assertEquals("Gerente", updated.getPosition());
+        assertEquals(LocalDate.of(2019, 5, 10), updated.getAdmissionDate());
+        assertEquals(new BigDecimal("4500.00"), updated.getSalary());
+        assertEquals(38, updated.getWeeklyHours());
+        assertFalse(updated.isTransportVoucher());
+        assertTrue(updated.isMealVoucher());
+        assertEquals(new BigDecimal("30.00"), updated.getMealVoucherValue());
+        assertTrue(updated.isDangerousWork());
+        assertEquals(10, updated.getDangerousPercentage());
+        assertTrue(updated.isUnhealthyWork());
+        assertEquals(2, updated.getUnhealthyLevel());
     }
 
-    // Testa a exclusão de um funcionário
     @Test
     void testDeleteEmployee() {
-        doNothing().when(employeeRepository).deleteById(1L);
+        Employee emp = createSampleEmployee();
+        Employee saved = employeeService.createEmployee(emp, 1L);
 
-        employeeService.deleteEmployee(1L);
-
-        verify(employeeRepository, times(1)).deleteById(1L);
+        employeeService.deleteEmployee(saved.getId());
+        Optional<Employee> found = employeeService.getEmployeeById(saved.getId());
+        assertTrue(found.isEmpty());
     }
 }
