@@ -1,96 +1,66 @@
 package com.payroll.controller;
 
 import com.payroll.entity.Employee;
-import com.payroll.entity.User;
+import com.payroll.entity.Payroll;
 import com.payroll.service.EmployeeService;
-import com.payroll.service.UserService;
+import com.payroll.service.PayrollService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class EmployeeControllerTest {
+class DashboardControllerTest {
 
-    private EmployeeController employeeController;
+    private DashboardController dashboardController;
     private EmployeeService employeeService;
-    private UserService userService;
+    private PayrollService payrollService;
 
     @BeforeEach
     void setUp() {
-        
-        employeeService = new EmployeeService() {
-            private final List<Employee> employees = List.of(
-                new Employee(1L, "12345678901", "João"),
-                new Employee(2L, "10987654321", "Maria")
-            );
+        // Criar instâncias reais ou fake dos serviços com dados concretos
 
+        employeeService = new EmployeeService() {
             @Override
             public List<Employee> getAllEmployees() {
-                return employees;
-            }
-
-            @Override
-            public boolean existsByCpf(String cpf) {
-                return employees.stream().anyMatch(e -> e.getCpf().equals(cpf));
-            }
-
-            @Override
-            public void createEmployee(Employee employee, Long userId) {
-                // Simula criação (não faz nada)
-            }
-
-            @Override
-            public Optional<Employee> getEmployeeById(Long id) {
-                return employees.stream().filter(e -> e.getId().equals(id)).findFirst();
-            }
-
-            @Override
-            public void updateEmployee(Long id, Employee employee) {
-                // Simula atualização (não faz nada)
-            }
-
-            @Override
-            public void deleteEmployee(Long id) {
-                // Simula exclusão (não faz nada)
+                // Retorna lista concreta de employees, sem mock
+                return List.of(
+                    new Employee(1L, "João", "joao@email.com"),
+                    new Employee(2L, "Maria", "maria@email.com")
+                );
             }
         };
 
-        userService = new UserService() {
-            private final List<User> users = List.of(
-                new User(1L, "admin", "senha123", null)
-            );
-
+        payrollService = new PayrollService() {
             @Override
-            public Optional<User> findByUsername(String username) {
-                return users.stream().filter(u -> u.getUsername().equals(username)).findFirst();
+            public List<Payroll> getAllPayrolls() {
+                // Retorna lista concreta de payrolls, sem mock
+                return List.of(
+                    new Payroll(1L, 1L, 3000),
+                    new Payroll(2L, 2L, 4000)
+                );
             }
         };
 
-        employeeController = new EmployeeController();
-        employeeController.employeeService = employeeService;
-        employeeController.userService = userService;
+        dashboardController = new DashboardController();
+        // Injetar serviços manuais (já que sem Spring no teste)
+        dashboardController.employeeService = employeeService;
+        dashboardController.payrollService = payrollService;
     }
 
     @Test
-    void testListEmployees() {
-        ResponseEntity<List<Employee>> response = employeeController.listEmployees();
-        assertEquals(200, response.getStatusCodeValue());
-        List<Employee> employees = response.getBody();
-        assertNotNull(employees);
-        assertEquals(2, employees.size());
-    }
-
-    @Test
-    void testCreateEmployee_success() {
-        Employee newEmployee = new Employee(null, "55566677788", "Carlos");
-
+    void testGetDashboardData_withCurrentUser() {
+        // Simular um currentUser
         UserDetails currentUser = new UserDetails() {
-            @Override public String getUsername() { return "admin"; }
+            @Override
+            public String getUsername() {
+                return "admin";
+            }
+            // outros métodos podem retornar default ou null
             @Override public List getAuthorities() { return null; }
             @Override public String getPassword() { return null; }
             @Override public boolean isAccountNonExpired() { return true; }
@@ -99,58 +69,32 @@ class EmployeeControllerTest {
             @Override public boolean isEnabled() { return true; }
         };
 
-        ResponseEntity<?> response = employeeController.createEmployee(newEmployee, currentUser);
-        assertEquals(201, response.getStatusCodeValue());
-        assertEquals(newEmployee, response.getBody());
-    }
-
-    @Test
-    void testCreateEmployee_conflictCpf() {
-        Employee newEmployee = new Employee(null, "12345678901", "Carlos"); // CPF já existe
-
-        UserDetails currentUser = new UserDetails() {
-            @Override public String getUsername() { return "admin"; }
-            @Override public List getAuthorities() { return null; }
-            @Override public String getPassword() { return null; }
-            @Override public boolean isAccountNonExpired() { return true; }
-            @Override public boolean isAccountNonLocked() { return true; }
-            @Override public boolean isCredentialsNonExpired() { return true; }
-            @Override public boolean isEnabled() { return true; }
-        };
-
-        ResponseEntity<?> response = employeeController.createEmployee(newEmployee, currentUser);
-        assertEquals(409, response.getStatusCodeValue());
-        assertEquals("CPF já cadastrado", response.getBody());
-    }
-
-    @Test
-    void testViewEmployee_found() {
-        ResponseEntity<?> response = employeeController.viewEmployee(1L);
+        ResponseEntity<?> response = dashboardController.getDashboardData(currentUser);
         assertEquals(200, response.getStatusCodeValue());
-        Employee employee = (Employee) response.getBody();
-        assertNotNull(employee);
-        assertEquals(1L, employee.getId());
+
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+        assertNotNull(body);
+        assertEquals(2, body.get("totalEmployees"));
+        assertEquals(2, body.get("totalPayrolls"));
+
+        // Verificar lista de funcionários e folhas
+        assertTrue(body.get("recentEmployees") instanceof List);
+        assertTrue(body.get("recentPayrolls") instanceof List);
+
+        assertEquals("admin", body.get("currentUser"));
     }
 
     @Test
-    void testViewEmployee_notFound() {
-        ResponseEntity<?> response = employeeController.viewEmployee(999L);
-        assertEquals(404, response.getStatusCodeValue());
-        assertEquals("Funcionário não encontrado", response.getBody());
-    }
-
-    @Test
-    void testUpdateEmployee_success() {
-        Employee updatedEmployee = new Employee(1L, "12345678901", "João Atualizado");
-        ResponseEntity<?> response = employeeController.updateEmployee(1L, updatedEmployee);
+    void testGetDashboardData_withoutCurrentUser() {
+        ResponseEntity<?> response = dashboardController.getDashboardData(null);
         assertEquals(200, response.getStatusCodeValue());
-        assertEquals(updatedEmployee, response.getBody());
-    }
 
-    @Test
-    void testDeleteEmployee_success() {
-        ResponseEntity<?> response = employeeController.deleteEmployee(1L);
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("Funcionário excluído com sucesso", response.getBody());
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+        assertNotNull(body);
+        assertEquals(2, body.get("totalEmployees"));
+        assertEquals(2, body.get("totalPayrolls"));
+        assertNull(body.get("currentUser"));
     }
 }
