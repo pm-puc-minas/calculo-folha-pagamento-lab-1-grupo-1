@@ -26,7 +26,7 @@ class PayrollControllerTest {
 
     @BeforeEach
     void setup() {
-        // Instanciar os serviços com implementações mínimas para teste (sem mocks)
+        // Instanciar os serviços 
         payrollService = new PayrollService() {
             private final Map<Long, PayrollCalculation> payrollMap = new HashMap<>();
             private long idCounter = 1;
