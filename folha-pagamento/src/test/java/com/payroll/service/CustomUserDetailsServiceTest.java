@@ -1,60 +1,79 @@
 package com.payroll.service;
 
 import com.payroll.entity.User;
+import com.payroll.entity.Employee;
 import com.payroll.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class CustomUserDetailsServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    private CustomUserDetailsService userDetailsService;
+    private FakeUserRepository fakeUserRepository;
 
-    @InjectMocks
-    private CustomUserDetailsService customUserDetailsService;
 
-    private User user;
+    static class FakeUserRepository implements UserRepository {
+        private User storedUser;
+
+        void save(User user) {
+            this.storedUser = user;
+        }
+
+        @Override
+        public Optional<User> findByUsername(String username) {
+            if (storedUser != null && storedUser.getUsername().equals(username)) {
+                return Optional.of(storedUser);
+            }
+            return Optional.empty();
+        }
+
+    
+    }
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+    void setup() {
+        fakeUserRepository = new FakeUserRepository();
+        userDetailsService = new CustomUserDetailsService();
+       
+        userDetailsService.userRepository = fakeUserRepository;
 
-        user = new User();
-        user.setUsername("bernardo");
-        user.setPassword("123456");
-        user.setRole(User.Role.ADMIN); // supondo que User tem enum Role
+        // Criando um usuário de exemplo
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("joao");
+        user.setPassword("senha123");
+        user.setRole(User.Role.ADMIN);
+
+        // Aqui criamos um employee para ilustrar e associar caso se quiser
+        Employee employee = new Employee();
+        employee.setNome("João Silva");
+        employee.setCpf("12345678900");
+        user.setEmployee(employee);
+
+        fakeUserRepository.save(user);
     }
 
-    // Testa se o usuário é carregado corretamente pelo username
     @Test
     void testLoadUserByUsernameSuccess() {
-        when(userRepository.findByUsername("bernardo")).thenReturn(Optional.of(user));
-
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername("bernardo");
+        UserDetails userDetails = userDetailsService.loadUserByUsername("joao");
 
         assertNotNull(userDetails);
-        assertEquals("bernardo", userDetails.getUsername());
-        assertEquals("123456", userDetails.getPassword());
+        assertEquals("joao", userDetails.getUsername());
+        assertEquals("senha123", userDetails.getPassword());
         assertTrue(userDetails.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN")));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
     }
 
-    // Testa se lança exceção quando o usuário não é encontrado
     @Test
     void testLoadUserByUsernameNotFound() {
-        when(userRepository.findByUsername("inexistente")).thenReturn(Optional.empty());
-
-        assertThrows(UsernameNotFoundException.class, () -> 
-                customUserDetailsService.loadUserByUsername("inexistente"));
+        assertThrows(UsernameNotFoundException.class, () -> {
+            userDetailsService.loadUserByUsername("usuarioInexistente");
+        });
     }
 }
