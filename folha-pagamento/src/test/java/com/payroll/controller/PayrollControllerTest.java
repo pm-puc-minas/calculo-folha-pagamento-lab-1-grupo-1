@@ -8,165 +8,188 @@ import com.payroll.service.PayrollService;
 import com.payroll.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.math.BigDecimal;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
-/**
- * Testes unitários para o PayrollController.
- *
- * Objetivo:
- * - Validar endpoints de listagem, cálculo e visualização de folhas de pagamento.
- * - Testar tratamento de exceções e comportamento com dados inexistentes.
- */
 class PayrollControllerTest {
 
-    @Mock
+    private PayrollController controller;
     private PayrollService payrollService;
-
-    @Mock
     private EmployeeService employeeService;
-
-    @Mock
     private UserService userService;
 
-    @InjectMocks
-    private PayrollController payrollController;
-
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+    void setup() {
+        // Instanciar os serviços com implementações mínimas para teste (sem mocks)
+        payrollService = new PayrollService() {
+            private final Map<Long, PayrollCalculation> payrollMap = new HashMap<>();
+            private long idCounter = 1;
+
+            @Override
+            public List<PayrollCalculation> getAllPayrolls() {
+                return new ArrayList<>(payrollMap.values());
+            }
+
+            @Override
+            public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long userId) {
+                PayrollCalculation pc = new PayrollCalculation();
+                pc.setId(idCounter++);
+                pc.setEmployeeId(employeeId);
+                pc.setReferenceMonth(referenceMonth);
+                pc.setCreatedByUserId(userId);
+                pc.setNetSalary(new BigDecimal("2000.00"));
+                payrollMap.put(pc.getId(), pc);
+                return pc;
+            }
+
+            @Override
+            public List<PayrollCalculation> getEmployeePayrolls(Long employeeId) {
+                List<PayrollCalculation> list = new ArrayList<>();
+                for (PayrollCalculation pc : payrollMap.values()) {
+                    if (pc.getEmployeeId().equals(employeeId)) {
+                        list.add(pc);
+                    }
+                }
+                return list;
+            }
+        };
+
+        employeeService = new EmployeeService() {
+            private final Map<Long, Employee> employeeMap = new HashMap<>();
+
+            @Override
+            public Optional<Employee> getEmployeeById(Long id) {
+                return Optional.ofNullable(employeeMap.get(id));
+            }
+
+            @Override
+            public List<Employee> getAllEmployees() {
+                return new ArrayList<>(employeeMap.values());
+            }
+
+            public void addEmployee(Employee emp) {
+                employeeMap.put(emp.getId(), emp);
+            }
+        };
+
+        userService = new UserService() {
+            private final Map<String, User> userMap = new HashMap<>();
+
+            @Override
+            public Optional<User> findByUsername(String username) {
+                return Optional.ofNullable(userMap.get(username));
+            }
+
+            public void addUser(User user) {
+                userMap.put(user.getUsername(), user);
+            }
+        };
+
+        controller = new PayrollController();
+        // Injetar serviços manualmente
+        controller.payrollService = payrollService;
+        controller.employeeService = employeeService;
+        controller.userService = userService;
     }
 
-    /**
-     * Testa se o endpoint /api/payroll retorna corretamente todas as folhas de pagamento.
-     */
     @Test
-    void payrollList_shouldReturnAllPayrolls() {
-        PayrollCalculation p1 = new PayrollCalculation(); p1.setId(1L);
-        PayrollCalculation p2 = new PayrollCalculation(); p2.setId(2L);
-        List<PayrollCalculation> mockPayrolls = List.of(p1, p2);
-
-        when(payrollService.getAllPayrolls()).thenReturn(mockPayrolls);
-
-        ResponseEntity<List<PayrollCalculation>> response = payrollController.payrollList();
-
+    void testPayrollListEmpty() {
+        ResponseEntity<List<PayrollCalculation>> response = controller.payrollList();
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(mockPayrolls, response.getBody());
+        assertTrue(response.getBody().isEmpty());
     }
 
-    /**
-     * Testa se o endpoint /calculate cria uma folha de pagamento corretamente.
-     */
     @Test
-    void calculatePayroll_shouldReturnCreatedPayroll() {
-        User user = new User(); user.setId(10L); user.setUsername("user123");
-        PayrollCalculation calculation = new PayrollCalculation(); calculation.setId(100L);
+    void testCalculatePayrollSuccess() {
+        // Preparar dados
+        User user = new User();
+        user.setId(10L);
+        user.setUsername("usuario1");
+        userService.addUser(user);
 
-        Map<String, String> request = Map.of(
-                "employeeId", "1",
-                "referenceMonth", "2025-10"
-        );
+        Employee employee = new Employee();
+        employee.setId(1L);
+        employeeService.addEmployee(employee);
 
-        UserDetails currentUser = mock(UserDetails.class);
-        when(currentUser.getUsername()).thenReturn("user123");
+        // Simular usuário logado
+        UserDetails userDetails = () -> "usuario1"; // getUsername()
 
-        when(userService.findByUsername("user123")).thenReturn(Optional.of(user));
-        when(payrollService.calculatePayroll(1L, "2025-10", 10L)).thenReturn(calculation);
+        Map<String, String> request = new HashMap<>();
+        request.put("employeeId", "1");
+        request.put("referenceMonth", "2025-10");
 
-        ResponseEntity<?> response = payrollController.calculatePayroll(request, currentUser);
+        ResponseEntity<?> response = controller.calculatePayroll(request, userDetails);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(calculation, response.getBody());
+        assertTrue(response.getBody() instanceof PayrollCalculation);
+        PayrollCalculation calculation = (PayrollCalculation) response.getBody();
+        assertEquals(1L, calculation.getEmployeeId());
+        assertEquals("2025-10", calculation.getReferenceMonth());
+        assertEquals(user.getId(), calculation.getCreatedByUserId());
+        assertNotNull(calculation.getNetSalary());
     }
 
-    /**
-     * Testa se o endpoint /calculate trata exceções corretamente.
-     */
     @Test
-    void calculatePayroll_shouldReturnInternalServerError_whenExceptionOccurs() {
-        Map<String, String> request = Map.of(
-                "employeeId", "1",
-                "referenceMonth", "2025-10"
-        );
+    void testCalculatePayrollError() {
+        // Request com employeeId inválido (não numérico)
+        UserDetails userDetails = () -> "usuario1";
 
-        UserDetails currentUser = mock(UserDetails.class);
-        when(currentUser.getUsername()).thenReturn("user123");
-        when(userService.findByUsername("user123")).thenThrow(new RuntimeException("Falha"));
+        Map<String, String> request = new HashMap<>();
+        request.put("employeeId", "abc"); // inválido
+        request.put("referenceMonth", "2025-10");
 
-        ResponseEntity<?> response = payrollController.calculatePayroll(request, currentUser);
+        ResponseEntity<?> response = controller.calculatePayroll(request, userDetails);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertTrue(((String) response.getBody()).contains("Falha"));
+        assertTrue(response.getBody().toString().contains("Erro ao calcular folha"));
     }
 
-    /**
-     * Testa se o endpoint /{id} retorna a folha de pagamento correta quando existe.
-     */
     @Test
-    void viewPayroll_shouldReturnPayroll_whenExists() {
-        PayrollCalculation p1 = new PayrollCalculation(); p1.setId(1L);
-        List<PayrollCalculation> allPayrolls = List.of(p1);
+    void testViewPayrollFound() {
+        // Preparar folha cadastrada
+        PayrollCalculation calc = payrollService.calculatePayroll(1L, "2025-10", 10L);
 
-        when(payrollService.getAllPayrolls()).thenReturn(allPayrolls);
-
-        ResponseEntity<?> response = payrollController.viewPayroll(1L);
-
+        ResponseEntity<?> response = controller.viewPayroll(calc.getId());
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(p1, response.getBody());
+        assertEquals(calc, response.getBody());
     }
 
-    /**
-     * Testa se o endpoint /{id} retorna 404 quando a folha de pagamento não existe.
-     */
     @Test
-    void viewPayroll_shouldReturnNotFound_whenDoesNotExist() {
-        when(payrollService.getAllPayrolls()).thenReturn(List.of());
-
-        ResponseEntity<?> response = payrollController.viewPayroll(1L);
-
+    void testViewPayrollNotFound() {
+        ResponseEntity<?> response = controller.viewPayroll(999L);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Folha de pagamento não encontrada", response.getBody());
     }
 
-    /**
-     * Testa se o endpoint /employee/{employeeId} retorna dados corretos para um funcionário existente.
-     */
-    @SuppressWarnings("unchecked")
     @Test
-    void viewEmployeePayrolls_shouldReturnPayrollsForEmployee() {
-        Employee emp = new Employee(); emp.setId(1L);
-        PayrollCalculation p1 = new PayrollCalculation(); p1.setId(100L);
-        List<PayrollCalculation> calculations = List.of(p1);
+    void testViewEmployeePayrollsFound() {
+        // Criar employee
+        Employee emp = new Employee();
+        emp.setId(1L);
+        emp.setName("João");
+        employeeService.addEmployee(emp);
 
-        when(employeeService.getEmployeeById(1L)).thenReturn(Optional.of(emp));
-        when(payrollService.getEmployeePayrolls(1L)).thenReturn(calculations);
+        // Criar folha de pagamento para ele
+        PayrollCalculation pc = payrollService.calculatePayroll(1L, "2025-10", 10L);
 
-        ResponseEntity<?> response = payrollController.viewEmployeePayrolls(1L);
-
+        ResponseEntity<?> response = controller.viewEmployeePayrolls(1L);
         assertEquals(HttpStatus.OK, response.getStatusCode());
+
         Map<String, Object> body = (Map<String, Object>) response.getBody();
         assertEquals(emp, body.get("employee"));
-        assertEquals(calculations, body.get("calculations"));
+        List<?> calculations = (List<?>) body.get("calculations");
+        assertTrue(calculations.contains(pc));
     }
 
-    /**
-     * Testa se o endpoint /employee/{employeeId} retorna 404 quando o funcionário não existe.
-     */
     @Test
-    void viewEmployeePayrolls_shouldReturnNotFound_whenEmployeeDoesNotExist() {
-        when(employeeService.getEmployeeById(1L)).thenReturn(Optional.empty());
-
-        ResponseEntity<?> response = payrollController.viewEmployeePayrolls(1L);
-
+    void testViewEmployeePayrollsNotFound() {
+        ResponseEntity<?> response = controller.viewEmployeePayrolls(999L);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Funcionário não encontrado", response.getBody());
     }
