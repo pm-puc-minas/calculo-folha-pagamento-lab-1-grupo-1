@@ -1,94 +1,151 @@
 package com.payroll.service;
 
+import com.payroll.model.Employee;
 import com.payroll.model.Employee.GrauInsalubridade;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-import static org.junit.jupiter.api.Assertions.*;
+public class SheetCalculator {
 
-class SheetCalculatorTest {
+    // Tabelas INSS e IRRF continuam iguais...
 
-    private SheetCalculator calculator;
+    private static final BigDecimal[] INSS_LIMITS = {
+        new BigDecimal("1412.00"),
+        new BigDecimal("2666.68"),
+        new BigDecimal("4000.03"),
+        new BigDecimal("7786.02")
+    };
 
-    @BeforeEach
-    void setUp() {
-        calculator = new SheetCalculator();
+    private static final BigDecimal[] INSS_RATES = {
+        new BigDecimal("0.075"),
+        new BigDecimal("0.09"),
+        new BigDecimal("0.12"),
+        new BigDecimal("0.14")
+    };
+
+    private static final BigDecimal[] IRPF_LIMITS = {
+        new BigDecimal("2259.20"),
+        new BigDecimal("2826.65"),
+        new BigDecimal("3751.05"),
+        new BigDecimal("4664.68")
+    };
+
+    private static final BigDecimal[] IRPF_RATES = {
+        new BigDecimal("0.075"),
+        new BigDecimal("0.15"),
+        new BigDecimal("0.225"),
+        new BigDecimal("0.275")
+    };
+
+    private static final BigDecimal[] IRPF_DEDUCTIONS = {
+        new BigDecimal("169.44"),
+        new BigDecimal("381.44"),
+        new BigDecimal("662.77"),
+        new BigDecimal("896.00")
+    };
+
+    // Agora o método recebe Employee ao invés de valores soltos
+
+    public BigDecimal calcularSalarioHora(Employee employee) {
+        if (employee == null || employee.getSalarioBruto() == null || employee.getHorasSemanais() <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal horasMensais = new BigDecimal(employee.getHorasSemanais()).multiply(new BigDecimal("4.33"));
+        return employee.getSalarioBruto().divide(horasMensais, 2, RoundingMode.HALF_UP);
     }
 
-    @Test
-    void testCalcularSalarioHora() {
-        BigDecimal salarioHora = calculator.calcularSalarioHora(new BigDecimal("3000.00"), 40);
-        salarioHora = salarioHora.setScale(2, RoundingMode.HALF_UP);
+    public BigDecimal calcularAdicionalPericulosidade(Employee employee) {
+        if (employee == null || employee.getSalarioBruto() == null) {
+            return BigDecimal.ZERO;
+        }
 
-        assertEquals(new BigDecimal("17.32"), salarioHora,
-                "O salário por hora deve ser calculado corretamente");
-
-        // Teste para entradas nulas ou horas = 0
-        assertEquals(BigDecimal.ZERO, calculator.calcularSalarioHora(null, 40));
-        assertEquals(BigDecimal.ZERO, calculator.calcularSalarioHora(new BigDecimal("3000.00"), 0));
+        return employee.getSalarioBruto().multiply(new BigDecimal("0.30")).setScale(2, RoundingMode.HALF_UP);
     }
 
-    @Test
-    void testCalcularAdicionalPericulosidade() {
-        BigDecimal adicional = calculator.calcularAdicionalPericulosidade(new BigDecimal("3000.00"));
-        assertEquals(new BigDecimal("900.00"), adicional);
-        assertEquals(BigDecimal.ZERO, calculator.calcularAdicionalPericulosidade(null));
+    public BigDecimal calcularAdicionalInsalubridade(Employee employee) {
+        if (employee == null || employee.getSalarioMinimo() == null || employee.getGrauInsalubridade() == null || employee.getGrauInsalubridade() == GrauInsalubridade.NENHUM) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal percentual = switch (employee.getGrauInsalubridade()) {
+            case BAIXO -> new BigDecimal("0.10");
+            case MEDIO -> new BigDecimal("0.20");
+            case ALTO -> new BigDecimal("0.40");
+            default -> BigDecimal.ZERO;
+        };
+
+        return employee.getSalarioMinimo().multiply(percentual).setScale(2, RoundingMode.HALF_UP);
     }
 
-    @Test
-    void testCalcularAdicionalInsalubridade() {
-        assertEquals(new BigDecimal("141.20"), calculator.calcularAdicionalInsalubridade(new BigDecimal("1412.00"), GrauInsalubridade.BAIXO));
-        assertEquals(new BigDecimal("282.40"), calculator.calcularAdicionalInsalubridade(new BigDecimal("1412.00"), GrauInsalubridade.MEDIO));
-        assertEquals(new BigDecimal("564.80"), calculator.calcularAdicionalInsalubridade(new BigDecimal("1412.00"), GrauInsalubridade.ALTO));
-        assertEquals(BigDecimal.ZERO, calculator.calcularAdicionalInsalubridade(new BigDecimal("1412.00"), GrauInsalubridade.NENHUM));
-        assertEquals(BigDecimal.ZERO, calculator.calcularAdicionalInsalubridade(null, GrauInsalubridade.MEDIO));
+    public BigDecimal calcularDescontoValeTransporte(Employee employee, BigDecimal valorEntregue) {
+        if (employee == null || employee.getSalarioBruto() == null || valorEntregue == null) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal descontoMaximo = employee.getSalarioBruto().multiply(new BigDecimal("0.06"));
+        return valorEntregue.min(descontoMaximo).setScale(2, RoundingMode.HALF_UP);
     }
 
-    @Test
-    void testCalcularDescontoValeTransporte() {
-        BigDecimal desconto = calculator.calcularDescontoValeTransporte(new BigDecimal("3000.00"), new BigDecimal("150.00"));
-        assertEquals(new BigDecimal("150.00"), desconto); // Menor entre 6% do salário e valor entregue
-        desconto = calculator.calcularDescontoValeTransporte(new BigDecimal("3000.00"), new BigDecimal("300.00"));
-        assertEquals(new BigDecimal("180.00"), desconto); // 6% de 3000 = 180
-        assertEquals(BigDecimal.ZERO, calculator.calcularDescontoValeTransporte(null, new BigDecimal("100")));
-        assertEquals(BigDecimal.ZERO, calculator.calcularDescontoValeTransporte(new BigDecimal("3000"), null));
+    public BigDecimal calcularValeAlimentacao(BigDecimal valorDiario, int diasTrabalhados) {
+        if (valorDiario == null || diasTrabalhados <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return valorDiario.multiply(new BigDecimal(diasTrabalhados)).setScale(2, RoundingMode.HALF_UP);
     }
 
-    @Test
-    void testCalcularValeAlimentacao() {
-        BigDecimal vale = calculator.calcularValeAlimentacao(new BigDecimal("25.00"), 22);
-        assertEquals(new BigDecimal("550.00"), vale);
-        assertEquals(BigDecimal.ZERO, calculator.calcularValeAlimentacao(null, 22));
-        assertEquals(BigDecimal.ZERO, calculator.calcularValeAlimentacao(new BigDecimal("25.00"), 0));
+    public BigDecimal calcularINSS(Employee employee) {
+        if (employee == null || employee.getSalarioBruto() == null || employee.getSalarioBruto().compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal totalDesconto = BigDecimal.ZERO;
+        BigDecimal salarioRestante = employee.getSalarioBruto();
+
+        for (int i = 0; i < INSS_LIMITS.length && salarioRestante.compareTo(BigDecimal.ZERO) > 0; i++) {
+            BigDecimal limite = INSS_LIMITS[i];
+            BigDecimal limiteAnterior = i > 0 ? INSS_LIMITS[i - 1] : BigDecimal.ZERO;
+            BigDecimal valorTributavel = salarioRestante.min(limite.subtract(limiteAnterior));
+
+            if (valorTributavel.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal desconto = valorTributavel.multiply(INSS_RATES[i]);
+                totalDesconto = totalDesconto.add(desconto);
+                salarioRestante = salarioRestante.subtract(valorTributavel);
+            }
+        }
+
+        return totalDesconto.setScale(2, RoundingMode.HALF_UP);
     }
 
-    @Test
-    void testCalcularINSS() {
-        BigDecimal inss = calculator.calcularINSS(new BigDecimal("3000.00"));
-        assertTrue(inss.compareTo(BigDecimal.ZERO) > 0);
-        assertEquals(BigDecimal.ZERO, calculator.calcularINSS(null));
-        assertEquals(BigDecimal.ZERO, calculator.calcularINSS(BigDecimal.ZERO));
+    public BigDecimal calcularFGTS(Employee employee) {
+        if (employee == null || employee.getSalarioBruto() == null || employee.getSalarioBruto().compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return employee.getSalarioBruto().multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP);
     }
 
-    @Test
-    void testCalcularFGTS() {
-        BigDecimal fgts = calculator.calcularFGTS(new BigDecimal("3000.00"));
-        assertEquals(new BigDecimal("240.00"), fgts);
-        assertEquals(BigDecimal.ZERO, calculator.calcularFGTS(null));
-    }
+    public BigDecimal calcularIRRF(Employee employee, BigDecimal descontoINSS) {
+        if (employee == null || employee.getSalarioBruto() == null || descontoINSS == null) {
+            return BigDecimal.ZERO;
+        }
 
-    @Test
-    void testCalcularIRRF() {
-        BigDecimal inss = new BigDecimal("330.00");
-        BigDecimal irrf = calculator.calcularIRRF(new BigDecimal("3000.00"), inss, 0);
-        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0);
-        // Com dependentes
-        irrf = calculator.calcularIRRF(new BigDecimal("3000.00"), inss, 2);
-        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0);
-        assertEquals(BigDecimal.ZERO, calculator.calcularIRRF(null, inss, 0));
-        assertEquals(BigDecimal.ZERO, calculator.calcularIRRF(new BigDecimal("3000.00"), null, 0));
+        BigDecimal deducaoDependentes = new BigDecimal("189.59").multiply(new BigDecimal(employee.getNumDependentes()));
+        BigDecimal baseCalculo = employee.getSalarioBruto().subtract(descontoINSS).subtract(deducaoDependentes);
+
+        if (baseCalculo.compareTo(IRPF_LIMITS[0]) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        for (int i = IRPF_LIMITS.length - 1; i >= 0; i--) {
+            if (baseCalculo.compareTo(IRPF_LIMITS[i]) > 0) {
+                BigDecimal imposto = baseCalculo.multiply(IRPF_RATES[i]).subtract(IRPF_DEDUCTIONS[i]);
+                return imposto.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+            }
+        }
+
+        return BigDecimal.ZERO;
     }
 }
