@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserService {
+public class UserService implements IUserService {
 
     @Autowired
     private UserRepository userRepository;
@@ -63,3 +63,4 @@ public class UserService {
         userRepository.deleteById(id);
     }
 }
+

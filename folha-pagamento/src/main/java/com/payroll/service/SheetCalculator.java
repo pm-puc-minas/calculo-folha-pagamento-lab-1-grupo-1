@@ -44,21 +44,28 @@ public class SheetCalculator {
             new BigDecimal("896.00")
     };
 
+/*************  ✨ Windsurf Command ⭐  *************/
+    /**
+     * Calcula o salário por hora com base no salário bruto e nas horas
+     * semanais trabalhadas.
+     *
+     * @param salarioBruto o salário bruto do funcionário
+     * @param horasSemanais a quantidade de horas semanais trabalhadas
+     * @return o salário por hora do funcionário
+     */
+/*******  dcf70037-afa9-47f8-8c32-f985d2c9d0bb  *******/
     public BigDecimal calcularSalarioHora(BigDecimal salarioBruto, int horasSemanais) {
         if (salarioBruto == null || horasSemanais <= 0) {
             return BigDecimal.ZERO;
         }
-
         // Cálculo baseado em 4.33 semanas por mês (52 semanas / 12 meses)
         BigDecimal horasMensais = new BigDecimal(horasSemanais).multiply(new BigDecimal("4.33"));
         return salarioBruto.divide(horasMensais, 2, RoundingMode.HALF_UP);
     }
-
     public BigDecimal calcularAdicionalPericulosidade(BigDecimal salarioBase) {
         if (salarioBase == null) {
             return BigDecimal.ZERO;
         }
-
         // Adicional de periculosidade é 30% do salário base
         return salarioBase.multiply(new BigDecimal("0.30")).setScale(2, RoundingMode.HALF_UP);
     }
@@ -82,7 +89,6 @@ public class SheetCalculator {
         if (salarioBruto == null || valorEntregue == null) {
             return BigDecimal.ZERO;
         }
-
         // Desconto máximo de 6% do salário bruto
         BigDecimal descontoMaximo = salarioBruto.multiply(new BigDecimal("0.06"));
 

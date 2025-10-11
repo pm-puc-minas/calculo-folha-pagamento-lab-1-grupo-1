@@ -13,7 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/dashboard")
-public class DashboardController {
+public class DashboardController implements IDashboardController {
 
     @Autowired
     private EmployeeService employeeService;
@@ -48,4 +48,3 @@ public class DashboardController {
         }
     }
 }
-

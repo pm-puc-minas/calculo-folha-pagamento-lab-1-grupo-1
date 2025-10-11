@@ -19,7 +19,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/payroll")
-public class PayrollController {
+public class PayrollController implements IPayrollController {
 
     @Autowired
     private PayrollService payrollService;
@@ -88,4 +88,3 @@ public class PayrollController {
         ));
     }
 }
-

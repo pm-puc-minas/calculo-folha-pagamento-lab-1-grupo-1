@@ -4,12 +4,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.util.HashMap;
 import java.util.Map;
-
-
-import static org.h2.mvstore.MVStoreTool.compact;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JwtUtilTest {

@@ -12,7 +12,7 @@ import com.payroll.entity.PayrollCalculation;
 import com.payroll.repository.PayrollCalculationRepository;
 
 @Service
-public class PayrollService {
+public class PayrollService implements IPayrollService {
 
     @Autowired
     private PayrollCalculationRepository payrollRepository;

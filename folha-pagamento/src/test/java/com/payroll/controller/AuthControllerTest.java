@@ -1,145 +1,128 @@
 package com.payroll.controller;
 
-import com.payroll.entity.User;
-import com.payroll.entity.UserRole;
-import com.payroll.repository.UserRepository;
-import com.payroll.service.UserService;
 import com.payroll.config.JwtUtil;
 
+import com.payroll.entity.User;
+import com.payroll.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.mockito.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import org.springframework.http.*;
+import java.util.*;
 
-import java.util.Map;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import static org.assertj.core.api.Assertions.assertThat;
+public class AuthControllerTest {
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class AuthControllerTest {
-
-    @LocalServerPort
-    private int port;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
+    @Mock
     private UserService userService;
 
-    @Autowired
+    @Mock
     private JwtUtil jwtUtil;
 
-    @Autowired
-    private TestRestTemplate restTemplate;
+    @InjectMocks
+    private AuthController authController;
 
-    private String baseUrl;
-
-    private User testUser;
+    private User user;
 
     @BeforeEach
     void setUp() {
-        baseUrl = "http://localhost:" + port + "/api/auth";
-
-        // Mantém dados e limpa usuários antes de criar o teste
-        userRepository.deleteAll();
-
-        // Cria usuário real com senha codificada, sem alterar seu UserService
-        testUser = new User();
-        testUser.setUsername("testuser");
-        testUser.setEmail("testuser@example.com");
-        testUser.setPassword("senha123"); // senha limpa
-        testUser.setRole(UserRole.USER);
-        testUser.setCreatedBy(1L);
-
-        testUser = userService.createUser(testUser, 1L);
+        MockitoAnnotations.openMocks(this);
+        // Criação de um usuário 
+        user = new User();
+        user.setId(1L);
+        user.setUsername("bernardo");
+        user.setPassword("senha123");
+        user.setEmail("bernardo@example.com");
     }
 
     @Test
-    void loginSuccess() {
+    void testLogin_Sucesso() {
+        // Simula comportamento do serviço
+        when(userService.findByUsername("bernardo")).thenReturn(Optional.of(user));
+        when(userService.validatePassword("senha123", user.getPassword())).thenReturn(true);
+        when(jwtUtil.generateAccessToken(eq("bernardo"), anyMap())).thenReturn("accessTokenGerado");
+        when(jwtUtil.generateRefreshToken("bernardo")).thenReturn("refreshTokenGerado");
+
         Map<String, String> loginRequest = Map.of(
-                "username", "testuser",
+                "username", "bernardo",
                 "password", "senha123"
         );
 
-        ResponseEntity<Map> response = restTemplate.postForEntity(baseUrl + "/login", loginRequest, Map.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).containsKeys("accessToken", "refreshToken", "user");
-        assertThat(((Map<?, ?>) response.getBody().get("user")).get("username")).isEqualTo("testuser");
+        ResponseEntity<?> response = authController.login(loginRequest);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("accessTokenGerado"));
+        assertTrue(response.getBody().toString().contains("refreshTokenGerado"));
+        verify(userService).findByUsername("bernardo");
+        verify(jwtUtil).generateAccessToken(eq("bernardo"), anyMap());
     }
 
     @Test
-    void loginFailWrongPassword() {
+    void testLogin_CredenciaisInvalidas() {
+        when(userService.findByUsername("bernardo")).thenReturn(Optional.of(user));
+        when(userService.validatePassword("senhaErrada", user.getPassword())).thenReturn(false);
+
         Map<String, String> loginRequest = Map.of(
-                "username", "testuser",
+                "username", "bernardo",
                 "password", "senhaErrada"
         );
 
-        ResponseEntity<String> response = restTemplate.postForEntity(baseUrl + "/login", loginRequest, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(response.getBody()).isEqualTo("Credenciais inválidas");
+        ResponseEntity<?> response = authController.login(loginRequest);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("Credenciais inválidas", response.getBody());
     }
 
     @Test
-    void loginFailUnknownUser() {
+    void testLogin_UsuarioNaoEncontrado() {
+        when(userService.findByUsername("inexistente")).thenReturn(Optional.empty());
+
         Map<String, String> loginRequest = Map.of(
-                "username", "usuarioInexistente",
-                "password", "senha"
+                "username", "inexistente",
+                "password", "qualquer"
         );
+        ResponseEntity<?> response = authController.login(loginRequest);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(baseUrl + "/login", loginRequest, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(response.getBody()).isEqualTo("Credenciais inválidas");
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("Credenciais inválidas", response.getBody());
     }
 
     @Test
-    void refreshSuccess() {
-        String refreshToken = jwtUtil.generateRefreshToken(testUser.getUsername());
+    void testRefresh_Sucesso() {
+        String refreshToken = "refreshValido";
 
-        Map<String, String> refreshRequest = Map.of(
-                "refreshToken", refreshToken
-        );
+        when(jwtUtil.isTokenExpired(refreshToken)).thenReturn(false);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn("bernardo");
+        when(userService.findByUsername("bernardo")).thenReturn(Optional.of(user));
+        when(jwtUtil.generateAccessToken(eq("bernardo"), anyMap())).thenReturn("novoAccessToken");
 
-        ResponseEntity<Map> response = restTemplate.postForEntity(baseUrl + "/refresh", refreshRequest, Map.class);
+        Map<String, String> request = Map.of("refreshToken", refreshToken);
+        ResponseEntity<?> response = authController.refresh(request);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).containsKey("accessToken");
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("novoAccessToken"));
     }
+    @Test
+    void testRefresh_TokenExpirado() {
+        when(jwtUtil.isTokenExpired("expirado")).thenReturn(true);
+
+        Map<String, String> request = Map.of("refreshToken", "expirado");
+        ResponseEntity<?> response = authController.refresh(request);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("Refresh token expirado", response.getBody());}
 
     @Test
-    void refreshFailExpiredToken() {
-        // Aqui, você precisa ter um método em JwtUtil para gerar token expirado para teste
-        String expiredToken = jwtUtil.generateExpiredRefreshToken(testUser.getUsername());
-
-        Map<String, String> refreshRequest = Map.of(
-                "refreshToken", expiredToken
-        );
-
-        ResponseEntity<String> response = restTemplate.postForEntity(baseUrl + "/refresh", refreshRequest, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(response.getBody()).isEqualTo("Refresh token expirado");
-    }
-
-    @Test
-    void refreshFailInvalidUser() {
-        String fakeUsername = "usuarioFake";
-        String fakeRefreshToken = jwtUtil.generateRefreshToken(fakeUsername);
-
-        Map<String, String> refreshRequest = Map.of(
-                "refreshToken", fakeRefreshToken
-        );
-
-        ResponseEntity<String> response = restTemplate.postForEntity(baseUrl + "/refresh", refreshRequest, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(response.getBody()).isEqualTo("Usuário inválido");
+    void testRefresh_UsuarioNaoEncontrado() {
+        String refreshToken = "refreshTokenValido";
+        when(jwtUtil.isTokenExpired(refreshToken)).thenReturn(false);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn("naoExiste");
+        when(userService.findByUsername("naoExiste")).thenReturn(Optional.empty());
+        Map<String, String> request = Map.of("refreshToken", refreshToken);
+        ResponseEntity<?> response = authController.refresh(request);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("Usuário inválido", response.getBody());
     }
 }

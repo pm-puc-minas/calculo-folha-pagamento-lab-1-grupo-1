@@ -4,8 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class PayrollTest {
@@ -54,17 +52,6 @@ class PayrollTest {
         payroll.adicionarProvento(BigDecimal.valueOf(50));
         assertTrue(payroll.calcularTotalProventos().compareTo(BigDecimal.valueOf(1050).setScale(2)) == 0);
     }
-    /*
-    *     // Testa adicionar descontos
-    @Test
-     void testAdicionarDesconto() {
-        payroll.adicionarDesconto(BigDecimal.valueOf(50));
-
-        // Comparação usando compareTo com escala definida
-        BigDecimal totalDesconto = payroll.calcularTotalDesconto().setScale(2, RoundingMode.HALF_UP);
-        assertEquals(0, totalDesconto.compareTo(BigDecimal.valueOf(750).setScale(2, RoundingMode.HALF_UP)),
-                "O total de desconto deve ser 750,00");
-    }
-    * */
+    
 }
     
