@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @RestController
@@ -32,27 +33,25 @@ public class EmployeeController {
     }
 
     // Criar um novo funcionário
-    @PostMapping
-    public ResponseEntity<?> createEmployee(@RequestBody Employee employee,
-                                            @AuthenticationPrincipal UserDetails currentUser) {
-        try {
-            if (employeeService.existsByCpf(employee.getCpf())) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("CPF já cadastrado");
-            }
-
-            // Obter ID do usuário logado
-            User user = userService.findByUsername(currentUser.getUsername()).orElse(null);
-            Long userId = user != null ? user.getId() : null;
-
-            employeeService.createEmployee(employee, userId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(employee);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro ao cadastrar funcionário: " + e.getMessage());
-        }
+   @PostMapping
+public ResponseEntity<?> createEmployee(@RequestBody Employee employee,
+                                        @AuthenticationPrincipal UserDetails currentUser) {
+    if (employeeService.existsByCpf(employee.getCpf())) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("CPF já cadastrado");
     }
+
+    // Obter ID do usuário logado, mas permitir teste sem user
+    Long userId = null;
+    if (currentUser != null) {
+        User user = userService.findByUsername(currentUser.getUsername()).orElse(null);
+        userId = user != null ? user.getId() : null;
+    }
+
+    Employee saved = employeeService.createEmployee(employee, userId);
+    return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+}
+
 
     // Visualizar funcionário por ID
     @GetMapping("/{id}")
@@ -67,26 +66,36 @@ public class EmployeeController {
 
     // Atualizar funcionário
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateEmployee(@PathVariable Long id,
-                                            @RequestBody Employee employee) {
-        try {
-            employeeService.updateEmployee(id, employee);
-            return ResponseEntity.ok(employee);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro ao atualizar funcionário: " + e.getMessage());
-        }
+public ResponseEntity<?> updateEmployee(@PathVariable Long id,
+                                        @RequestBody Employee employee) {
+    try {
+        Employee updatedEmployee = employeeService.updateEmployee(id, employee);
+
+        // Retorna 200 OK com o objeto atualizado
+        return ResponseEntity.ok(updatedEmployee);
+
+    } catch (NoSuchElementException e) {
+        // Se não existir retorna 404
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("Funcionário não encontrado");
+    } catch (Exception e) {
+        // Para outros errosretorna 500
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Erro ao atualizar funcionário: " + e.getMessage());
     }
+}
+
 
     // Deletar funcionário
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
-        try {
-            employeeService.deleteEmployee(id);
-            return ResponseEntity.ok("Funcionário excluído com sucesso");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro ao excluir funcionário: " + e.getMessage());
-        }
+   @DeleteMapping("/{id}")
+public ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
+    try {
+        employeeService.deleteEmployee(id);
+        return ResponseEntity.ok("Deletado com sucesso");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Erro ao excluir funcionário: " + e.getMessage());
     }
+}
+
 }

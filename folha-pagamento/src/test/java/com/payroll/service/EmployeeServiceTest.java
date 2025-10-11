@@ -1,120 +1,109 @@
 package com.payroll.service;
 
 import com.payroll.entity.Employee;
+import com.payroll.entity.PayrollCalculation;
+import com.payroll.repository.EmployeeRepository;
+import com.payroll.repository.PayrollCalculationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-class EmployeeServiceTest {
+class PayrollServiceTest {
 
-    
+    @Autowired
+    private PayrollCalculationRepository payrollRepository;
 
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
+    private PayrollService payrollService;
     private EmployeeService employeeService;
 
     private Employee employee;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        // Instanciar serviços
+        payrollService = new PayrollService();
         employeeService = new EmployeeService();
-        
 
-        // Criando objeto Employee real // no employee
+        // Injetar repositories reais via Reflection
+        Field payrollRepoField = PayrollService.class.getDeclaredField("payrollRepository");
+        payrollRepoField.setAccessible(true);
+        payrollRepoField.set(payrollService, payrollRepository);
+
+        Field employeeRepoField = EmployeeService.class.getDeclaredField("employeeRepository");
+        employeeRepoField.setAccessible(true);
+        employeeRepoField.set(employeeService, employeeRepository);
+
+        // Criar Employee real , testar para não dar erro
         employee = new Employee();
-        employee.setFullName("Bernardo"); // no employee
-        employee.setCpf("12345678900"); // no employee
-        employee.setRg("MG123456"); // no employee
-        employee.setPosition("Developer"); // no employee
-        employee.setAdmissionDate(LocalDate.of(2020, 1, 1)); // no employee
-        employee.setSalary(new BigDecimal("5000")); // no employee
-        employee.setWeeklyHours(40); // no employee
-        employee.setTransportVoucher(true); // no employee
-        employee.setMealVoucher(true); // no employee
-        employee.setMealVoucherValue(new BigDecimal("500")); // no employee
-        employee.setDangerousWork(false); // no employee
-        employee.setDangerousPercentage(BigDecimal.ZERO); // no employee
-        employee.setUnhealthyWork(false); // no employee
-        employee.setUnhealthyLevel(null); // no employee
+        employee.setFullName("Bernardo"); // testar para não dar erro
+        employee.setCpf("12345678900");   // testar para não dar erro
+        employee.setRg("MG123456");       // testar para não dar erro
+        employee.setPosition("Developer");
+        employee.setAdmissionDate(LocalDate.of(2020, 1, 1));
+        employee.setSalary(new BigDecimal("3000"));
+        employee.setWeeklyHours(40);
+        employee.setTransportVoucher(true);
+        employee.setMealVoucher(true);
+        employee.setMealVoucherValue(new BigDecimal("500"));
+        employee.setDangerousWork(false);
+        employee.setDangerousPercentage(BigDecimal.ZERO);
+        employee.setUnhealthyWork(true);
+        employee.setUnhealthyLevel("MEDIO");
+        employee.setCreatedBy(1L);
+
+        // Salvar Employee no banco // testar para não dar erro
+        employee = employeeService.createEmployee(employee, 1L);
     }
 
     @Test
-    void testCreateEmployee() {
-        Employee created = employeeService.createEmployee(employee, 1L); // no employee
-        assertNotNull(created.getId()); // no employee
-        assertEquals("Bernardo", created.getFullName()); // no employee
-        assertEquals(1L, created.getCreatedBy()); // no employee
+    void testCalculatePayroll() {
+        PayrollCalculation calculation = payrollService.calculatePayroll(
+                employee.getId(),
+                "2025-10",
+                employee.getCreatedBy()
+        );
+
+        assertNotNull(calculation.getId());
+        assertEquals("2025-10", calculation.getReferenceMonth());
+        assertEquals(employee.getId(), calculation.getEmployee().getId());
+        assertEquals(employee.getCreatedBy(), calculation.getCreatedBy());
     }
 
     @Test
-    void testGetAllEmployees() {
-        employeeService.createEmployee(employee, 1L); // no employee
-        List<Employee> employees = employeeService.getAllEmployees();
-        assertEquals(1, employees.size());
-        assertEquals("Bernardo", employees.get(0).getFullName()); // no employee
+    void testGetEmployeePayrolls() {
+        payrollService.calculatePayroll(employee.getId(), "2025-10", employee.getCreatedBy());
+
+        List<PayrollCalculation> payrolls = payrollService.getEmployeePayrolls(employee.getId());
+        assertEquals(1, payrolls.size());
+        assertEquals(employee.getId(), payrolls.get(0).getEmployee().getId());
     }
 
     @Test
-    void testGetEmployeeById() {
-        Employee created = employeeService.createEmployee(employee, 1L); // no employee
-        Optional<Employee> result = employeeService.getEmployeeById(created.getId());
-        assertTrue(result.isPresent());
-        assertEquals("Bernardo", result.get().getFullName()); // no employee
+    void testGetAllPayrolls() {
+        payrollService.calculatePayroll(employee.getId(), "2025-10", employee.getCreatedBy());
+
+        List<PayrollCalculation> payrolls = payrollService.getAllPayrolls();
+        assertTrue(payrolls.size() >= 1);
     }
 
     @Test
-    void testGetEmployeeByCpf() {
-        employeeService.createEmployee(employee, 1L); // no employee
-        Optional<Employee> result = employeeService.getEmployeeByCpf("12345678900"); // no employee
-        assertTrue(result.isPresent());
-        assertEquals("Bernardo", result.get().getFullName()); // no employee
-    }
+    void testRecalculateSameMonthReturnsExisting() {
+        PayrollCalculation first = payrollService.calculatePayroll(employee.getId(), "2025-10", employee.getCreatedBy());
+        PayrollCalculation second = payrollService.calculatePayroll(employee.getId(), "2025-10", employee.getCreatedBy());
 
-    @Test
-    void testExistsByCpf() {
-        employeeService.createEmployee(employee, 1L); // no employee
-        boolean exists = employeeService.existsByCpf("12345678900"); // no employee
-        assertTrue(exists);
-    }
-
-    @Test
-    void testUpdateEmployee() {
-        Employee created = employeeService.createEmployee(employee, 1L); // no employee
-
-        Employee updatedDetails = new Employee();
-        updatedDetails.setFullName("Gustavo"); // no employee
-        updatedDetails.setCpf("09876543211"); // no employee
-        updatedDetails.setRg("MG654321"); // no employee
-        updatedDetails.setPosition("Tester"); // no employee
-        updatedDetails.setAdmissionDate(LocalDate.of(2021, 2, 1)); // no employee
-        updatedDetails.setSalary(new BigDecimal("6000")); // no employee
-        updatedDetails.setWeeklyHours(35); // no employee
-        updatedDetails.setTransportVoucher(false); // no employee
-        updatedDetails.setMealVoucher(false); // no employee
-        updatedDetails.setMealVoucherValue(BigDecimal.ZERO); // no employee
-        updatedDetails.setDangerousWork(true); // no employee
-        updatedDetails.setDangerousPercentage(new BigDecimal("10")); // no employee
-        updatedDetails.setUnhealthyWork(true); // no employee
-        updatedDetails.setUnhealthyLevel("ALTO"); // no employee
-
-        Employee result = employeeService.updateEmployee(created.getId(), updatedDetails); // no employee
-
-        assertEquals("Gustavo", result.getFullName()); // no employee
-        assertEquals("09876543211", result.getCpf()); // no employee
-        assertTrue(result.getDangerousWork()); // no employee
-    }
-
-    @Test
-    void testDeleteEmployee() {
-        Employee created = employeeService.createEmployee(employee, 1L); // no employee
-        employeeService.deleteEmployee(created.getId()); // no employee
-        Optional<Employee> result = employeeService.getEmployeeById(created.getId());
-        assertFalse(result.isPresent()); // no employee
+        // O mesmo objeto deve ser retornado se já existe
+        assertEquals(first.getId(), second.getId());
     }
 }

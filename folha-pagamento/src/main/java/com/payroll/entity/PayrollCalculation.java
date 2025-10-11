@@ -1,6 +1,8 @@
 package com.payroll.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -14,45 +16,59 @@ public class PayrollCalculation {
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
+    @NotNull // not blank
     private Employee employee;
 
-    @Column(name = "reference_month")
+    @Column(name = "reference_month", nullable = false)
+    @NotBlank // not blank
     private String referenceMonth;
 
-    @Column(name = "gross_salary")
+    @Column(name = "gross_salary", nullable = false)
+    @NotNull // not blank
     private BigDecimal grossSalary;
 
-    @Column(name = "net_salary")
+    @Column(name = "net_salary", nullable = false)
+    @NotNull // not blank
     private BigDecimal netSalary;
 
-    @Column(name = "inss_discount")
+    @Column(name = "inss_discount", nullable = false)
+    @NotNull // not blank
     private BigDecimal inssDiscount;
 
-    @Column(name = "irpf_discount")
+    @Column(name = "irpf_discount", nullable = false)
+    @NotNull // not blank
     private BigDecimal irpfDiscount;
 
-    @Column(name = "transport_discount")
+    @Column(name = "transport_discount", nullable = false)
+    @NotNull // not blank
     private BigDecimal transportDiscount;
 
-    @Column(name = "fgts_value")
+    @Column(name = "fgts_value", nullable = false)
+    @NotNull // not blank
     private BigDecimal fgtsValue;
 
-    @Column(name = "dangerous_bonus")
+    @Column(name = "dangerous_bonus", nullable = false)
+    @NotNull // not blank
     private BigDecimal dangerousBonus;
 
-    @Column(name = "unhealthy_bonus")
+    @Column(name = "unhealthy_bonus", nullable = false)
+    @NotNull // not blank
     private BigDecimal unhealthyBonus;
 
-    @Column(name = "meal_voucher_value")
+    @Column(name = "meal_voucher_value", nullable = false)
+    @NotNull // not blank
     private BigDecimal mealVoucherValue;
 
-    @Column(name = "hourly_wage")
+    @Column(name = "hourly_wage", nullable = false)
+    @NotNull // not blank
     private BigDecimal hourlyWage;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
+    @NotNull // not blank
     private LocalDateTime createdAt;
 
-    @Column(name = "created_by")
+    @Column(name = "created_by", nullable = false)
+    @NotNull // not blank
     private Long createdBy;
 
     // Constructors

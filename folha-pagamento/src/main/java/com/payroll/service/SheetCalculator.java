@@ -44,16 +44,6 @@ public class SheetCalculator {
             new BigDecimal("896.00")
     };
 
-/*************  ✨ Windsurf Command ⭐  *************/
-    /**
-     * Calcula o salário por hora com base no salário bruto e nas horas
-     * semanais trabalhadas.
-     *
-     * @param salarioBruto o salário bruto do funcionário
-     * @param horasSemanais a quantidade de horas semanais trabalhadas
-     * @return o salário por hora do funcionário
-     */
-/*******  dcf70037-afa9-47f8-8c32-f985d2c9d0bb  *******/
     public BigDecimal calcularSalarioHora(BigDecimal salarioBruto, int horasSemanais) {
         if (salarioBruto == null || horasSemanais <= 0) {
             return BigDecimal.ZERO;
