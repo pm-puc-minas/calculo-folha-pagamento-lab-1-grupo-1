@@ -47,7 +47,7 @@ class DashboardControllerTest {
         payroll1.setId(1L);
         payroll2 = new PayrollCalculation();
         payroll2.setId(2L);
-         
+
     }
 
     @Test

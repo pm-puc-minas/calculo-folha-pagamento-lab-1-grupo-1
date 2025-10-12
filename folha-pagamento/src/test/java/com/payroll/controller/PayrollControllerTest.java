@@ -1,17 +1,16 @@
 package com.payroll.controller;
 
 import com.payroll.entity.Employee;
-import com.payroll.repository.EmployeeRepository;
-import com.payroll.repository.PayrollCalculationRepository;
 import com.payroll.service.EmployeeService;
 import com.payroll.service.PayrollService;
 import com.payroll.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,47 +20,41 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DataJpaTest
+@SpringBootTest
+@Transactional
 class PayrollControllerTest {
 
     @Autowired
-    private PayrollCalculationRepository payrollRepository; 
-    @Autowired
-    private EmployeeRepository employeeRepository; 
-
-    private PayrollService payrollService;
-    private EmployeeService employeeService;
-    private UserService userService;
     private PayrollController controller;
 
+    @Autowired
+    private EmployeeService employeeService;
+
+    @Autowired
+    private PayrollService payrollService;
+
+    @Autowired
+    private UserService userService;
+
+    private Employee employee;
+
     @BeforeEach
-    void setup() throws Exception {
-        payrollService = new PayrollService(); 
-        employeeService = new EmployeeService(); 
-        userService = new UserService(); 
-        controller = new PayrollController(); 
+    void setUp() {
+        // Criar Employee válido
+        employee = new Employee();
+        employee.setCpf("12345678901");
+        employee.setFullName("Bernardo Pereira");
+        employee.setRg("MG1234567");
+        employee.setPosition("Developer");
+        employee.setSalary(BigDecimal.valueOf(3000.0));
+        employee.setWeeklyHours(40);
+        employee.setAdmissionDate(LocalDate.now());
+        employee.setTransportVoucher(true);
+        employee.setMealVoucher(true);
+        employee.setMealVoucherValue(BigDecimal.valueOf(500));
 
-        // Injetar repositories nos services via Reflection
-        java.lang.reflect.Field payrollRepoField = PayrollService.class.getDeclaredField("payrollRepository");
-        payrollRepoField.setAccessible(true);
-        payrollRepoField.set(payrollService, payrollRepository);
-
-        java.lang.reflect.Field employeeRepoField = EmployeeService.class.getDeclaredField("employeeRepository");
-        employeeRepoField.setAccessible(true);
-        employeeRepoField.set(employeeService, employeeRepository);
-
-        // Injetar services no controller via Reflection
-        java.lang.reflect.Field payrollServiceField = PayrollController.class.getDeclaredField("payrollService");
-        payrollServiceField.setAccessible(true);
-        payrollServiceField.set(controller, payrollService);
-
-        java.lang.reflect.Field employeeServiceField = PayrollController.class.getDeclaredField("employeeService");
-        employeeServiceField.setAccessible(true);
-        employeeServiceField.set(controller, employeeService);
-
-        java.lang.reflect.Field userServiceField = PayrollController.class.getDeclaredField("userService");
-        userServiceField.setAccessible(true);
-        userServiceField.set(controller, userService);
+        employee = employeeService.createEmployee(employee, 1L);
+        assertNotNull(employee.getId());
     }
 
     @Test
@@ -77,7 +70,7 @@ class PayrollControllerTest {
         request.put("employeeId", "abc"); // inválido
         request.put("referenceMonth", "2025-10");
 
-        ResponseEntity<?> response = controller.calculatePayroll(request, null); // usado null
+        ResponseEntity<?> response = controller.calculatePayroll(request, null);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertTrue(response.getBody().toString().contains("Erro ao calcular folha"));
     }
@@ -94,32 +87,5 @@ class PayrollControllerTest {
         ResponseEntity<?> response = controller.viewEmployeePayrolls(999L);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Funcionário não encontrado", response.getBody());
-    }
-
-    @Test
-    void testCreateEmployeeAndCalculatePayroll() {
-        // Criar Employee válido
-        Employee emp = new Employee();
-        emp.setCpf("12345678901"); 
-        emp.setFullName("Bernardo Pereira"); 
-        emp.setRg("MG1234567"); 
-        emp.setPosition("Developer"); 
-        emp.setSalary(BigDecimal.valueOf(3000.0)); 
-        emp.setWeeklyHours(40); 
-        emp.setAdmissionDate(LocalDate.now()); 
-
-        Employee saved = employeeService.createEmployee(emp, null);
-
-        // Validar que foi salvo
-        assertNotNull(saved.getId());
-
-        // Agora calcular folha
-        Map<String, String> request = new HashMap<>();
-        request.put("employeeId", saved.getId().toString());
-        request.put("referenceMonth", "2025-10");
-
-        ResponseEntity<?> payrollResponse = controller.calculatePayroll(request, null); // usado null
-        assertEquals(HttpStatus.OK, payrollResponse.getStatusCode());
-        assertNotNull(payrollResponse.getBody());
     }
 }

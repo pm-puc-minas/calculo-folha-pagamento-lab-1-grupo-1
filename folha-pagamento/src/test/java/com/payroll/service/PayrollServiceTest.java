@@ -2,6 +2,7 @@ package com.payroll.service;
 
 import com.payroll.entity.Employee;
 import com.payroll.entity.PayrollCalculation;
+import com.payroll.repository.EmployeeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,13 +17,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
-class EmployeeServiceTest {
+class PayrollServiceTest {
 
     @Autowired
     private PayrollService payrollService;
 
     @Autowired
     private EmployeeService employeeService;
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     private Employee employee;
 

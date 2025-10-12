@@ -1,21 +1,25 @@
 package com.payroll.service;
 
+import com.payroll.entity.Employee;
+import com.payroll.entity.PayrollCalculation;
+import com.payroll.repository.EmployeeRepository;
+import com.payroll.repository.PayrollCalculationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import com.payroll.entity.PayrollCalculation;
-import com.payroll.repository.PayrollCalculationRepository;
 
 @Service
 public class PayrollService implements IPayrollService {
 
     @Autowired
     private PayrollCalculationRepository payrollRepository;
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     // Tabelas de INSS 2024
     private static final BigDecimal[] INSS_LIMITS = {
@@ -54,7 +58,12 @@ public class PayrollService implements IPayrollService {
             new BigDecimal("896.00")
     };
 
+    @Override
     public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long calculatedBy) {
+        // Buscar funcionário
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id " + employeeId));
+
         // Verificar se já existe cálculo para o mês
         Optional<PayrollCalculation> existing = payrollRepository.findByEmployeeIdAndReferenceMonth(employeeId, referenceMonth);
         if (existing.isPresent()) {
@@ -62,20 +71,25 @@ public class PayrollService implements IPayrollService {
         }
 
         PayrollCalculation calculation = new PayrollCalculation();
+        calculation.setEmployee(employee); // <<--- essencial para evitar ConstraintViolation
         calculation.setReferenceMonth(referenceMonth);
         calculation.setCreatedBy(calculatedBy);
 
-        // Buscar dados do funcionário seria feito aqui via EmployeeService
-        // Para demonstração, vamos usar valores fictícios
-        BigDecimal baseSalary = new BigDecimal("3000.00");
+        // Base salarial e horas semanais
+        BigDecimal baseSalary = employee.getSalary();
+        int weeklyHours = employee.getWeeklyHours();
 
-        // Calcular salário hora
-        BigDecimal hourlyWage = calculateHourlyWage(baseSalary, 40);
+        // Salário hora
+        BigDecimal hourlyWage = calculateHourlyWage(baseSalary, weeklyHours);
         calculation.setHourlyWage(hourlyWage);
 
-        // Calcular adicionais
-        BigDecimal dangerousBonus = calculateDangerousBonus(baseSalary, new BigDecimal("30"));
-        BigDecimal unhealthyBonus = calculateUnhealthyBonus(baseSalary, "MEDIO");
+        // Adicionais
+        BigDecimal dangerousBonus = employee.getDangerousWork()
+                ? calculateDangerousBonus(baseSalary, employee.getDangerousPercentage())
+                : BigDecimal.ZERO;
+        BigDecimal unhealthyBonus = employee.getUnhealthyWork()
+                ? calculateUnhealthyBonus(baseSalary, employee.getUnhealthyLevel())
+                : BigDecimal.ZERO;
 
         calculation.setDangerousBonus(dangerousBonus);
         calculation.setUnhealthyBonus(unhealthyBonus);
@@ -84,10 +98,12 @@ public class PayrollService implements IPayrollService {
         BigDecimal grossSalary = baseSalary.add(dangerousBonus).add(unhealthyBonus);
         calculation.setGrossSalary(grossSalary);
 
-        // Calcular descontos
+        // Descontos
         BigDecimal inssDiscount = calculateINSS(grossSalary);
         BigDecimal irpfDiscount = calculateIRPF(grossSalary, inssDiscount);
-        BigDecimal transportDiscount = calculateTransportDiscount(grossSalary, true);
+        BigDecimal transportDiscount = employee.getTransportVoucher() != null && employee.getTransportVoucher()
+                ? calculateTransportDiscount(grossSalary)
+                : BigDecimal.ZERO;
 
         calculation.setInssDiscount(inssDiscount);
         calculation.setIrpfDiscount(irpfDiscount);
@@ -98,7 +114,9 @@ public class PayrollService implements IPayrollService {
         calculation.setFgtsValue(fgts);
 
         // Vale refeição
-        BigDecimal mealVoucher = new BigDecimal("25.00").multiply(new BigDecimal("22"));
+        BigDecimal mealVoucher = employee.getMealVoucher() != null && employee.getMealVoucher()
+                ? employee.getMealVoucherValue()
+                : BigDecimal.ZERO;
         calculation.setMealVoucherValue(mealVoucher);
 
         // Salário líquido
@@ -120,7 +138,7 @@ public class PayrollService implements IPayrollService {
     }
 
     private BigDecimal calculateUnhealthyBonus(BigDecimal salary, String level) {
-        BigDecimal percentage = switch (level) {
+        BigDecimal percentage = switch (level != null ? level : "") {
             case "MINIMO" -> new BigDecimal("10");
             case "MEDIO" -> new BigDecimal("20");
             case "MAXIMO" -> new BigDecimal("40");
@@ -162,10 +180,7 @@ public class PayrollService implements IPayrollService {
         return BigDecimal.ZERO;
     }
 
-    private BigDecimal calculateTransportDiscount(BigDecimal grossSalary, boolean hasTransportVoucher) {
-        if (!hasTransportVoucher) {
-            return BigDecimal.ZERO;
-        }
+    private BigDecimal calculateTransportDiscount(BigDecimal grossSalary) {
         return grossSalary.multiply(new BigDecimal("0.06")).setScale(2, RoundingMode.HALF_UP);
     }
 
