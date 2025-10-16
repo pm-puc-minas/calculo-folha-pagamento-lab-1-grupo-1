@@ -79,15 +79,15 @@ class SheetCalculatorTest {
         assertEquals(new BigDecimal("240.00"), fgts);
         assertEquals(BigDecimal.ZERO, calculator.calcularFGTS(null));
     }
-
+    
     @Test
     void testCalcularIRRF() {
         BigDecimal inss = new BigDecimal("330.00");
         BigDecimal irrf = calculator.calcularIRRF(new BigDecimal("3000.00"), inss, 0);
-        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0);
+        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0); //Esse assert não testa o comportamento esperado
         // Com dependentes
         irrf = calculator.calcularIRRF(new BigDecimal("3000.00"), inss, 2);
-        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0);
+        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0); //Esse assert aqui não testa o comportamento esperado do método.
         assertEquals(BigDecimal.ZERO, calculator.calcularIRRF(null, inss, 0));
         assertEquals(BigDecimal.ZERO, calculator.calcularIRRF(new BigDecimal("3000.00"), null, 0));
     }

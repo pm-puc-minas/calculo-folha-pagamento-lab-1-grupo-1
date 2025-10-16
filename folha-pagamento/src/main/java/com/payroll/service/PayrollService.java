@@ -1,16 +1,17 @@
 package com.payroll.service;
 
-import com.payroll.entity.Employee;
-import com.payroll.entity.PayrollCalculation;
-import com.payroll.repository.EmployeeRepository;
-import com.payroll.repository.PayrollCalculationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.payroll.entity.Employee;
+import com.payroll.entity.PayrollCalculation;
+import com.payroll.repository.EmployeeRepository;
+import com.payroll.repository.PayrollCalculationRepository;
 
 @Service
 public class PayrollService implements IPayrollService {
@@ -50,7 +51,8 @@ public class PayrollService implements IPayrollService {
             new BigDecimal("0.225"),
             new BigDecimal("0.275")
     };
-
+    
+    //Não existem IRPF_DEDUCTIONS, o IRPF é deduzido de acordo com a faixa salarial e a porcentagem correspondente
     private static final BigDecimal[] IRPF_DEDUCTIONS = {
             new BigDecimal("169.44"),
             new BigDecimal("381.44"),
@@ -167,6 +169,7 @@ public class PayrollService implements IPayrollService {
         return totalDiscount.setScale(2, RoundingMode.HALF_UP);
     }
 
+    //Esse era o método a ser testado, o cálculo está incorreto
     private BigDecimal calculateIRPF(BigDecimal grossSalary, BigDecimal inssDiscount) {
         BigDecimal taxBase = grossSalary.subtract(inssDiscount);
 
