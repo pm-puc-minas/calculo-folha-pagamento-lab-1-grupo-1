@@ -1,6 +1,7 @@
 package com.payroll.model;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -29,7 +30,9 @@ class ReportTest {
 
     // Testa a exibição do demonstrativo de pagamento
     @Test
-    void testExibirDemonstrativo() {
+    @DisplayName("Exibe demonstrativo de pagamento corretamente")
+    // Verifica exibição do demonstrativo e valores calculados
+    void deveExibirDemonstrativoDePagamento() {
         // Não precisamos validar saída do console em unit test simples, apenas executamos para verificar execução sem erros
         report.exibirDemonstrativo(payroll);
 

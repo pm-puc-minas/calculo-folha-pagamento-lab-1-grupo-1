@@ -1,6 +1,7 @@
 package com.payroll.entity;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,7 +16,9 @@ class PayrollCalculationTest {
      * Testa a criação de um PayrollCalculation e atribuição de valores aos campos.
      */
     @Test
-    void payrollCalculationCreationAndGettersSetters() {
+    @DisplayName("Cria PayrollCalculation e valida getters/setters")
+    // Valida criação e getters/setters da entidade PayrollCalculation
+    void deveCriarPayrollCalculationEValidarGettersSetters() {
         PayrollCalculation calc = new PayrollCalculation();
 
         Employee emp = new Employee();

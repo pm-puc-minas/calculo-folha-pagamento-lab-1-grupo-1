@@ -1,6 +1,7 @@
 package com.payroll.model;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -18,7 +19,9 @@ class PositionTest {
 
     // Testa o ajuste do salário base de um cargo
     @Test
-    void testAjustarSalario() {
+    @DisplayName("Ajusta salário base do cargo")
+    // Verifica ajuste do salário base do cargo
+    void deveAjustarSalarioBaseDoCargo() {
         position.ajustarSalario(BigDecimal.valueOf(6000));
         assertEquals(BigDecimal.valueOf(6000), position.getSalarioBase());
     }

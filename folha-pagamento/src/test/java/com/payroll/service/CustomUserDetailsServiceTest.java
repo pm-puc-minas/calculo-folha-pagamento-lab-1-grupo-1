@@ -3,6 +3,7 @@ package com.payroll.service;
 import com.payroll.entity.User;
 import com.payroll.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -44,7 +45,9 @@ class CustomUserDetailsServiceTest {
     }
 
     @Test
-    void testLoadUserByUsernameSuccess() {
+    @DisplayName("Carrega usuário por username com sucesso")
+    // Verifica detalhes retornados para usuário válido
+    void deveCarregarUsuarioPorUsernameComSucesso() {
         UserDetails userDetails = customUserDetailsService.loadUserByUsername("bernardo");
 
         assertNotNull(userDetails);
@@ -55,7 +58,9 @@ class CustomUserDetailsServiceTest {
     }
 
     @Test
-    void testLoadUserByUsernameNotFound() {
+    @DisplayName("Lança UsernameNotFoundException para usuário inexistente")
+    // Garante a exceção quando usuário não é encontrado
+    void deveLancarExcecaoQuandoUsuarioNaoEncontrado() {
         assertThrows(UsernameNotFoundException.class, () ->
                 customUserDetailsService.loadUserByUsername("inexistente"));
     }
