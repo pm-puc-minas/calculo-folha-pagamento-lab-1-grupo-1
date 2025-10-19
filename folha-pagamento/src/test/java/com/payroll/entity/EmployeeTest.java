@@ -1,17 +1,18 @@
 package com.payroll.entity;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-/**
- * Testes unitários para a entidade Employee.
- * Objetivo: Garantir que a criação de um Employee e o uso de getters/setters funciona corretamente.
- */
+/*Garantir que a criação de um Employee e o uso de getters/setters funciona corretamente.*/
 class EmployeeTest {
 
     private Employee employee;
@@ -38,7 +39,9 @@ class EmployeeTest {
     }
 
     @Test
-    void testEmployeeGetters() {
+    @DisplayName("Getters e setters de Employee funcionam")
+    // Valida getters e setters da entidade Employee
+    void deveValidarGettersESetters() {
         assertEquals(1L, employee.getId());
         assertEquals("João Silva", employee.getFullName());
         assertEquals("12345678900", employee.getCpf());

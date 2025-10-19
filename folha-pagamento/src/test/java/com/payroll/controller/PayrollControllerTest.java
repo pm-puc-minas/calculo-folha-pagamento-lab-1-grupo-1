@@ -6,6 +6,7 @@ import com.payroll.service.PayrollService;
 import com.payroll.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -58,14 +59,18 @@ class PayrollControllerTest {
     }
 
     @Test
-    void testPayrollListEmpty() {
+    @DisplayName("Lista folhas vazia quando sistema sem cálculos")
+    // Valida que a lista de folhas está vazia antes de qualquer cálculo
+    void deveListarFolhasVazioInicialmente() {
         ResponseEntity<?> response = controller.payrollList();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(((List<?>) response.getBody()).isEmpty());
     }
 
     @Test
-    void testCalculatePayrollError() {
+    @DisplayName("Erro ao calcular com employeeId inválido")
+    // Valida mensagem de erro e status 500 ao enviar employeeId inválido
+    void deveFalharCalculoFolhaComEmployeeIdInvalido() {
         Map<String, String> request = new HashMap<>();
         request.put("employeeId", "abc"); // inválido
         request.put("referenceMonth", "2025-10");
@@ -76,14 +81,18 @@ class PayrollControllerTest {
     }
 
     @Test
-    void testViewPayrollNotFound() {
+    @DisplayName("Folha inexistente retorna 404")
+    // Valida retorno 404 ao consultar folha de pagamento inexistente
+    void deveRetornar404AoVisualizarFolhaInexistente() {
         ResponseEntity<?> response = controller.viewPayroll(999L);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Folha de pagamento não encontrada", response.getBody());
     }
 
     @Test
-    void testViewEmployeePayrollsNotFound() {
+    @DisplayName("Folhas por funcionário inexistente retornam 404")
+    // Valida retorno 404 ao listar folhas para funcionário inexistente
+    void deveRetornar404AoListarFolhasDeFuncionarioInexistente() {
         ResponseEntity<?> response = controller.viewEmployeePayrolls(999L);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Funcionário não encontrado", response.getBody());

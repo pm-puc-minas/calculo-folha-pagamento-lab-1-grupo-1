@@ -41,21 +41,24 @@ class EmployeeRepositoryTest {
 
     @Test
     @DisplayName("Deve encontrar funcionário pelo CPF existente")
-    void testFindByCpf() {
+    // Busca funcionário válido pelo CPF
+    void deveEncontrarFuncionarioPorCpf() {
         assertTrue(employeeRepository.findByCpf("12345678900").isPresent(),
                 "O funcionário com CPF 12345678900 deve ser encontrado");
     }
 
     @Test
     @DisplayName("Deve verificar existência de funcionário pelo CPF")
-    void testExistsByCpf() {
+    // Verifica existência por CPF
+    void deveVerificarExistenciaPorCpf() {
         assertTrue(employeeRepository.existsByCpf("12345678900"),
                 "O funcionário com CPF 12345678900 deve existir");
     }
 
     @Test
     @DisplayName("Deve retornar vazio quando CPF não existe")
-    void testFindByCpfNotFound() {
+    // Garante vazio quando CPF não cadastrado
+    void deveRetornarVazioQuandoCpfNaoExiste() {
         assertFalse(employeeRepository.findByCpf("00000000000").isPresent(),
                 "Não deve encontrar funcionário com CPF inexistente");
     }

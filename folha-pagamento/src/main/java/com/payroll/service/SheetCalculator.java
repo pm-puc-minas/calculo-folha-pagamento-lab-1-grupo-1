@@ -132,7 +132,7 @@ public class SheetCalculator {
             return BigDecimal.ZERO;
         }
 
-        // Base de cálculo: salário bruto - INSS - (dependentes * 189.59)
+        // Base de cálculo: salário bruto(base) - INSS - (dependentes * 189.59)
         BigDecimal deducaoDependentes = new BigDecimal("189.59").multiply(new BigDecimal(numDependentes));
         BigDecimal baseCalculo = salarioBruto.subtract(descontoINSS).subtract(deducaoDependentes);
 

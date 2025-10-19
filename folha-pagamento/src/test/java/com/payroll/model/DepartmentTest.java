@@ -1,6 +1,7 @@
 package com.payroll.model;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -23,7 +24,9 @@ class DepartmentTest {
 
     // Testa adicionar um funcionário ao departamento
     @Test
-    void testAdicionarFuncionario() {
+    @DisplayName("Adiciona funcionário ao departamento")
+    // Verifica adição de funcionário ao departamento
+    void deveAdicionarFuncionarioAoDepartamento() {
         department.adicionarFuncionario(emp1);
         List<Employee> employees = department.listarFuncionarios();
         assertEquals(1, employees.size());
@@ -32,7 +35,9 @@ class DepartmentTest {
 
     // Testa remover um funcionário do departamento
     @Test
-    void testRemoverFuncionario() {
+    @DisplayName("Remove funcionário do departamento")
+    // Verifica remoção de funcionário do departamento
+    void deveRemoverFuncionarioDoDepartamento() {
         department.adicionarFuncionario(emp1);
         department.adicionarFuncionario(emp2);
         department.removerFuncionario(emp1);
@@ -44,7 +49,9 @@ class DepartmentTest {
 
     // Testa listar funcionários retorna a lista correta
     @Test
-    void testListarFuncionarios() {
+    @DisplayName("Lista funcionários do departamento")
+    // Verifica listagem de funcionários do departamento
+    void deveListarFuncionariosDoDepartamento() {
         department.adicionarFuncionario(emp1);
         department.adicionarFuncionario(emp2);
         List<Employee> employees = department.listarFuncionarios();
@@ -55,7 +62,9 @@ class DepartmentTest {
 
     // Testa exibir informações do departamento
     @Test
-    void testExibirInformacoes() {
+    @DisplayName("Exibe informações do departamento")
+    // Verifica exibição das informações do departamento
+    void deveExibirInformacoesDoDepartamento() {
         department.adicionarFuncionario(emp1);
         String info = department.exibirInformacoes();
         assertEquals("Department: Finance (ID: 1) - 1 funcionários", info);
