@@ -1,14 +1,15 @@
 package com.payroll.service;
 
-import com.payroll.model.Employee.GrauInsalubridade;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.payroll.model.Employee.GrauInsalubridade;
 
 
 class SheetCalculatorTest {
