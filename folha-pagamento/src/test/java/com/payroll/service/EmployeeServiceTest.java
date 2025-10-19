@@ -4,6 +4,7 @@ import com.payroll.entity.Employee;
 import com.payroll.entity.PayrollCalculation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,7 +52,9 @@ class EmployeeServiceTest {
     }
 
     @Test
-    void testCalculatePayroll() {
+    @DisplayName("Calcula a folha e vincula ao colaborador corretamente")
+    // Valida criação da folha com mês de referência e vínculo ao funcionário
+    void deveCalcularFolhaVinculandoAoFuncionario() {
         PayrollCalculation calculation = payrollService.calculatePayroll(
                 employee.getId(),
                 "2025-10",
@@ -65,7 +68,9 @@ class EmployeeServiceTest {
     }
 
     @Test
-    void testGetEmployeePayrolls() {
+    @DisplayName("Lista folhas do colaborador após cálculo")
+    // Garante que o histórico de folhas do colaborador contém a folha calculada
+    void deveListarFolhasDoColaboradorAposCalculo() {
         payrollService.calculatePayroll(employee.getId(), "2025-10", employee.getCreatedBy());
 
         List<PayrollCalculation> payrolls = payrollService.getEmployeePayrolls(employee.getId());
@@ -74,15 +79,22 @@ class EmployeeServiceTest {
     }
 
     @Test
-    void testGetAllPayrolls() {
+    @DisplayName("Lista todas as folhas geradas no sistema")
+    // Verifica o retorno de todas as folhas existentes
+    void deveListarTodasAsFolhasGeradas() {
         payrollService.calculatePayroll(employee.getId(), "2025-10", employee.getCreatedBy());
 
         List<PayrollCalculation> payrolls = payrollService.getAllPayrolls();
         assertTrue(payrolls.size() >= 1);
     }
 
+
+
+
     @Test
-    void testRecalculateSameMonthReturnsExisting() {
+    @DisplayName("Não duplica ao recalcular o mesmo mês; retorna existente")
+    // Garante que novo cálculo do mesmo mês retorna a mesma instância
+    void naoDuplicaFolhaAoRecalcularMesmoMes() {
         PayrollCalculation first = payrollService.calculatePayroll(employee.getId(), "2025-10", employee.getCreatedBy());
         PayrollCalculation second = payrollService.calculatePayroll(employee.getId(), "2025-10", employee.getCreatedBy());
 

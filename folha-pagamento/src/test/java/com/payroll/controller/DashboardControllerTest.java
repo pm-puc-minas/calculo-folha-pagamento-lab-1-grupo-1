@@ -6,6 +6,7 @@ import com.payroll.service.EmployeeService;
 import com.payroll.service.PayrollService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -51,7 +52,9 @@ class DashboardControllerTest {
     }
 
     @Test
-    void testGetDashboardData_withUser() {
+    @DisplayName("Dashboard com usuário retorna métricas e usuário atual")
+    // Valida métricas e identificação do usuário quando autenticado
+    void deveRetornarDadosDashboardQuandoUsuarioPresente() {
         when(employeeService.getAllEmployees()).thenReturn(List.of(employee1, employee2));
         when(payrollService.getAllPayrolls()).thenReturn(List.of(payroll1, payroll2));
 
@@ -78,7 +81,9 @@ class DashboardControllerTest {
     }
 
     @Test
-    void testGetDashboardData_withoutUser() {
+    @DisplayName("Dashboard sem usuário retorna métricas sem currentUser")
+    // Valida métricas e ausência de currentUser quando não autenticado
+    void deveRetornarDadosDashboardSemUsuario() {
         when(employeeService.getAllEmployees()).thenReturn(List.of(employee1, employee2));
         when(payrollService.getAllPayrolls()).thenReturn(List.of(payroll1, payroll2));
 
@@ -96,7 +101,9 @@ class DashboardControllerTest {
     }
 
     @Test
-    void testGetDashboardData_handlesEmployeeServiceException() {
+    @DisplayName("Erro ao listar funcionários é tratado no dashboard")
+    // Valida tratamento de exceção do serviço de funcionários retornando erro informativo
+    void deveTratarErroAoListarFuncionarios() {
         when(employeeService.getAllEmployees()).thenThrow(new RuntimeException("Erro forçado"));
 
         ResponseEntity<?> response = dashboardController.getDashboardData(null);
@@ -110,7 +117,9 @@ class DashboardControllerTest {
     }
 
     @Test
-    void testGetDashboardData_handlesPayrollServiceException() {
+    @DisplayName("Erro ao listar folhas é tratado no dashboard")
+    // Valida tratamento de exceção do serviço de folhas retornando erro informativo
+    void deveTratarErroAoListarFolhas() {
         when(employeeService.getAllEmployees()).thenReturn(List.of(employee1, employee2));
         when(payrollService.getAllPayrolls()).thenThrow(new RuntimeException("Erro na folha"));
 

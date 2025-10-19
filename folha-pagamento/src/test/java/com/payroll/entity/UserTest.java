@@ -1,6 +1,7 @@
 package com.payroll.entity;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,7 +24,9 @@ class UserTest {
     }
 
     @Test
-    void testUserGetters() {
+    @DisplayName("Getters e setters de User funcionam")
+    // Valida getters e setters da entidade User
+    void deveValidarGettersESetters() {
         assertEquals(1L, user.getId());
         assertEquals("clevi", user.getUsername());
         assertEquals("123456", user.getPassword());

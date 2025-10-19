@@ -6,6 +6,7 @@ import java.math.RoundingMode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.payroll.model.Employee.GrauInsalubridade;
@@ -20,7 +21,9 @@ class SheetCalculatorTest {
     }
 
     @Test
-    void testCalcularSalarioHora() {
+    @DisplayName("Calcula salário por hora corretamente e lida com nulos/zero")
+    // Verifica cálculo correto de salário/hora e tratamento de entradas inválidas
+    void deveCalcularSalarioPorHora() {
         BigDecimal salarioHora = calculator.calcularSalarioHora(new BigDecimal("3000.00"), 40);
         salarioHora = salarioHora.setScale(2, RoundingMode.HALF_UP);
 
@@ -33,14 +36,18 @@ class SheetCalculatorTest {
     }
 
     @Test
-    void testCalcularAdicionalPericulosidade() {
+    @DisplayName("Calcula adicional de periculosidade e nulos")
+    // Verifica cálculo do adicional de periculosidade e entradas nulas
+    void deveCalcularAdicionalPericulosidade() {
         BigDecimal adicional = calculator.calcularAdicionalPericulosidade(new BigDecimal("3000.00"));
         assertEquals(new BigDecimal("900.00"), adicional);
         assertEquals(BigDecimal.ZERO, calculator.calcularAdicionalPericulosidade(null));
     }
 
     @Test
-    void testCalcularAdicionalInsalubridade() {
+    @DisplayName("Calcula adicional de insalubridade por grau")
+    // Verifica cálculo do adicional de insalubridade para cada grau
+    void deveCalcularAdicionalInsalubridadePorGrau() {
         assertEquals(new BigDecimal("141.20"), calculator.calcularAdicionalInsalubridade(new BigDecimal("1412.00"), GrauInsalubridade.BAIXO));
         assertEquals(new BigDecimal("282.40"), calculator.calcularAdicionalInsalubridade(new BigDecimal("1412.00"), GrauInsalubridade.MEDIO));
         assertEquals(new BigDecimal("564.80"), calculator.calcularAdicionalInsalubridade(new BigDecimal("1412.00"), GrauInsalubridade.ALTO));
@@ -49,7 +56,9 @@ class SheetCalculatorTest {
     }
 
     @Test
-    void testCalcularDescontoValeTransporte() {
+    @DisplayName("Calcula menor entre 6% e valor entregue")
+    // Verifica desconto do vale transporte como menor entre 6% e entregue
+    void deveCalcularDescontoValeTransporte() {
         BigDecimal desconto = calculator.calcularDescontoValeTransporte(new BigDecimal("3000.00"), new BigDecimal("150.00"));
         assertEquals(new BigDecimal("150.00"), desconto); // Menor entre 6% do salário e valor entregue
         desconto = calculator.calcularDescontoValeTransporte(new BigDecimal("3000.00"), new BigDecimal("300.00"));
@@ -59,7 +68,9 @@ class SheetCalculatorTest {
     }
 
     @Test
-    void testCalcularValeAlimentacao() {
+    @DisplayName("Calcula vale alimentação")
+    // Verifica cálculo do vale alimentação e entradas inválidas
+    void deveCalcularValeAlimentacao() {
         BigDecimal vale = calculator.calcularValeAlimentacao(new BigDecimal("25.00"), 22);
         assertEquals(new BigDecimal("550.00"), vale);
         assertEquals(BigDecimal.ZERO, calculator.calcularValeAlimentacao(null, 22));
@@ -67,7 +78,9 @@ class SheetCalculatorTest {
     }
 
     @Test
-    void testCalcularINSS() {
+    @DisplayName("Calcula INSS e lida com nulos")
+    // Verifica cálculo de INSS e tratamento de valores nulos/zero
+    void deveCalcularINSS() {
         BigDecimal inss = calculator.calcularINSS(new BigDecimal("3000.00"));
         assertTrue(inss.compareTo(BigDecimal.ZERO) > 0);
         assertEquals(BigDecimal.ZERO, calculator.calcularINSS(null));
@@ -75,19 +88,24 @@ class SheetCalculatorTest {
     }
 
     @Test
-    void testCalcularFGTS() {
+    @DisplayName("Calcula FGTS e lida com nulos")
+    // Verifica cálculo do FGTS e tratamento de valores nulos
+    void deveCalcularFGTS() {
         BigDecimal fgts = calculator.calcularFGTS(new BigDecimal("3000.00"));
-        assertEquals(new BigDecimal("240.00"), fgts);
+        assertEquals(new BigDecimal("240.00"), fgts);// Retorna o desconto, 8% do salário bruto
         assertEquals(BigDecimal.ZERO, calculator.calcularFGTS(null));
     }
     
     @Test
-    void testCalcularIRRF() {
+    @DisplayName("Calcula IRRF com e sem dependentes e nulos")
+    // Verifica cálculo do IRRF retornando valores corretos por faixa e entradas nulas
+    void deveCalcularIRRF() {
         BigDecimal inss = new BigDecimal("330.00");
         BigDecimal irrf = calculator.calcularIRRF(new BigDecimal("3000.00"), inss, 0);
-        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0); //Esse assert não testa o comportamento esperado
+        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0);
+        // Com dependentes
         irrf = calculator.calcularIRRF(new BigDecimal("3000.00"), inss, 2);
-        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0); //Esse assert aqui não testa o comportamento esperado do método.
+        assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0);
         assertEquals(BigDecimal.ZERO, calculator.calcularIRRF(null, inss, 0));
         assertEquals(BigDecimal.ZERO, calculator.calcularIRRF(new BigDecimal("3000.00"), null, 0));
     }

@@ -3,6 +3,7 @@ package com.payroll.service;
 import com.payroll.entity.User;
 import com.payroll.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,7 +42,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testCreateUser() {
+    @DisplayName("Cria usuário com senha hasheada e createdBy")
+    // Verifica criação de usuário com senha hasheada e auditoria createdBy
+    void deveCriarUsuarioComSenhaHasheadaECreatedBy() {
         User created = userService.createUser(user, 1L);
 
         assertNotNull(created.getId());
@@ -52,7 +55,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testFindByUsername() {
+    @DisplayName("Encontra usuário por username")
+    // Verifica busca por username
+    void deveEncontrarUsuarioPorUsername() {
         userService.createUser(user, null);
 
         Optional<User> found = userService.findByUsername("testuser");
@@ -61,7 +66,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testFindByEmail() {
+    @DisplayName("Encontra usuário por email")
+    // Verifica busca por email
+    void deveEncontrarUsuarioPorEmail() {
         userService.createUser(user, null);
 
         Optional<User> found = userService.findByEmail("test@example.com");
@@ -70,7 +77,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testGetAllUsers() {
+    @DisplayName("Lista todos usuários")
+    // Verifica listagem de todos os usuários
+    void deveListarTodosUsuarios() {
         userService.createUser(user, null);
 
         List<User> users = userService.getAllUsers();
@@ -79,7 +88,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testExistsByUsernameAndEmail() {
+    @DisplayName("Verifica existência por username e email")
+    // Confirma que existe por username e email
+    void deveVerificarExistenciaPorUsernameEEmail() {
         userService.createUser(user, null);
 
         assertTrue(userService.existsByUsername("testuser"));
@@ -87,7 +98,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testValidatePassword() {
+    @DisplayName("Valida senha correta e incorreta")
+    // Confere validação de senha correta e incorreta
+    void deveValidarSenhaCorretaEIncorreta() {
         User created = userService.createUser(user, null);
 
         assertTrue(userService.validatePassword("password", created.getPassword()));
@@ -95,7 +108,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdateUser() {
+    @DisplayName("Atualiza usuário persistindo alterações")
+    // Verifica atualização e persistência das alterações do usuário
+    void deveAtualizarUsuarioPersistindoAlteracoes() {
         User created = userService.createUser(user, null);
 
         User update = new User();
@@ -113,13 +128,15 @@ class UserServiceTest {
     }
 
     @Test
-void testDeleteUser() {
-    User created = userService.createUser(user, null);
+    @DisplayName("Deleta usuário com sucesso")
+    // Verifica deleção de usuário e remoção do repositório
+    void deveDeletarUsuarioComSucesso() {
+        User created = userService.createUser(user, null);
 
-    userService.deleteUser(created.getId());
+        userService.deleteUser(created.getId());
 
-    // Verifica se o usuário foi removido
-    assertFalse(userRepository.findById(created.getId()).isPresent());
-}
+        // Verifica se o usuário foi removido
+        assertFalse(userRepository.findById(created.getId()).isPresent());
+    }
 
 }

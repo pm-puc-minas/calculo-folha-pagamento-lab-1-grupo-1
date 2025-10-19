@@ -5,6 +5,7 @@ import com.payroll.repository.EmployeeRepository;
 import com.payroll.service.EmployeeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.http.ResponseEntity;
@@ -42,14 +43,18 @@ class EmployeeControllerTest {
     }
 
     @Test
-    void testListEmployees() {
+    @DisplayName("Lista colaboradores com sucesso")
+    // Valida retorno 200 e corpo não nulo ao listar colaboradores
+    void deveListarColaboradoresComSucesso() {
         ResponseEntity<?> response = employeeController.listEmployees();
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
     }
 
     @Test
-    void testCreateEmployee() {
+    @DisplayName("Cria colaborador com dados obrigatórios")
+    // Valida criação de colaborador com campos mínimos obrigatórios retornando 201
+    void deveCriarColaboradorComDadosObrigatorios() {
         Employee employee = new Employee();
         employee.setCpf("12345678901");
         employee.setPosition("Developer");
@@ -68,7 +73,9 @@ class EmployeeControllerTest {
     }
 
     @Test
-    void testViewEmployee() {
+    @DisplayName("Visualiza colaborador por ID retorna 200 ou 404")
+    // Valida que consultar colaborador por ID retorna sucesso ou 404 quando ausente
+    void deveVisualizarColaboradorPorIdRetorna200Ou404() {
         // Primeiro cria um Employee real
         Employee employee = new Employee();
         employee.setCpf("12345678902");
@@ -88,7 +95,9 @@ class EmployeeControllerTest {
     }
 
     @Test
-    void testUpdateEmployee() {
+    @DisplayName("Atualiza colaborador e persiste alteração")
+    // Valida atualização de colaborador e persistência do novo cargo
+    void deveAtualizarColaboradorComSucesso() {
         // Criar Employee real
         Employee employee = new Employee();
         employee.setCpf("12345678903");
@@ -123,7 +132,9 @@ class EmployeeControllerTest {
     }
 
     @Test
-    void testDeleteEmployee() {
+    @DisplayName("Deleta colaborador com sucesso")
+    // Valida exclusão de colaborador retornando 200 e mensagem de sucesso
+    void deveDeletarColaboradorComSucesso() {
         // Criar Employee real
         Employee employee = new Employee();
         employee.setCpf("12345678904");
