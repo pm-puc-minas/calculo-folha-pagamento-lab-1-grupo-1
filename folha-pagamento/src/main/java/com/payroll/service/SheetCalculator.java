@@ -38,7 +38,6 @@ public class SheetCalculator {
             new BigDecimal("0.275")
     };
 
-    // ISSO NÃO EXISTE
     private static final BigDecimal[] IRPF_DEDUCTIONS = {
             new BigDecimal("169.44"),
             new BigDecimal("381.44"),
@@ -128,7 +127,6 @@ public class SheetCalculator {
         return baseCalculoFGTS.multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP);
     }
 
-    // Onde está a lógica de cálculo? Se essa classe fosse herdada por PayrollService, até ia, mas não é o caso.
     public BigDecimal calcularIRRF(BigDecimal salarioBruto, BigDecimal descontoINSS, int numDependentes) {
         if (salarioBruto == null || descontoINSS == null) {
             return BigDecimal.ZERO;

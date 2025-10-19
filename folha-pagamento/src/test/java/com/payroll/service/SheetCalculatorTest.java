@@ -1,13 +1,14 @@
 package com.payroll.service;
 
-import com.payroll.model.Employee.GrauInsalubridade;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import com.payroll.model.Employee.GrauInsalubridade;
 
 class SheetCalculatorTest {
 
@@ -85,7 +86,6 @@ class SheetCalculatorTest {
         BigDecimal inss = new BigDecimal("330.00");
         BigDecimal irrf = calculator.calcularIRRF(new BigDecimal("3000.00"), inss, 0);
         assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0); //Esse assert não testa o comportamento esperado
-        // Com dependentes
         irrf = calculator.calcularIRRF(new BigDecimal("3000.00"), inss, 2);
         assertTrue(irrf.compareTo(BigDecimal.ZERO) > 0); //Esse assert aqui não testa o comportamento esperado do método.
         assertEquals(BigDecimal.ZERO, calculator.calcularIRRF(null, inss, 0));
