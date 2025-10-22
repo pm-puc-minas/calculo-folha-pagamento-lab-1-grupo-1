@@ -39,6 +39,8 @@ public class Employee {
     @NotNull
     @DecimalMin("0.0")
     private BigDecimal salary;
+    @Column(name = "dependents")
+private Integer dependents = 0; 
 
     @NotNull
     @Min(1)
@@ -125,6 +127,9 @@ public class Employee {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Integer getDependents() {return dependents;}
+   public void setDependents(Integer dependents) {this.dependents = dependents;}
 
     public Long getCreatedBy() { return createdBy; }
     public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }

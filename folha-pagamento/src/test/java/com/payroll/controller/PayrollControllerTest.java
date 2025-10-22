@@ -2,8 +2,6 @@ package com.payroll.controller;
 
 import com.payroll.entity.Employee;
 import com.payroll.service.EmployeeService;
-import com.payroll.service.PayrollService;
-import com.payroll.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -31,11 +29,6 @@ class PayrollControllerTest {
     @Autowired
     private EmployeeService employeeService;
 
-    @Autowired
-    private PayrollService payrollService;
-
-    @Autowired
-    private UserService userService;
 
     private Employee employee;
 

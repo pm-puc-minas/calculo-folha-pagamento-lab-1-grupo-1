@@ -38,12 +38,7 @@ public class SheetCalculator {
             new BigDecimal("0.275")
     };
 
-    private static final BigDecimal[] IRPF_DEDUCTIONS = {
-            new BigDecimal("169.44"),
-            new BigDecimal("381.44"),
-            new BigDecimal("662.77"),
-            new BigDecimal("896.00")
-    };
+  
 
     public BigDecimal calcularSalarioHora(BigDecimal salarioBruto, int horasSemanais) {
         if (salarioBruto == null || horasSemanais <= 0) {
@@ -95,60 +90,62 @@ public class SheetCalculator {
         return valorDiario.multiply(new BigDecimal(diasTrabalhados)).setScale(2, RoundingMode.HALF_UP);
     }
 
-    public BigDecimal calcularINSS(BigDecimal salarioContribuicao) {
-        if (salarioContribuicao == null || salarioContribuicao.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal totalDesconto = BigDecimal.ZERO;
-        BigDecimal salarioRestante = salarioContribuicao;
-
-        for (int i = 0; i < INSS_LIMITS.length && salarioRestante.compareTo(BigDecimal.ZERO) > 0; i++) {
-            BigDecimal limite = INSS_LIMITS[i];
-            BigDecimal limiteAnterior = i > 0 ? INSS_LIMITS[i - 1] : BigDecimal.ZERO;
-            BigDecimal valorTributavel = salarioRestante.min(limite.subtract(limiteAnterior));
-
-            if (valorTributavel.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal desconto = valorTributavel.multiply(INSS_RATES[i]);
-                totalDesconto = totalDesconto.add(desconto);
-                salarioRestante = salarioRestante.subtract(valorTributavel);
+        public BigDecimal calcularINSS(BigDecimal salarioContribuicao) {
+            if (salarioContribuicao == null || salarioContribuicao.compareTo(BigDecimal.ZERO) <= 0) {
+                return BigDecimal.ZERO;
             }
-        }
 
-        return totalDesconto.setScale(2, RoundingMode.HALF_UP);
-    }
+            BigDecimal totalDesconto = BigDecimal.ZERO;
+            BigDecimal salarioRestante = salarioContribuicao;
 
-    public BigDecimal calcularFGTS(BigDecimal baseCalculoFGTS) {
-        if (baseCalculoFGTS == null || baseCalculoFGTS.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
+            for (int i = 0; i < INSS_LIMITS.length && salarioRestante.compareTo(BigDecimal.ZERO) > 0; i++) {
+                BigDecimal limite = INSS_LIMITS[i];
+                BigDecimal limiteAnterior = i > 0 ? INSS_LIMITS[i - 1] : BigDecimal.ZERO;
+                BigDecimal valorTributavel = salarioRestante.min(limite.subtract(limiteAnterior));
 
-        // FGTS é sempre 8% do salário bruto
-        return baseCalculoFGTS.multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    public BigDecimal calcularIRRF(BigDecimal salarioBruto, BigDecimal descontoINSS, int numDependentes) {
-        if (salarioBruto == null || descontoINSS == null) {
-            return BigDecimal.ZERO;
-        }
-
-        // Base de cálculo: salário bruto(base) - INSS - (dependentes * 189.59)
-        BigDecimal deducaoDependentes = new BigDecimal("189.59").multiply(new BigDecimal(numDependentes));
-        BigDecimal baseCalculo = salarioBruto.subtract(descontoINSS).subtract(deducaoDependentes);
-
-        // Verificar se está isento
-        if (baseCalculo.compareTo(IRPF_LIMITS[0]) <= 0) {
-            return BigDecimal.ZERO;
-        }
-
-        // Calcular IRRF por faixa
-        for (int i = IRPF_LIMITS.length - 1; i >= 0; i--) {
-            if (baseCalculo.compareTo(IRPF_LIMITS[i]) > 0) {
-                BigDecimal imposto = baseCalculo.multiply(IRPF_RATES[i]).subtract(IRPF_DEDUCTIONS[i]);
-                return imposto.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+                if (valorTributavel.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal desconto = valorTributavel.multiply(INSS_RATES[i]);
+                    totalDesconto = totalDesconto.add(desconto);
+                    salarioRestante = salarioRestante.subtract(valorTributavel);
+                }
             }
+
+            return totalDesconto.setScale(2, RoundingMode.HALF_UP);
         }
 
+        public BigDecimal calcularFGTS(BigDecimal baseCalculoFGTS) {
+            if (baseCalculoFGTS == null || baseCalculoFGTS.compareTo(BigDecimal.ZERO) <= 0) {
+                return BigDecimal.ZERO;
+            }
+
+            // FGTS é sempre 8% do salário bruto
+            return baseCalculoFGTS.multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        //fazer
+       public BigDecimal calcularIRRF(BigDecimal salarioBruto, BigDecimal descontoINSS, int numDependentes) {
+    if (salarioBruto == null || descontoINSS == null) {
         return BigDecimal.ZERO;
     }
+
+    // Base de cálculo: salário bruto - INSS - (dependentes * 189,59)
+    BigDecimal deducaoDependentes = new BigDecimal("189.59").multiply(new BigDecimal(numDependentes));
+    BigDecimal baseCalculo = salarioBruto.subtract(descontoINSS).subtract(deducaoDependentes);
+
+    // Verificar se está isento
+    if (baseCalculo.compareTo(IRPF_LIMITS[0]) <= 0) {
+        return BigDecimal.ZERO;
+    }
+
+    // Calcular IRRF por faixa (sem dedução)
+    for (int i = IRPF_LIMITS.length - 1; i >= 0; i--) {
+        if (baseCalculo.compareTo(IRPF_LIMITS[i]) > 0) {
+            BigDecimal imposto = baseCalculo.multiply(IRPF_RATES[i]);
+            return imposto.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        }
+    }
+
+    return BigDecimal.ZERO;
+}
+
 }
