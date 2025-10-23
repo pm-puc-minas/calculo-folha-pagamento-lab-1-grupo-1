@@ -13,28 +13,28 @@ public class EmployeeService implements IEmployeeService {
 
     @Autowired
     private EmployeeRepository employeeRepository;
-
+@Override
     public Employee createEmployee(Employee employee, Long createdBy) {
         employee.setCreatedBy(createdBy);
         return employeeRepository.save(employee);
     }
-
+@Override
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();
     }
-
+@Override
     public Optional<Employee> getEmployeeById(Long id) {
         return employeeRepository.findById(id);
     }
-
+@Override
     public Optional<Employee> getEmployeeByCpf(String cpf) {
         return employeeRepository.findByCpf(cpf);
     }
-
+@Override
     public boolean existsByCpf(String cpf) {
         return employeeRepository.existsByCpf(cpf);
     }
-
+@Override
     public Employee updateEmployee(Long id, Employee employeeDetails) {
         Employee employee = employeeRepository.findById(id).orElseThrow();
         employee.setFullName(employeeDetails.getFullName());
@@ -53,7 +53,7 @@ public class EmployeeService implements IEmployeeService {
         employee.setUnhealthyLevel(employeeDetails.getUnhealthyLevel());
         return employeeRepository.save(employee);
     }
-
+@Override
     public void deleteEmployee(Long id) {
         employeeRepository.deleteById(id);
     }
