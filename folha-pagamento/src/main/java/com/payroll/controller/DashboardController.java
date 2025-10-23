@@ -26,6 +26,7 @@ public class DashboardController implements IDashboardController {
      * Retorna estatísticas resumidas para o frontend.
      */
     @GetMapping
+    @Override
     public ResponseEntity<?> getDashboardData(@AuthenticationPrincipal UserDetails currentUser) {
         try {
             // Coleta de dados principais
