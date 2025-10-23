@@ -22,6 +22,7 @@ public class AuthController implements IAuthController {
 
     // Login com geração de tokens
     @PostMapping("/login")
+    @Override
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
         String username = loginRequest.get("username");
         String password = loginRequest.get("password");
@@ -49,6 +50,7 @@ public class AuthController implements IAuthController {
 
     // Endpoint para refresh token
     @PostMapping("/refresh")
+    @Override
     public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
 
