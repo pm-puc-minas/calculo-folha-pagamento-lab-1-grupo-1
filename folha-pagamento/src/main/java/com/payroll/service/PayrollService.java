@@ -59,7 +59,8 @@ public class PayrollService implements IPayrollService {
         BigDecimal mealVoucher = calcularValeAlimentacao(new BigDecimal("25.00"), 22);
         calculation.setMealVoucherValue(mealVoucher);
 
-        BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(transportDiscount);
+        // líquido = bruto + adicionais + benefícios − (INSS + IRRF + FGTS + VT)
+        BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(fgts).add(transportDiscount);
         BigDecimal netSalary = grossSalary.subtract(totalDiscounts);
         calculation.setNetSalary(netSalary);
 
