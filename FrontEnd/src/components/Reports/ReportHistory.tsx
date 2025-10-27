@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FileText, Download, User, Calendar, Eye } from "lucide-react";
+import jsPDF from "jspdf";
+import { toast } from "@/hooks/use-toast";
 import { useAppSelector } from "@/store/hooks";
 
 interface ReportHistoryEntry {
@@ -21,12 +23,12 @@ interface ReportHistoryEntry {
   status: 'completed' | 'pending' | 'error';
 }
 
-// Mock data - posteriormente será integrado com SQL Server
+// Mock data - posteriormente serÃ¡ integrado com SQL Server
 const mockReportHistory: ReportHistoryEntry[] = [
   {
     id: '1',
     reportType: 'payroll',
-    employeeName: 'João Silva',
+    employeeName: 'JoÃ£o Silva',
     referenceMonth: '2024-01',
     generatedAt: '2024-01-15T10:30:00',
     generatedBy: {
@@ -54,7 +56,7 @@ const mockReportHistory: ReportHistoryEntry[] = [
   {
     id: '3',
     reportType: 'summary',
-    employeeName: 'Relatório Geral',
+    employeeName: 'RelatÃ³rio Geral',
     referenceMonth: '2024-01',
     generatedAt: '2024-01-16T09:00:00',
     generatedBy: {
@@ -80,7 +82,7 @@ export const ReportHistory = () => {
 
   const formatMonth = (monthStr: string) => {
     if (!monthStr || !monthStr.includes('-')) {
-      return 'Mês inválido';
+      return 'MÃªs invÃ¡lido';
     }
     
     const [year, month] = monthStr.split('-');
@@ -96,18 +98,18 @@ export const ReportHistory = () => {
       case 'payroll':
         return 'Folha de Pagamento';
       case 'employee':
-        return 'Dados do Funcionário';
+        return 'Dados do FuncionÃ¡rio';
       case 'summary':
-        return 'Relatório Resumido';
+        return 'RelatÃ³rio Resumido';
       default:
-        return 'Relatório';
+        return 'RelatÃ³rio';
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-success text-success-foreground">Concluído</Badge>;
+        return <Badge className="bg-success text-success-foreground">ConcluÃ­do</Badge>;
       case 'pending':
         return <Badge variant="secondary">Pendente</Badge>;
       case 'error':
@@ -122,13 +124,13 @@ export const ReportHistory = () => {
   };
 
   const handleViewReport = (reportId: string) => {
-    console.log('Visualizar relatório:', reportId);
-    // TODO: Implementar visualização do relatório
+    console.log('Visualizar relatÃ³rio:', reportId);
+    // TODO: Implementar visualizaÃ§Ã£o do relatÃ³rio
   };
 
   const handleDownloadReport = (reportId: string) => {
-    console.log('Download relatório:', reportId);
-    // TODO: Implementar download do relatório
+    console.log('Download relatÃ³rio:', reportId);
+    // TODO: Implementar download do relatÃ³rio
   };
 
   return (
@@ -141,9 +143,9 @@ export const ReportHistory = () => {
               <FileText className="w-6 h-6 text-white" />
             </div>
             <div>
-              <CardTitle className="text-2xl">Histórico de Relatórios</CardTitle>
+              <CardTitle className="text-2xl">HistÃ³rico de RelatÃ³rios</CardTitle>
               <p className="text-muted-foreground">
-                Acompanhe todos os relatórios gerados no sistema
+                Acompanhe todos os relatÃ³rios gerados no sistema
               </p>
             </div>
           </div>
@@ -157,7 +159,7 @@ export const ReportHistory = () => {
             <div className="text-2xl font-bold text-primary">
               {mockReportHistory.length}
             </div>
-            <div className="text-sm text-muted-foreground">Total de Relatórios</div>
+            <div className="text-sm text-muted-foreground">Total de RelatÃ³rios</div>
           </CardContent>
         </Card>
         
@@ -166,7 +168,7 @@ export const ReportHistory = () => {
             <div className="text-2xl font-bold text-success">
               {mockReportHistory.filter(r => r.status === 'completed').length}
             </div>
-            <div className="text-sm text-muted-foreground">Concluídos</div>
+            <div className="text-sm text-muted-foreground">ConcluÃ­dos</div>
           </CardContent>
         </Card>
         
@@ -184,7 +186,7 @@ export const ReportHistory = () => {
             <div className="text-2xl font-bold text-accent">
               {new Set(mockReportHistory.map(r => r.generatedBy.id)).size}
             </div>
-            <div className="text-sm text-muted-foreground">Usuários Ativos</div>
+            <div className="text-sm text-muted-foreground">UsuÃ¡rios Ativos</div>
           </CardContent>
         </Card>
       </div>
@@ -194,7 +196,7 @@ export const ReportHistory = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Calendar className="w-5 h-5" />
-            <span>Histórico Detalhado</span>
+            <span>HistÃ³rico Detalhado</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -202,12 +204,12 @@ export const ReportHistory = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Funcionário</TableHead>
-                <TableHead>Mês Referência</TableHead>
+                <TableHead>FuncionÃ¡rio</TableHead>
+                <TableHead>MÃªs ReferÃªncia</TableHead>
                 <TableHead>Gerado por</TableHead>
                 <TableHead>Data/Hora</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-right">AÃ§Ãµes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
