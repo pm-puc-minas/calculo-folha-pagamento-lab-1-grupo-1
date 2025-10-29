@@ -9,14 +9,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.payroll.entity.PayrollCalculation;
+import com.payroll.entity.Employee;
 import com.payroll.model.Employee.GrauInsalubridade;
 import com.payroll.repository.PayrollCalculationRepository;
+import com.payroll.repository.EmployeeRepository;
 
 @Service
 public class PayrollService implements IPayrollService {
 
     @Autowired
     private PayrollCalculationRepository payrollRepository;
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     @Override
     public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long calculatedBy) {
@@ -26,6 +31,11 @@ public class PayrollService implements IPayrollService {
         PayrollCalculation calculation = new PayrollCalculation();
         calculation.setReferenceMonth(referenceMonth);
         calculation.setCreatedBy(calculatedBy);
+
+        // Vincula o empregado à folha (necessário para validação @NotNull)
+        Employee employee = employeeRepository.findById(employeeId)
+            .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+        calculation.setEmployee(employee);
 
         // Simulação de dados de funcionário
         BigDecimal baseSalary = new BigDecimal("3000.00");

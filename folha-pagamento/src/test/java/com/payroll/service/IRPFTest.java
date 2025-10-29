@@ -39,7 +39,7 @@ class IRPFTest {
         SheetCalculator.DescontoContext ctx3 = new SheetCalculator.DescontoContext(
                 e.getSalary(), inss, 3, BigDecimal.ZERO
         );
-        assertEquals(new BigDecimal("0.00"), new IRPF().calcular(ctx3));
+        // Usa compareTo para ignorar diferença de escala (0 vs 0.00)
+        org.junit.jupiter.api.Assertions.assertEquals(0, new IRPF().calcular(ctx3).compareTo(BigDecimal.ZERO));
     }
 }
-

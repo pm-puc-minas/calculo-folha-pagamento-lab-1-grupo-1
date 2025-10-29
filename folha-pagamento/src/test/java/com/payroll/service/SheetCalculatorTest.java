@@ -51,6 +51,7 @@ class SheetCalculatorTest {
 
         employee.setDependents(3);
         BigDecimal irrf3 = SheetCalculator.calcularIRRF(salarioBruto, inss, employee.getDependents());
-        assertEquals(new BigDecimal("0.00"), irrf3);
+        // Usa compareTo para ignorar diferença de escala (0 vs 0.00)
+        org.junit.jupiter.api.Assertions.assertEquals(0, irrf3.compareTo(BigDecimal.ZERO));
     }
 }
