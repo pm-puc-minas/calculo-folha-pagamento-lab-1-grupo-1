@@ -111,7 +111,7 @@ export const ReportsTab = () => {
         </TabsList>
 
         <TabsContent value="history">
-          <ReportHistory />
+          <ReportHistory items={[]} />
         </TabsContent>
 
         <TabsContent value="management">

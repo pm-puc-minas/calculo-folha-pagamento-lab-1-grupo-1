@@ -4,6 +4,9 @@ import { Sidebar } from "@/components/Layout/Sidebar";
 import { DashboardView } from "@/components/Dashboard/DashboardView";
 import { EmployeeRegistration } from "@/components/Employee/EmployeeRegistration";
 import { PayrollCalculation } from "@/components/Payroll/PayrollCalculation";
+import ReportsPage from "@/pages/ReportsPage";
+import HistoryFilesPage from "@/pages/HistoryFilesPage";
+import SettingsPage from "@/pages/SettingsPage";
 
 const PayrollApp = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -28,23 +31,11 @@ const PayrollApp = () => {
       case "payroll":
         return <PayrollCalculation />;
       case "reports":
-        return (
-          <div className="flex-1 bg-gray-50 min-h-screen flex items-center justify-center">
-            <h2 className="text-2xl font-semibold text-gray-600">Relatórios - Em desenvolvimento</h2>
-          </div>
-        );
+        return <ReportsPage />;
       case "history":
-        return (
-          <div className="flex-1 bg-gray-50 min-h-screen flex items-center justify-center">
-            <h2 className="text-2xl font-semibold text-gray-600">Histórico & Arquivos - Em desenvolvimento</h2>
-          </div>
-        );
+        return <HistoryFilesPage />;
       case "settings":
-        return (
-          <div className="flex-1 bg-gray-50 min-h-screen flex items-center justify-center">
-            <h2 className="text-2xl font-semibold text-gray-600">Configurações - Em desenvolvimento</h2>
-          </div>
-        );
+        return <SettingsPage />;
       default:
         return <DashboardView onViewChange={setActiveView} onLogout={handleLogout} />;
     }
