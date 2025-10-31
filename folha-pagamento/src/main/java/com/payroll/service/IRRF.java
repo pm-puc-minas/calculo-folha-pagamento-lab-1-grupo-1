@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 // IRRF: base = bruto - INSS - (dependentes*189,59) - pensao; imposto = base * aliquota
-public class IRRF implements SheetCalculator.Desconto {
+public class IRRF implements IDesconto {
 
     @Override
     // Calcula IRRF conforme tabela (sem parcela a deduzir)

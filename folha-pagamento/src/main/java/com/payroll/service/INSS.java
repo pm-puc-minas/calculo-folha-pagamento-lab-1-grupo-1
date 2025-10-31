@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 // Calcula o desconto de INSS usando tabela progressiva por faixas.
-public class INSS implements SheetCalculator.Desconto {
+public class INSS implements IDesconto {
 
     @Override
     // Calcula INSS progressivo por faixas (2024)

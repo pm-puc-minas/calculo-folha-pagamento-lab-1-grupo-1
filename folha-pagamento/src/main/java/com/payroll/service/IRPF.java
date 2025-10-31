@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 // IRPF (teórico): imposto = base * aliquota (sem parcela a deduzir)
-public class IRPF implements SheetCalculator.Desconto {
+public class IRPF implements IDesconto {
 
     @Override
     // Calcula IRPF teórico (sem parcela a deduzir)
