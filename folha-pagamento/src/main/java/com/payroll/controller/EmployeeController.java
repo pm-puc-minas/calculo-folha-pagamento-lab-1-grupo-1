@@ -1,9 +1,12 @@
 package com.payroll.controller;
 
+import com.payroll.dtos.employee.EmployeeRequestDTO; 
+import com.payroll.dtos.employee.EmployeeResponseDTO; 
 import com.payroll.entity.Employee;
 import com.payroll.entity.User;
 import com.payroll.service.EmployeeService;
 import com.payroll.service.UserService;
+import jakarta.validation.Valid; 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,10 +17,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/employees")
-public class EmployeeController {
+public class EmployeeController implements IEmployeeController { 
 
     @Autowired
     private EmployeeService employeeService;
@@ -25,77 +29,154 @@ public class EmployeeController {
     @Autowired
     private UserService userService;
 
-    // Listar todos os funcionários
+    
+
+    
+    private EmployeeResponseDTO toResponseDTO(Employee employee) {
+        if (employee == null) return null;
+        
+        
+        
+        EmployeeResponseDTO dto = new EmployeeResponseDTO();
+        dto.setId(employee.getId());
+        dto.setFullName(employee.getFullName());
+        dto.setCpf(employee.getCpf()); 
+        dto.setPosition(employee.getPosition());
+        dto.setSalary(employee.getSalary());
+        dto.setAdmissionDate(employee.getAdmissionDate());
+        dto.setCreatedAt(employee.getCreatedAt());
+        
+
+        return dto;
+    }
+
+    
+    private Employee fromRequestDTO(EmployeeRequestDTO requestDTO) {
+        
+        Employee employee = new Employee();
+        
+        
+        employee.setFullName(requestDTO.getFullName());
+        employee.setCpf(requestDTO.getCpf());
+        employee.setRg(requestDTO.getRg());
+        employee.setPosition(requestDTO.getPosition());
+        employee.setSalary(requestDTO.getSalary());
+        employee.setAdmissionDate(requestDTO.getAdmissionDate());
+        employee.setDependents(requestDTO.getDependents());
+        employee.setWeeklyHours(requestDTO.getWeeklyHours());
+        
+
+        return employee;
+    }
+
+    
+
+    
     @GetMapping
-    public ResponseEntity<List<Employee>> listEmployees() {
+    @Override
+    public ResponseEntity<List<EmployeeResponseDTO>> listEmployees() {
         List<Employee> employees = employeeService.getAllEmployees();
-        return ResponseEntity.ok(employees);
+        
+        
+        List<EmployeeResponseDTO> dtos = employees.stream()
+            .map(this::toResponseDTO)
+            .collect(Collectors.toList());
+            
+        return ResponseEntity.ok(dtos);
     }
 
-    // Criar um novo funcionário
-   @PostMapping
-public ResponseEntity<?> createEmployee(@RequestBody Employee employee,
-                                        @AuthenticationPrincipal UserDetails currentUser) {
-    if (employeeService.existsByCpf(employee.getCpf())) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body("CPF já cadastrado");
+    
+    @PostMapping
+    @Override
+    
+    public ResponseEntity<?> createEmployee(@RequestBody @Valid EmployeeRequestDTO requestDTO,
+                                            @AuthenticationPrincipal UserDetails currentUser) {
+        
+        
+
+        
+        if (employeeService.existsByCpf(requestDTO.getCpf())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("CPF já cadastrado");
+        }
+        
+        
+        Employee employeeToSave = fromRequestDTO(requestDTO);
+
+        
+        Long userId = null;
+        if (currentUser != null) {
+            User user = userService.findByUsername(currentUser.getUsername()).orElse(null);
+            userId = user != null ? user.getId() : null;
+        }
+
+        Employee saved = employeeService.createEmployee(employeeToSave, userId);
+        
+        
+        EmployeeResponseDTO responseDTO = toResponseDTO(saved);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
-    // Obter ID do usuário logado, mas permitir teste sem user
-    Long userId = null;
-    if (currentUser != null) {
-        User user = userService.findByUsername(currentUser.getUsername()).orElse(null);
-        userId = user != null ? user.getId() : null;
-    }
 
-    Employee saved = employeeService.createEmployee(employee, userId);
-    return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-}
-
-
-    // Visualizar funcionário por ID
+    
     @GetMapping("/{id}")
+    @Override
     public ResponseEntity<?> viewEmployee(@PathVariable Long id) {
         Optional<Employee> employee = employeeService.getEmployeeById(id);
+        
         if (employee.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Funcionário não encontrado");
         }
-        return ResponseEntity.ok(employee.get());
+        
+        
+        EmployeeResponseDTO responseDTO = toResponseDTO(employee.get());
+        
+        return ResponseEntity.ok(responseDTO);
     }
 
-    // Atualizar funcionário
+    
     @PutMapping("/{id}")
-public ResponseEntity<?> updateEmployee(@PathVariable Long id,
-                                        @RequestBody Employee employee) {
-    try {
-        Employee updatedEmployee = employeeService.updateEmployee(id, employee);
+    @Override
+    
+    public ResponseEntity<?> updateEmployee(@PathVariable Long id,
+                                            @RequestBody @Valid EmployeeRequestDTO requestDTO) {
+        try {
+            
+            Employee employeeData = fromRequestDTO(requestDTO);
+            
+            Employee updatedEmployee = employeeService.updateEmployee(id, employeeData);
 
-        // Retorna 200 OK com o objeto atualizado
-        return ResponseEntity.ok(updatedEmployee);
+            
+            EmployeeResponseDTO responseDTO = toResponseDTO(updatedEmployee);
 
-    } catch (NoSuchElementException e) {
-        // Se não existir retorna 404
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Funcionário não encontrado");
-    } catch (Exception e) {
-        // Para outros errosretorna 500
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Erro ao atualizar funcionário: " + e.getMessage());
+            
+            return ResponseEntity.ok(responseDTO);
+
+        } catch (NoSuchElementException e) {
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Funcionário não encontrado");
+        } catch (Exception e) {
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao atualizar funcionário: " + e.getMessage());
+        }
     }
-}
 
 
-    // Deletar funcionário
-   @DeleteMapping("/{id}")
-public ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
-    try {
-        employeeService.deleteEmployee(id);
-        return ResponseEntity.ok("Deletado com sucesso");
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Erro ao excluir funcionário: " + e.getMessage());
+    
+    @DeleteMapping("/{id}")
+    @Override
+    public ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
+        try {
+            employeeService.deleteEmployee(id);
+            return ResponseEntity.ok("Deletado com sucesso");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao excluir funcionário: " + e.getMessage());
+        }
     }
-}
 
 }
