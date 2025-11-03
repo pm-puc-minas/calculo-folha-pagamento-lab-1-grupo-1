@@ -1,5 +1,7 @@
 package com.payroll.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference; 
+import com.fasterxml.jackson.annotation.JsonFormat; 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,69 +16,71 @@ public class PayrollCalculation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) 
     @JoinColumn(name = "employee_id", nullable = false)
-    @NotNull // not blank
+    @NotNull
+    @JsonBackReference 
     private Employee employee;
 
     @Column(name = "reference_month", nullable = false)
-    @NotBlank // not blank
+    @NotBlank
     private String referenceMonth;
 
     @Column(name = "gross_salary", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal grossSalary;
 
     @Column(name = "net_salary", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal netSalary;
 
     @Column(name = "inss_discount", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal inssDiscount;
 
     @Column(name = "irpf_discount", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal irpfDiscount;
 
     @Column(name = "transport_discount", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal transportDiscount;
 
     @Column(name = "fgts_value", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal fgtsValue;
 
     @Column(name = "dangerous_bonus", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal dangerousBonus;
 
     @Column(name = "unhealthy_bonus", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal unhealthyBonus;
 
     @Column(name = "meal_voucher_value", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal mealVoucherValue;
 
     @Column(name = "hourly_wage", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal hourlyWage;
 
     @Column(name = "created_at", nullable = false)
-    @NotNull // not blank
+    @NotNull
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
     @Column(name = "created_by", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private Long createdBy;
 
-    // Constructors
+    
     public PayrollCalculation() {
         this.createdAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
+    
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
