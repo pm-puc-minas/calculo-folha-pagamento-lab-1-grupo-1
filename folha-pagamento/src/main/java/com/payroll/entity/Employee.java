@@ -1,5 +1,8 @@
 package com.payroll.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat; 
+import com.fasterxml.jackson.annotation.JsonIgnore; 
+import com.fasterxml.jackson.annotation.JsonManagedReference; 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,6 +12,7 @@ import jakarta.validation.constraints.Min;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List; 
 
 @Entity
 @Table(name = "employees")
@@ -21,11 +25,12 @@ public class Employee {
     @NotBlank
     @Column(name = "full_name")
     private String fullName;
-
+    
     @NotBlank
     @Column(unique = true)
     private String cpf;
 
+    
     @NotBlank
     private String rg;
 
@@ -34,13 +39,16 @@ public class Employee {
 
     @NotNull
     @Column(name = "admission_date")
+    @JsonFormat(pattern = "yyyy-MM-dd") 
     private LocalDate admissionDate;
 
     @NotNull
     @DecimalMin("0.0")
     private BigDecimal salary;
+    
     @Column(name = "dependents")
-private Integer dependents = 0; 
+    @Min(0) 
+    private Integer dependents = 0;
 
     @NotNull
     @Min(1)
@@ -69,17 +77,16 @@ private Integer dependents = 0;
     private String unhealthyLevel;
 
     @Column(name = "created_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") 
     private LocalDateTime createdAt;
 
     @Column(name = "created_by")
     private Long createdBy;
-
-    // Constructors
+    
     public Employee() {
         this.createdAt = LocalDateTime.now();
     }
-
-    // Getters and Setters
+    
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -100,6 +107,9 @@ private Integer dependents = 0;
 
     public BigDecimal getSalary() { return salary; }
     public void setSalary(BigDecimal salary) { this.salary = salary; }
+    
+    public Integer getDependents() {return dependents;}
+    public void setDependents(Integer dependents) {this.dependents = dependents;}
 
     public Integer getWeeklyHours() { return weeklyHours; }
     public void setWeeklyHours(Integer weeklyHours) { this.weeklyHours = weeklyHours; }
@@ -127,9 +137,6 @@ private Integer dependents = 0;
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public Integer getDependents() {return dependents;}
-   public void setDependents(Integer dependents) {this.dependents = dependents;}
 
     public Long getCreatedBy() { return createdBy; }
     public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
