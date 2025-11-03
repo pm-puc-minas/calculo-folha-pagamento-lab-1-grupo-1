@@ -3,12 +3,15 @@ package com.payroll.controller;
 import com.payroll.config.JwtUtil;
 import com.payroll.entity.User;
 import com.payroll.service.UserService;
+import com.payroll.dtos.user.LoginRequestDTO; 
+import com.payroll.dtos.user.UserResponseDTO; 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import jakarta.validation.Valid; 
 
 @RestController
 @RequestMapping("/api/auth")
@@ -20,19 +23,21 @@ public class AuthController implements IAuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // Login com geração de tokens
+    
     @PostMapping("/login")
     @Override
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
-        String username = loginRequest.get("username");
-        String password = loginRequest.get("password");
+    
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDTO loginRequest) {
+        
+        String username = loginRequest.getUsername();
+        String password = loginRequest.getPassword();
 
         User user = userService.findByUsername(username).orElse(null);
         if (user == null || !userService.validatePassword(password, user.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciais inválidas");
         }
 
-        // Claims personalizadas
+        
         Map<String, Object> claims = Map.of(
                 "idUsuario", user.getId(),
                 "perfil", user.getRole().name()
@@ -41,14 +46,23 @@ public class AuthController implements IAuthController {
         String accessToken = jwtUtil.generateAccessToken(username, claims);
         String refreshToken = jwtUtil.generateRefreshToken(username);
 
+        
+        UserResponseDTO userDto = new UserResponseDTO(
+            user.getId(),
+            user.getUsername(),
+            user.getEmail(),
+            user.getRole().name()
+        );
+
+        
         return ResponseEntity.ok(Map.of(
                 "accessToken", accessToken,
                 "refreshToken", refreshToken,
-                "user", user
+                "user", userDto 
         ));
     }
 
-    // Endpoint para refresh token
+    
     @PostMapping("/refresh")
     @Override
     public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
@@ -64,7 +78,7 @@ public class AuthController implements IAuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário inválido");
         }
 
-        // Criar novo access token
+        
         Map<String, Object> claims = Map.of(
                 "idUsuario", user.getId(),
                 "perfil", user.getRole().name()
@@ -76,4 +90,3 @@ public class AuthController implements IAuthController {
         ));
     }
 }
-
