@@ -19,6 +19,10 @@ import com.payroll.repository.EmployeeRepository;
 import com.payroll.collections.CollectionOps;
 import com.payroll.collections.FilterSpec;
 import com.payroll.collections.GroupBySpec;
+import com.payroll.exception.DataIntegrityBusinessException;
+import com.payroll.exception.DatabaseConnectionException;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 public class PayrollService implements IPayrollService {
@@ -31,16 +35,25 @@ public class PayrollService implements IPayrollService {
 
     @Override
     public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long calculatedBy) {
-        Optional<PayrollCalculation> existing = payrollRepository.findByEmployeeIdAndReferenceMonth(employeeId, referenceMonth);
-        if (existing.isPresent()) return existing.get();
+        try {
+            Optional<PayrollCalculation> existing = payrollRepository.findByEmployeeIdAndReferenceMonth(employeeId, referenceMonth);
+            if (existing.isPresent()) return existing.get();
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao verificar folha existente", e);
+        }
 
         PayrollCalculation calculation = new PayrollCalculation();
         calculation.setReferenceMonth(referenceMonth);
         calculation.setCreatedBy(calculatedBy);
 
         // Vincula o empregado à folha (necessário para validação @NotNull)
-        Employee employee = employeeRepository.findById(employeeId)
-            .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+        Employee employee;
+        try {
+            employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao buscar empregado", e);
+        }
         calculation.setEmployee(employee);
 
         // Simulação de dados de funcionário
@@ -80,7 +93,13 @@ public class PayrollService implements IPayrollService {
         BigDecimal netSalary = grossSalary.subtract(totalDiscounts);
         calculation.setNetSalary(netSalary);
 
-        return payrollRepository.save(calculation);
+        try {
+            return payrollRepository.save(calculation);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityBusinessException("Violação de integridade ao salvar cálculo de folha", e);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao salvar cálculo de folha", e);
+        }
     }
 
 
@@ -190,13 +209,23 @@ public class PayrollService implements IPayrollService {
 
     @Override
     public List<PayrollCalculation> getEmployeePayrolls(Long employeeId) {
-        List<PayrollCalculation> list = payrollRepository.findByEmployeeId(employeeId);
+        List<PayrollCalculation> list;
+        try {
+            list = payrollRepository.findByEmployeeId(employeeId);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao listar folhas do empregado", e);
+        }
         return CollectionOps.filter(list, pc -> pc != null && pc.getEmployee() != null && Objects.equals(pc.getEmployee().getId(), employeeId));
     }
 
     @Override
     public List<PayrollCalculation> getAllPayrolls() {
-        List<PayrollCalculation> all = payrollRepository.findAll();
+        List<PayrollCalculation> all;
+        try {
+            all = payrollRepository.findAll();
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao listar todas as folhas", e);
+        }
         return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 

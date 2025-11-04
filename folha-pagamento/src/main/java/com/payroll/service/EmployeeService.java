@@ -2,6 +2,8 @@ package com.payroll.service;
 
 import com.payroll.entity.Employee;
 import com.payroll.repository.EmployeeRepository;
+import com.payroll.exception.DataIntegrityBusinessException;
+import com.payroll.exception.DatabaseConnectionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.payroll.collections.CollectionOps;
 import com.payroll.collections.FilterSpec;
 import com.payroll.collections.GroupBySpec;
@@ -22,48 +26,80 @@ public class EmployeeService implements IEmployeeService {
     private EmployeeRepository employeeRepository;
 @Override
     public Employee createEmployee(Employee employee, Long createdBy) {
-        employee.setCreatedBy(createdBy);
-        return employeeRepository.save(employee);
+        try {
+            employee.setCreatedBy(createdBy);
+            return employeeRepository.save(employee);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityBusinessException("Violação de integridade ao criar funcionário", e);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao criar funcionário", e);
+        }
     }
 @Override
     public List<Employee> getAllEmployees() {
-        List<Employee> all = employeeRepository.findAll();
-        return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        try {
+            List<Employee> all = employeeRepository.findAll();
+            return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao listar funcionários", e);
+        }
     }
 @Override
     public Optional<Employee> getEmployeeById(Long id) {
-        return employeeRepository.findById(id);
+        try {
+            return employeeRepository.findById(id);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao buscar funcionário por ID", e);
+        }
     }
 @Override
     public Optional<Employee> getEmployeeByCpf(String cpf) {
-        return employeeRepository.findByCpf(cpf);
+        try {
+            return employeeRepository.findByCpf(cpf);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao buscar funcionário por CPF", e);
+        }
     }
 @Override
     public boolean existsByCpf(String cpf) {
-        return employeeRepository.existsByCpf(cpf);
+        try {
+            return employeeRepository.existsByCpf(cpf);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao verificar CPF", e);
+        }
     }
 @Override
     public Employee updateEmployee(Long id, Employee employeeDetails) {
-        Employee employee = employeeRepository.findById(id).orElseThrow();
-        employee.setFullName(employeeDetails.getFullName());
-        employee.setCpf(employeeDetails.getCpf());
-        employee.setRg(employeeDetails.getRg());
-        employee.setPosition(employeeDetails.getPosition());
-        employee.setAdmissionDate(employeeDetails.getAdmissionDate());
-        employee.setSalary(employeeDetails.getSalary());
-        employee.setWeeklyHours(employeeDetails.getWeeklyHours());
-        employee.setTransportVoucher(employeeDetails.getTransportVoucher());
-        employee.setMealVoucher(employeeDetails.getMealVoucher());
-        employee.setMealVoucherValue(employeeDetails.getMealVoucherValue());
-        employee.setDangerousWork(employeeDetails.getDangerousWork());
-        employee.setDangerousPercentage(employeeDetails.getDangerousPercentage());
-        employee.setUnhealthyWork(employeeDetails.getUnhealthyWork());
-        employee.setUnhealthyLevel(employeeDetails.getUnhealthyLevel());
-        return employeeRepository.save(employee);
+        try {
+            Employee employee = employeeRepository.findById(id).orElseThrow();
+            employee.setFullName(employeeDetails.getFullName());
+            employee.setCpf(employeeDetails.getCpf());
+            employee.setRg(employeeDetails.getRg());
+            employee.setPosition(employeeDetails.getPosition());
+            employee.setAdmissionDate(employeeDetails.getAdmissionDate());
+            employee.setSalary(employeeDetails.getSalary());
+            employee.setWeeklyHours(employeeDetails.getWeeklyHours());
+            employee.setTransportVoucher(employeeDetails.getTransportVoucher());
+            employee.setMealVoucher(employeeDetails.getMealVoucher());
+            employee.setMealVoucherValue(employeeDetails.getMealVoucherValue());
+            employee.setDangerousWork(employeeDetails.getDangerousWork());
+            employee.setDangerousPercentage(employeeDetails.getDangerousPercentage());
+            employee.setUnhealthyWork(employeeDetails.getUnhealthyWork());
+            employee.setUnhealthyLevel(employeeDetails.getUnhealthyLevel());
+            return employeeRepository.save(employee);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityBusinessException("Violação de integridade ao atualizar funcionário", e);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao atualizar funcionário", e);
+        }
     }
 @Override
     public void deleteEmployee(Long id) {
-        employeeRepository.deleteById(id);
+        try {
+            employeeRepository.deleteById(id);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao deletar funcionário", e);
+        }
     }
 
     public List<Employee> filterEmployeesBySalaryMin(BigDecimal minSalary) {
