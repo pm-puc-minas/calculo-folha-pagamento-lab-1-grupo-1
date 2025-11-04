@@ -4,6 +4,7 @@ import com.payroll.entity.Employee;
 import com.payroll.repository.EmployeeRepository;
 import com.payroll.exception.DataIntegrityBusinessException;
 import com.payroll.exception.DatabaseConnectionException;
+import com.payroll.exception.NotFoundBusinessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -71,7 +72,7 @@ public class EmployeeService implements IEmployeeService {
 @Override
     public Employee updateEmployee(Long id, Employee employeeDetails) {
         try {
-            Employee employee = employeeRepository.findById(id).orElseThrow();
+            Employee employee = employeeRepository.findById(id).orElseThrow(() -> new NotFoundBusinessException("Funcionário não encontrado: " + id));
             employee.setFullName(employeeDetails.getFullName());
             employee.setCpf(employeeDetails.getCpf());
             employee.setRg(employeeDetails.getRg());

@@ -21,6 +21,7 @@ import com.payroll.collections.FilterSpec;
 import com.payroll.collections.GroupBySpec;
 import com.payroll.exception.DataIntegrityBusinessException;
 import com.payroll.exception.DatabaseConnectionException;
+import com.payroll.exception.InputValidationException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -90,6 +91,16 @@ public class PayrollService implements IPayrollService {
 
         // líquido = bruto + adicionais + benefícios − (INSS + IRRF + FGTS + VT)
         BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(fgts).add(transportDiscount);
+
+        if (grossSalary.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InputValidationException("Salário bruto deve ser maior que zero",
+                Map.of("grossSalary", grossSalary));
+        }
+        if (totalDiscounts.compareTo(grossSalary) >= 0) {
+            throw new InputValidationException("Descontos não podem ser maiores ou iguais ao salário bruto",
+                Map.of("grossSalary", grossSalary, "totalDiscounts", totalDiscounts));
+        }
+
         BigDecimal netSalary = grossSalary.subtract(totalDiscounts);
         calculation.setNetSalary(netSalary);
 
