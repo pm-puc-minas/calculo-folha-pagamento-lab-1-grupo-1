@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.payroll.entity.Employee;
 import com.payroll.entity.PayrollCalculation;
+import com.payroll.dto.PayrollDTO;
 import com.payroll.entity.User;
 import com.payroll.service.EmployeeService;
 import com.payroll.service.PayrollService;
@@ -39,9 +40,12 @@ public class PayrollController implements IPayrollController {
     // Listar todas as folhas de pagamento
     @GetMapping
     @Override
-    public ResponseEntity<List<PayrollCalculation>> payrollList() {
+    public ResponseEntity<List<PayrollDTO>> payrollList() {
         List<PayrollCalculation> calculations = payrollService.getAllPayrolls();
-        return ResponseEntity.ok(calculations);
+        List<PayrollDTO> dtos = calculations.stream()
+                .map(pc -> PayrollDTO.fromEntity(pc, null))
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     // Calcular folha de pagamento
@@ -58,8 +62,8 @@ public class PayrollController implements IPayrollController {
             Long userId = user != null ? user.getId() : null;
 
             PayrollCalculation calculation = payrollService.calculatePayroll(employeeId, referenceMonth, userId);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(calculation);
+            PayrollDTO dto = PayrollDTO.fromEntity(calculation, null);
+            return ResponseEntity.status(HttpStatus.CREATED).body(dto);
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -79,7 +83,8 @@ public class PayrollController implements IPayrollController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Folha de pagamento não encontrada");
         }
 
-        return ResponseEntity.ok(calculation.get());
+        PayrollCalculation pc = calculation.get();
+        return ResponseEntity.ok(PayrollDTO.fromEntity(pc, null));
     }
 
     // Visualizar folhas de pagamento de um funcionário específico
@@ -90,11 +95,10 @@ public class PayrollController implements IPayrollController {
         if (employee.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
         }
-
         List<PayrollCalculation> calculations = payrollService.getEmployeePayrolls(employeeId);
-        return ResponseEntity.ok(Map.of(
-                "employee", employee.get(),
-                "calculations", calculations
-        ));
+        List<PayrollDTO> dtos = calculations.stream()
+                .map(pc -> PayrollDTO.fromEntity(pc, null))
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 }

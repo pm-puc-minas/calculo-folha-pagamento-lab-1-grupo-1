@@ -1,6 +1,7 @@
 package com.payroll.controller;
 
 import com.payroll.entity.PayrollCalculation;
+import com.payroll.dto.PayrollDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.List;
@@ -15,7 +16,7 @@ public interface IPayrollController {
      * Lista todas as folhas de pagamento
      * @return ResponseEntity com lista de cálculos
      */
-    ResponseEntity<List<PayrollCalculation>> payrollList();
+    ResponseEntity<List<PayrollDTO>> payrollList();
     
     /**
      * Calcula folha de pagamento

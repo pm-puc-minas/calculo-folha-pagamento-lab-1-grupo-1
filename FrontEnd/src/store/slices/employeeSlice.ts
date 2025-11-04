@@ -37,7 +37,7 @@ const initialState: EmployeeState = {
 export const fetchEmployees = createAsyncThunk(
   'employee/fetchEmployees',
   async () => {
-    const response = await fetch('/api/funcionarios');
+    const response = await fetch('/api/employees');
     
     if (!response.ok) {
       throw new Error('Failed to fetch employees');
@@ -50,7 +50,7 @@ export const fetchEmployees = createAsyncThunk(
 export const createEmployee = createAsyncThunk(
   'employee/createEmployee',
   async (employeeData: Employee) => {
-    const response = await fetch('/api/funcionarios', {
+    const response = await fetch('/api/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(employeeData),
@@ -67,7 +67,7 @@ export const createEmployee = createAsyncThunk(
 export const updateEmployee = createAsyncThunk(
   'employee/updateEmployee',
   async ({ id, data }: { id: number; data: Employee }) => {
-    const response = await fetch(`/api/funcionarios/${id}`, {
+    const response = await fetch(`/api/employees/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -84,7 +84,7 @@ export const updateEmployee = createAsyncThunk(
 export const deleteEmployee = createAsyncThunk(
   'employee/deleteEmployee',
   async (id: number) => {
-    const response = await fetch(`/api/funcionarios/${id}`, {
+    const response = await fetch(`/api/employees/${id}`, {
       method: 'DELETE',
     });
     
@@ -99,7 +99,7 @@ export const deleteEmployee = createAsyncThunk(
 export const fetchEmployeeById = createAsyncThunk(
   'employee/fetchEmployeeById',
   async (id: number) => {
-    const response = await fetch(`/api/funcionarios/${id}`);
+    const response = await fetch(`/api/employees/${id}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch employee');

@@ -65,7 +65,7 @@ const initialState: PayrollState = {
 export const fetchPayrolls = createAsyncThunk(
   'payroll/fetchPayrolls',
   async () => {
-    const response = await fetch('/api/folha-pagamento');
+    const response = await fetch('/api/payroll');
     
     if (!response.ok) {
       throw new Error('Failed to fetch payrolls');
@@ -77,8 +77,8 @@ export const fetchPayrolls = createAsyncThunk(
 
 export const calculatePayroll = createAsyncThunk(
   'payroll/calculatePayroll',
-  async (data: { employeeId: number; month: string }) => {
-    const response = await fetch('/api/folha-pagamento/calcular', {
+  async (data: { employeeId: number; referenceMonth: string }) => {
+    const response = await fetch('/api/payroll/calculate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -95,7 +95,7 @@ export const calculatePayroll = createAsyncThunk(
 export const fetchPayrollById = createAsyncThunk(
   'payroll/fetchPayrollById',
   async (id: number) => {
-    const response = await fetch(`/api/folha-pagamento/${id}`);
+    const response = await fetch(`/api/payroll/${id}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch payroll');
@@ -108,7 +108,7 @@ export const fetchPayrollById = createAsyncThunk(
 export const fetchPayrollsByEmployee = createAsyncThunk(
   'payroll/fetchPayrollsByEmployee',
   async (employeeId: number) => {
-    const response = await fetch(`/api/folha-pagamento/funcionario/${employeeId}`);
+    const response = await fetch(`/api/payroll/employee/${employeeId}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch employee payrolls');

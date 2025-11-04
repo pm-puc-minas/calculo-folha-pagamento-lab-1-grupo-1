@@ -1,6 +1,7 @@
 package com.payroll.controller;
 
 import com.payroll.entity.Employee;
+import com.payroll.dto.EmployeeDTO;
 import com.payroll.entity.User;
 import com.payroll.service.EmployeeService;
 import com.payroll.service.UserService;
@@ -27,9 +28,10 @@ public class EmployeeController {
 
     // Listar todos os funcionários
     @GetMapping
-    public ResponseEntity<List<Employee>> listEmployees() {
+    public ResponseEntity<List<EmployeeDTO>> listEmployees() {
         List<Employee> employees = employeeService.getAllEmployees();
-        return ResponseEntity.ok(employees);
+        List<EmployeeDTO> dtos = employees.stream().map(EmployeeDTO::fromEntity).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     // Criar um novo funcionário
@@ -49,7 +51,7 @@ public ResponseEntity<?> createEmployee(@RequestBody Employee employee,
     }
 
     Employee saved = employeeService.createEmployee(employee, userId);
-    return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    return ResponseEntity.status(HttpStatus.CREATED).body(EmployeeDTO.fromEntity(saved));
 }
 
 
@@ -61,7 +63,7 @@ public ResponseEntity<?> createEmployee(@RequestBody Employee employee,
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Funcionário não encontrado");
         }
-        return ResponseEntity.ok(employee.get());
+        return ResponseEntity.ok(EmployeeDTO.fromEntity(employee.get()));
     }
 
     // Atualizar funcionário
@@ -70,9 +72,7 @@ public ResponseEntity<?> updateEmployee(@PathVariable Long id,
                                         @RequestBody Employee employee) {
     try {
         Employee updatedEmployee = employeeService.updateEmployee(id, employee);
-
-        // Retorna 200 OK com o objeto atualizado
-        return ResponseEntity.ok(updatedEmployee);
+        return ResponseEntity.ok(EmployeeDTO.fromEntity(updatedEmployee));
 
     } catch (NoSuchElementException e) {
         // Se não existir retorna 404

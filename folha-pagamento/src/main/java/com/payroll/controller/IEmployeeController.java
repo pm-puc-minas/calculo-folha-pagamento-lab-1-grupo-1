@@ -1,6 +1,7 @@
 package com.payroll.controller;
 
 import com.payroll.entity.Employee;
+import com.payroll.dto.EmployeeDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.List;
@@ -14,7 +15,7 @@ public interface IEmployeeController {
      * Lista todos os funcionários
      * @return ResponseEntity com lista de funcionários
      */
-    ResponseEntity<List<Employee>> listEmployees();
+    ResponseEntity<List<EmployeeDTO>> listEmployees();
     
     /**
      * Cria um novo funcionário

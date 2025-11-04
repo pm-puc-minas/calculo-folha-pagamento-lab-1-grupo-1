@@ -21,12 +21,10 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Async thunks for auth operations
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials: { username: string; password: string }) => {
-    // Simulate API call - replace with actual backend call
-    const response = await fetch('/auth/login', {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -58,7 +56,6 @@ export const registerUser = createAsyncThunk(
 );
 
 export const logoutUser = createAsyncThunk('auth/logoutUser', async () => {
-  // Handle logout logic
   return null;
 });
 
