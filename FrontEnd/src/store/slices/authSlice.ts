@@ -12,6 +12,8 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
 }
 
 const initialState: AuthState = {
@@ -19,11 +21,13 @@ const initialState: AuthState = {
   isLoading: false,
   isAuthenticated: false,
   error: null,
+  accessToken: typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null,
+  refreshToken: typeof localStorage !== 'undefined' ? localStorage.getItem('refreshToken') : null,
 };
 
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
-  async (credentials: { username: string; password: string }) => {
+  async (credentials: { username?: string; email?: string; password: string }) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -41,7 +45,7 @@ export const loginUser = createAsyncThunk(
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (userData: { username: string; email: string; password: string; role: string }) => {
-    const response = await fetch('/auth/register', {
+    const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
@@ -80,8 +84,19 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload;
+        state.user = action.payload?.user || null;
+        state.accessToken = action.payload?.accessToken || null;
+        state.refreshToken = action.payload?.refreshToken || null;
         state.isAuthenticated = true;
+        if (action.payload?.accessToken) {
+          localStorage.setItem('accessToken', action.payload.accessToken);
+        }
+        if (action.payload?.refreshToken) {
+          localStorage.setItem('refreshToken', action.payload.refreshToken);
+        }
+        if (action.payload?.user) {
+          localStorage.setItem('user', JSON.stringify(action.payload.user));
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -103,6 +118,11 @@ const authSlice = createSlice({
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;
+        state.accessToken = null;
+        state.refreshToken = null;
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
       });
   },
 });

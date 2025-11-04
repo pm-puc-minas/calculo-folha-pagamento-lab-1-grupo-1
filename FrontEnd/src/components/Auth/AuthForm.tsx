@@ -27,42 +27,68 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (loginData.email === "admin@admin.com" && loginData.password === "123456") {
-      onLogin("admin", loginData.password);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginData.email, password: loginData.password })
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Falha no login');
+      }
+
+      const data = await res.json();
+      if (data?.accessToken) localStorage.setItem('accessToken', data.accessToken);
+      if (data?.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+      if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
+      const user = data.user;
+      onLogin(user?.username || loginData.email, loginData.password);
       toast.success("Login realizado com sucesso!");
-    } else {
-      toast.error("Email ou senha inválidos");
+    } catch (err:any) {
+      toast.error(err.message || "Email ou senha inválidos");
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (registerData.password !== registerData.confirmPassword) {
       toast.error("As senhas não coincidem");
       return;
     }
-    
+
     if (registerData.password.length < 6) {
       toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
-    
+
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast.success("Conta criada com sucesso! Faça login para continuar.");
-    setRegisterData({ email: "", password: "", confirmPassword: "" });
-    
-    setIsLoading(false);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: registerData.email, password: registerData.password, role: 'USER' })
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Falha no registro');
+      }
+
+      await res.json();
+      toast.success("Conta criada com sucesso! Faça login para continuar.");
+      setRegisterData({ email: "", password: "", confirmPassword: "" });
+    } catch (err:any) {
+      toast.error(err.message || "Falha no registro");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

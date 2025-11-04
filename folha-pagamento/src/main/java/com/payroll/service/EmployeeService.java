@@ -5,8 +5,15 @@ import com.payroll.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import com.payroll.collections.CollectionOps;
+import com.payroll.collections.FilterSpec;
+import com.payroll.collections.GroupBySpec;
 
 @Service
 public class EmployeeService implements IEmployeeService {
@@ -20,7 +27,8 @@ public class EmployeeService implements IEmployeeService {
     }
 @Override
     public List<Employee> getAllEmployees() {
-        return employeeRepository.findAll();
+        List<Employee> all = employeeRepository.findAll();
+        return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 @Override
     public Optional<Employee> getEmployeeById(Long id) {
@@ -56,5 +64,35 @@ public class EmployeeService implements IEmployeeService {
 @Override
     public void deleteEmployee(Long id) {
         employeeRepository.deleteById(id);
+    }
+
+    public List<Employee> filterEmployeesBySalaryMin(BigDecimal minSalary) {
+        List<Employee> all = getAllEmployees();
+        return CollectionOps.filter(all, e -> {
+            BigDecimal s = e.getSalary();
+            if (s == null) return false;
+            return minSalary == null || s.compareTo(minSalary) >= 0;
+        });
+    }
+
+    public Map<String, List<Employee>> groupEmployeesByPosition() {
+        List<Employee> all = getAllEmployees();
+        return CollectionOps.groupBy(all, new GroupBySpec<String, Employee>() {
+            @Override
+            public String key(Employee item) {
+                return item.getPosition();
+            }
+        });
+    }
+
+    public List<Employee> findInvalidEmployees() {
+        List<Employee> all = getAllEmployees();
+        return CollectionOps.filter(all, e -> {
+            BigDecimal salary = e.getSalary();
+            Integer weeklyHours = e.getWeeklyHours();
+            boolean nonPositiveSalary = salary == null || salary.compareTo(BigDecimal.ZERO) <= 0;
+            boolean invalidHours = weeklyHours == null || weeklyHours < 1;
+            return nonPositiveSalary || invalidHours;
+        });
     }
 }

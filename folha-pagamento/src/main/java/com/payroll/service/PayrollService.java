@@ -2,8 +2,11 @@ package com.payroll.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,9 @@ import com.payroll.entity.Employee;
 import com.payroll.model.Employee.GrauInsalubridade;
 import com.payroll.repository.PayrollCalculationRepository;
 import com.payroll.repository.EmployeeRepository;
+import com.payroll.collections.CollectionOps;
+import com.payroll.collections.FilterSpec;
+import com.payroll.collections.GroupBySpec;
 
 @Service
 public class PayrollService implements IPayrollService {
@@ -184,11 +190,65 @@ public class PayrollService implements IPayrollService {
 
     @Override
     public List<PayrollCalculation> getEmployeePayrolls(Long employeeId) {
-        return payrollRepository.findByEmployeeId(employeeId);
+        List<PayrollCalculation> list = payrollRepository.findByEmployeeId(employeeId);
+        return CollectionOps.filter(list, pc -> pc != null && pc.getEmployee() != null && Objects.equals(pc.getEmployee().getId(), employeeId));
     }
 
     @Override
     public List<PayrollCalculation> getAllPayrolls() {
-        return payrollRepository.findAll();
+        List<PayrollCalculation> all = payrollRepository.findAll();
+        return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    public List<PayrollCalculation> filterPayrollsByNetSalaryRange(BigDecimal min, BigDecimal max) {
+        List<PayrollCalculation> all = getAllPayrolls();
+        return CollectionOps.filter(all, pc -> {
+            BigDecimal net = pc.getNetSalary();
+            if (net == null) return false;
+            boolean geMin = (min == null) || net.compareTo(min) >= 0;
+            boolean leMax = (max == null) || net.compareTo(max) <= 0;
+            return geMin && leMax;
+        });
+    }
+
+    public Map<String, List<PayrollCalculation>> groupPayrollsByMonth() {
+        List<PayrollCalculation> all = getAllPayrolls();
+        return CollectionOps.groupBy(all, new GroupBySpec<String, PayrollCalculation>() {
+            @Override
+            public String key(PayrollCalculation item) {
+                return item.getReferenceMonth();
+            }
+        });
+    }
+
+    public List<PayrollCalculation> findEdgeCasePayrolls() {
+        List<PayrollCalculation> all = getAllPayrolls();
+        return CollectionOps.filter(all, pc -> {
+            BigDecimal gross = pc.getGrossSalary();
+            BigDecimal inss = pc.getInssDiscount();
+            BigDecimal irpf = pc.getIrpfDiscount();
+            BigDecimal transport = pc.getTransportDiscount();
+            BigDecimal fgts = pc.getFgtsValue();
+            BigDecimal totalDiscounts = CollectionOps.sum(List.of(inss, irpf, transport, fgts), v -> v);
+            boolean nonPositiveGross = gross == null || gross.compareTo(BigDecimal.ZERO) <= 0;
+            boolean fullDiscount = (gross != null) && totalDiscounts.compareTo(gross) >= 0;
+            return nonPositiveGross || fullDiscount;
+        });
+    }
+
+    public BigDecimal totalDiscountsForEmployee(Long employeeId) {
+        List<PayrollCalculation> list = getEmployeePayrolls(employeeId);
+        return CollectionOps.sum(list, pc -> {
+            BigDecimal inss = pc.getInssDiscount();
+            BigDecimal irpf = pc.getIrpfDiscount();
+            BigDecimal transport = pc.getTransportDiscount();
+            BigDecimal fgts = pc.getFgtsValue();
+            BigDecimal total = BigDecimal.ZERO;
+            if (inss != null) total = total.add(inss);
+            if (irpf != null) total = total.add(irpf);
+            if (transport != null) total = total.add(transport);
+            if (fgts != null) total = total.add(fgts);
+            return total;
+        });
     }
 }
