@@ -6,19 +6,60 @@ import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+
+@Entity
 public class Employee {
+	
+	@Id 
+	@GeneratedValue(strategy = GenerationType.IDENTITY) 
+	private Long id; 
+	
+	@NotBlank
     private String nome;
+     
+	@NotBlank
     private String cpf;
+    
+	@NotBlank
     private String cargo;
+    
+	@NotNull
     private LocalDate dataAdmissao;
+    
+	@NotNull
     private BigDecimal salarioBaseFuncionario;
+    
+	@NotNull
     private int numeroDependentes;
+    
+	
     private boolean recebeAdicionalPericulosidade;
+    
+    @Enumerated(EnumType.STRING)
+    @NotNull
     private GrauInsalubridade grauInsalubridade;
+    
+	@NotNull
     private BigDecimal valorValeTransporteEntregue;
+    
+	@NotNull
     private BigDecimal valorDiarioValeAlimentacao;
+    
+	@NotNull
     private int diasTrabalhadosMes;
+
+	@NotNull
     private int horasSemana;
+    
     private List<String> beneficios;
 
     public enum GrauInsalubridade {

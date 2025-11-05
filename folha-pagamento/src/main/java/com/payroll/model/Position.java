@@ -2,9 +2,25 @@ package com.payroll.model;
 
 import java.math.BigDecimal;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+
+@Entity
 public class Position {
+	
+	@Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idCargo;
+	
+	@NotBlank
     private String nome;
+	
+	@NotNull
     private BigDecimal salarioBase;
 
     // Construtores

@@ -3,11 +3,24 @@ package com.payroll.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Department {
-    private int idDepartamento;
-    private String nome;
-    private List<Employee> employees;
+import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotBlank;
 
+
+@Entity
+public class Department {
+	
+	@NotBlank
+    private int idDepartamento;
+    
+	@NotBlank
+    private String nome;
+    
+	@OneToMany(mappedBy = "department")
+    private List<Employee> employees;
+	
+	
     // Construtores
     public Department() {
         this.employees = new ArrayList<>();

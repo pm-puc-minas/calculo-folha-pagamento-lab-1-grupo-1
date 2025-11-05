@@ -5,6 +5,10 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.Entity;
+
+
+@Entity
 public class Payroll {
     private String mesReferencia;
     private BigDecimal salarioHora;
