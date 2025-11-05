@@ -3,17 +3,34 @@ package com.payroll.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Department {
-    private int idDepartamento;
-    private String nome;
-    private List<Employee> employees;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotBlank;
 
+
+@Entity
+public class Department {
+	
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long idDepartamento;
+    
+	@NotBlank
+    private String nome;
+    
+	@OneToMany(mappedBy = "department")
+    private List<Employee> employees;
+	
+	
     // Construtores
     public Department() {
         this.employees = new ArrayList<>();
     }
 
-    public Department(int idDepartamento, String nome) {
+    public Department(Long idDepartamento, String nome) {
         this.idDepartamento = idDepartamento;
         this.nome = nome;
         this.employees = new ArrayList<>();
@@ -36,11 +53,11 @@ public class Department {
     }
 
     // Getters e Setters
-    public int getIdDepartamento() {
+    public Long getIdDepartamento() {
         return idDepartamento;
     }
 
-    public void setIdDepartamento(int idDepartamento) {
+    public void setIdDepartamento(Long idDepartamento) {
         this.idDepartamento = idDepartamento;
     }
 
