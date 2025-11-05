@@ -37,15 +37,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Desabilita CSRF (não necessário para APIs REST)
+            .csrf(csrf -> csrf.disable()) // Desabilita CSRF
+            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable())) // Permite H2 console em iframe
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll() // APIs abertas
-                .anyRequest().authenticated() // O resto requer autenticação
+                .requestMatchers(
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/auth/refresh"
+                ).permitAll()
+                // Liberando H2 console apenas em dev
+                .requestMatchers("/h2-console/**").permitAll()
+                .anyRequest().authenticated()
             )
-            .userDetailsService(userDetailsService) // Atual recomendado
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Filtro JWT
+            .userDetailsService(userDetailsService)
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
+
 }

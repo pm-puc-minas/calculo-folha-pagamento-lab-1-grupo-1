@@ -11,7 +11,7 @@ public class Authentication {
     
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private int idUsuario;
+	private Long idUsuario;
     
 	
     @NotBlank
@@ -28,7 +28,7 @@ public class Authentication {
     // Construtores
     public Authentication() {}
 
-    public Authentication(int idUsuario, String login, String senha, String perfil) {
+    public Authentication(Long idUsuario, String login, String senha, String perfil) {
         this.idUsuario = idUsuario;
         this.login = login;
         this.senha = senha;
@@ -40,11 +40,11 @@ public class Authentication {
     }
 
     // Getters e Setters
-    public int getIdUsuario() {
+    public Long getIdUsuario() {
         return idUsuario;
     }
 
-    public void setIdUsuario(int idUsuario) {
+    public void setIdUsuario(Long idUsuario) {
         this.idUsuario = idUsuario;
     }
 

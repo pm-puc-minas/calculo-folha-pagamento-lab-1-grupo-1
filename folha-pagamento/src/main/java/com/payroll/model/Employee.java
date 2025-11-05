@@ -12,16 +12,22 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 
-@Entity
+@Entity(name = "EmployeeModel")
 public class Employee {
 	
 	@Id 
 	@GeneratedValue(strategy = GenerationType.IDENTITY) 
 	private Long id; 
+	
+	@ManyToOne
+	@JoinColumn(name = "department_id") // FK no banco
+	private Department department;
 	
 	@NotBlank
     private String nome;
@@ -91,7 +97,18 @@ public class Employee {
                 ", Data Admissão: " + dataAdmissao;
     }
 
-    public boolean temDireitoInsalubridade() {
+    
+    
+    
+    public Department getDepartment() {
+		return department;
+	}
+
+	public void setDepartment(Department department) {
+		this.department = department;
+	}
+
+	public boolean temDireitoInsalubridade() {
         return grauInsalubridade != GrauInsalubridade.NENHUM;
     }
 

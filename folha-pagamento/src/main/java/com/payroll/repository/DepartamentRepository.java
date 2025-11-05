@@ -1,5 +1,8 @@
 package com.payroll.repository;
 
-public class DepartamentRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
 
+import com.payroll.model.Department;
+
+public interface  DepartamentRepository extends JpaRepository<Department, Long>{
 }

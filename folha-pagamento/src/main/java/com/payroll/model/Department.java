@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotBlank;
 
@@ -11,8 +14,9 @@ import jakarta.validation.constraints.NotBlank;
 @Entity
 public class Department {
 	
-	@NotBlank
-    private int idDepartamento;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long idDepartamento;
     
 	@NotBlank
     private String nome;
@@ -26,7 +30,7 @@ public class Department {
         this.employees = new ArrayList<>();
     }
 
-    public Department(int idDepartamento, String nome) {
+    public Department(Long idDepartamento, String nome) {
         this.idDepartamento = idDepartamento;
         this.nome = nome;
         this.employees = new ArrayList<>();
@@ -49,11 +53,11 @@ public class Department {
     }
 
     // Getters e Setters
-    public int getIdDepartamento() {
+    public Long getIdDepartamento() {
         return idDepartamento;
     }
 
-    public void setIdDepartamento(int idDepartamento) {
+    public void setIdDepartamento(Long idDepartamento) {
         this.idDepartamento = idDepartamento;
     }
 
