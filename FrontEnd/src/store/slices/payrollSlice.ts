@@ -65,7 +65,10 @@ const initialState: PayrollState = {
 export const fetchPayrolls = createAsyncThunk(
   'payroll/fetchPayrolls',
   async () => {
-    const response = await fetch('/api/folha-pagamento');
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch('/api/payroll', {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch payrolls');
@@ -77,10 +80,11 @@ export const fetchPayrolls = createAsyncThunk(
 
 export const calculatePayroll = createAsyncThunk(
   'payroll/calculatePayroll',
-  async (data: { employeeId: number; month: string }) => {
-    const response = await fetch('/api/folha-pagamento/calcular', {
+  async (data: { employeeId: number; referenceMonth: string }) => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch('/api/payroll/calculate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
       body: JSON.stringify(data),
     });
     
@@ -95,7 +99,10 @@ export const calculatePayroll = createAsyncThunk(
 export const fetchPayrollById = createAsyncThunk(
   'payroll/fetchPayrollById',
   async (id: number) => {
-    const response = await fetch(`/api/folha-pagamento/${id}`);
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch(`/api/payroll/${id}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch payroll');
@@ -108,7 +115,10 @@ export const fetchPayrollById = createAsyncThunk(
 export const fetchPayrollsByEmployee = createAsyncThunk(
   'payroll/fetchPayrollsByEmployee',
   async (employeeId: number) => {
-    const response = await fetch(`/api/folha-pagamento/funcionario/${employeeId}`);
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch(`/api/payroll/employee/${employeeId}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch employee payrolls');

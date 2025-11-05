@@ -5,76 +5,25 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-
-
-@Entity
 public class Payroll {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "mes_referencia")
     private String mesReferencia;
-
-    @Column(name = "salario_hora")
     private BigDecimal salarioHora;
-
-    @Column(name = "total_proventos")
     private BigDecimal totalProventos;
-
-    @Column(name = "total_descontos")
     private BigDecimal totalDescontos;
-
-    @Column(name = "salario_liquido")
     private BigDecimal salarioLiquido;
-
-    @Column(name = "valor_adicional_periculosidade")
     private BigDecimal valorAdicionalPericulosidade;
-
-    @Column(name = "valor_adicional_insalubridade")
     private BigDecimal valorAdicionalInsalubridade;
-
-    @Column(name = "valor_vale_alimentacao")
     private BigDecimal valorValeAlimentacao;
-
-    @Column(name = "valor_desconto_vale_transporte")
     private BigDecimal valorDescontoValeTransporte;
-
-    @Column(name = "valor_desconto_inss")
     private BigDecimal valorDescontoINSS;
-
-    @Column(name = "valor_fgts")
     private BigDecimal valorFGTS;
-
-    @Column(name = "valor_desconto_irrf")
     private BigDecimal valorDescontoIRRF;
-
-    @Column(name = "base_calculo_inss")
     private BigDecimal baseCalculoINSS;
-
-    @Column(name = "base_calculo_fgts")
     private BigDecimal baseCalculoFGTS;
-
-    @Column(name = "base_calculo_irrf")
     private BigDecimal baseCalculoIRRF;
+    private List<BigDecimal> descontos;
+    private List<BigDecimal> proventos;
 
-    @ElementCollection
-    @CollectionTable(name = "payroll_descontos", joinColumns = @JoinColumn(name = "payroll_id"))
-    @Column(name = "desconto")
-    private List<BigDecimal> descontos = new ArrayList<>();
-
-    @ElementCollection
-    @CollectionTable(name = "payroll_proventos", joinColumns = @JoinColumn(name = "payroll_id"))
-    @Column(name = "provento")
-    private List<BigDecimal> proventos = new ArrayList<>();
     // Construtor
     public Payroll() {
         this.descontos = new ArrayList<>();
@@ -134,38 +83,11 @@ public class Payroll {
     }
 
     // Getters e Setters
-    
-    
-    
     public String getMesReferencia() {
         return mesReferencia;
     }
 
-    public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-
-	public List<BigDecimal> getDescontos() {
-		return descontos;
-	}
-
-	public void setDescontos(List<BigDecimal> descontos) {
-		this.descontos = descontos;
-	}
-
-	public List<BigDecimal> getProventos() {
-		return proventos;
-	}
-
-	public void setProventos(List<BigDecimal> proventos) {
-		this.proventos = proventos;
-	}
-
-	public void setMesReferencia(String mesReferencia) {
+    public void setMesReferencia(String mesReferencia) {
         this.mesReferencia = mesReferencia;
     }
 

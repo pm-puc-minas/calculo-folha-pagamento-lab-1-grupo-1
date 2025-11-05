@@ -64,7 +64,6 @@
 			<artifactId>mysql-connector-java</artifactId>
 			<version>8.0.33</version>
 		</dependency>
-		
 
 		<!-- Devtools -->
 		<dependency>
@@ -74,10 +73,7 @@
 			<optional>true</optional>
 		</dependency>
 
-		<dependency>
-	    <groupId>com.h2database</groupId>
-	    <artifactId>h2</artifactId>
-		</dependency>	
+
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -103,6 +99,7 @@
 			<version>42.7.3</version>
 			<scope>runtime</scope>
 		</dependency>
+
 
 		<!-- Testes -->
 		<dependency>

@@ -1,14 +1,10 @@
 package com.payroll.entity;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payroll_calculations")
@@ -18,71 +14,69 @@ public class PayrollCalculation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) 
+    @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    @NotNull
-    @JsonBackReference 
+    @NotNull // not blank
     private Employee employee;
 
     @Column(name = "reference_month", nullable = false)
-    @NotBlank
+    @NotBlank // not blank
     private String referenceMonth;
 
     @Column(name = "gross_salary", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal grossSalary;
 
     @Column(name = "net_salary", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal netSalary;
 
     @Column(name = "inss_discount", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal inssDiscount;
 
     @Column(name = "irpf_discount", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal irpfDiscount;
 
     @Column(name = "transport_discount", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal transportDiscount;
 
     @Column(name = "fgts_value", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal fgtsValue;
 
     @Column(name = "dangerous_bonus", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal dangerousBonus;
 
     @Column(name = "unhealthy_bonus", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal unhealthyBonus;
 
     @Column(name = "meal_voucher_value", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal mealVoucherValue;
 
     @Column(name = "hourly_wage", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private BigDecimal hourlyWage;
 
     @Column(name = "created_at", nullable = false)
-    @NotNull
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @NotNull // not blank
     private LocalDateTime createdAt;
 
     @Column(name = "created_by", nullable = false)
-    @NotNull
+    @NotNull // not blank
     private Long createdBy;
 
-    
+    // Constructors
     public PayrollCalculation() {
         this.createdAt = LocalDateTime.now();
     }
 
-    
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

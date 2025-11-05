@@ -1,6 +1,5 @@
 package com.payroll.controller;
 
-import com.payroll.dtos.payroll.PayrollCalculationRequestDTO; // NOVO: Importação do DTO de requisição
 import com.payroll.entity.Employee;
 import com.payroll.service.EmployeeService;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,14 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Classe de teste de integração para PayrollController, utilizando SpringBootTest
- * e um banco de dados transacional.
- */
 @SpringBootTest
 @Transactional
 class PayrollControllerTest {
@@ -32,12 +29,9 @@ class PayrollControllerTest {
     @Autowired
     private EmployeeService employeeService;
 
+
     private Employee employee;
 
-    /**
-     * Configura o ambiente de teste antes de cada método,
-     * garantindo que haja um Employee válido no banco para os testes de folha de pagamento.
-     */
     @BeforeEach
     void setUp() {
         // Criar Employee válido
@@ -53,7 +47,6 @@ class PayrollControllerTest {
         employee.setMealVoucher(true);
         employee.setMealVoucherValue(BigDecimal.valueOf(500));
 
-        // Persiste o funcionário no banco de dados para ser usado nos testes
         employee = employeeService.createEmployee(employee, 1L);
         assertNotNull(employee.getId());
     }
@@ -71,15 +64,11 @@ class PayrollControllerTest {
     @DisplayName("Erro ao calcular com employeeId inválido")
     // Valida mensagem de erro e status 500 ao enviar employeeId inválido
     void deveFalharCalculoFolhaComEmployeeIdInvalido() {
-        PayrollCalculationRequestDTO requestDTO = new PayrollCalculationRequestDTO();
-        // Usamos um ID que sabemos que não existe, o que deve levar a um erro no Service
-        requestDTO.setEmployeeId(-1L); 
-        requestDTO.setReferenceMonth("2025-10");
+        Map<String, String> request = new HashMap<>();
+        request.put("employeeId", "abc"); // inválido
+        request.put("referenceMonth", "2025-10");
 
-        // Chama o método com o DTO
-        ResponseEntity<?> response = controller.calculatePayroll(requestDTO, null);
-        
-        // Verifica o status de erro e a mensagem
+        ResponseEntity<?> response = controller.calculatePayroll(request, null);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertTrue(response.getBody().toString().contains("Erro ao calcular folha"));
     }

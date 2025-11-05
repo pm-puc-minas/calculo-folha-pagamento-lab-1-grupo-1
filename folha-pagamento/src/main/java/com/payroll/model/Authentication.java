@@ -1,34 +1,15 @@
 package com.payroll.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.validation.constraints.NotBlank;
-
-@Entity
 public class Authentication {
-    
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long idUsuario;
-    
-	
-    @NotBlank
+    private int idUsuario;
     private String login;
-    
-    
-    @NotBlank
     private String senha;
-    
-
-    @NotBlank
     private String perfil;
 
     // Construtores
     public Authentication() {}
 
-    public Authentication(Long idUsuario, String login, String senha, String perfil) {
+    public Authentication(int idUsuario, String login, String senha, String perfil) {
         this.idUsuario = idUsuario;
         this.login = login;
         this.senha = senha;
@@ -40,11 +21,11 @@ public class Authentication {
     }
 
     // Getters e Setters
-    public Long getIdUsuario() {
+    public int getIdUsuario() {
         return idUsuario;
     }
 
-    public void setIdUsuario(Long idUsuario) {
+    public void setIdUsuario(int idUsuario) {
         this.idUsuario = idUsuario;
     }
 
