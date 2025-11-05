@@ -1,4 +1,9 @@
 package com.payroll.collections;
+/*
+ * Utilitários para operações sobre coleções (listas e mapas).
+ * Fornece funções de filtro, agrupamento e soma com tratamento
+ * seguro de nulos e erros, visando robustez em cálculos e agregações.
+ */
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

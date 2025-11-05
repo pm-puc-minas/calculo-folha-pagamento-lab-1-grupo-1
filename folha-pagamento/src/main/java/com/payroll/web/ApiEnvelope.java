@@ -6,8 +6,6 @@ package com.payroll.web;
  * Uniformiza formato de respostas entre endpoints.
  */
 
-// Removido uso de Schema do Swagger/OpenAPI
-
 public class ApiEnvelope<T> {
     private T data;
     private String message;

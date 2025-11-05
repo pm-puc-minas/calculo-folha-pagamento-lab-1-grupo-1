@@ -1,4 +1,9 @@
 package com.payroll.config;
+/*
+ * Configuração de segurança da aplicação (Spring Security).
+ * Define rotas públicas/privadas, política stateless, filtro JWT
+ * e codificador de senha para autenticação.
+ */
 
 import com.payroll.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
