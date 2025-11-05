@@ -1,4 +1,10 @@
 package com.payroll.serialization;
+/*
+ * Contrato para serviços de serialização.
+ * Define operações comuns (ex.: toJson, formatação/normalização),
+ * permitindo implementações específicas por domínio.
+ * Padroniza conversões de objetos para saída (JSON/strings) no backend.
+ */
 
 import java.util.List;
 import java.util.Optional;

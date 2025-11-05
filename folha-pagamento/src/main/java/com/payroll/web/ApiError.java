@@ -1,4 +1,10 @@
 package com.payroll.web;
+/*
+ * Estrutura padrão de erro retornada pela API.
+ * Contém código, mensagem, detalhes e timestamp,
+ * facilitando tratamento homogêneo de falhas no frontend.
+ * Padroniza respostas de erro para clientes da API.
+ */
 
 import java.time.Instant;
 

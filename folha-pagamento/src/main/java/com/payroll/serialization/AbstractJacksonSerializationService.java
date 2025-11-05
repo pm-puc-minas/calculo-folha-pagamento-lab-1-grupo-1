@@ -1,4 +1,10 @@
 package com.payroll.serialization;
+/*
+ * Implementação base de serialização usando Jackson.
+ * Centraliza configuração/padronização de JSON (mapper)
+ * e auxilia subclasses com utilitários de serialização.
+ * Fundação comum para serviços de serialização do projeto.
+ */
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

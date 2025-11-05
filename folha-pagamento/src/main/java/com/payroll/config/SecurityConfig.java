@@ -40,7 +40,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) // Desabilita CSRF (não necessário para APIs REST)
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll() // APIs abertas
+                .requestMatchers(
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/auth/refresh"
+                ).permitAll() // APIs abertas
                 .anyRequest().authenticated() // O resto requer autenticação
             )
             .userDetailsService(userDetailsService) // Atual recomendado

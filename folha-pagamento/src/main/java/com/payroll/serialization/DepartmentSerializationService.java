@@ -1,4 +1,10 @@
 package com.payroll.serialization;
+/*
+ * Serialização de dados de Departamento.
+ * Estrutura campos para dashboards/relatórios
+ * e garante consistência de nomenclatura e formatos.
+ * Expõe departamentos em JSON padronizado para o frontend.
+ */
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payroll.model.Department;

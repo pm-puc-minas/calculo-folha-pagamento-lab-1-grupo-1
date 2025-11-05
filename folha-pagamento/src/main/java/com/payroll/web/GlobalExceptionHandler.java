@@ -1,4 +1,10 @@
 package com.payroll.web;
+/*
+ * Tratador global de exceções da aplicação.
+ * Mapeia exceções de negócio para HTTP (400/404/409/500),
+ * retorna ApiError/Envelope padronizado e logs úteis.
+ * Garante respostas consistentes e previsíveis em falhas.
+ */
 
 import com.payroll.exception.*;
 import com.payroll.exception.base.BusinessException;

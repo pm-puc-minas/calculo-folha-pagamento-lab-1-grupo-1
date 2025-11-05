@@ -1,4 +1,10 @@
 package com.payroll.exception.base;
+/*
+ * Classe abstrata para exceções de negócio.
+ * Define estrutura comum (código, mensagem, causa)
+ * e facilita especializações por tipo de erro.
+ * Padroniza implementação de exceções específicas do domínio.
+ */
 
 public abstract class AbstractBusinessException extends RuntimeException implements BusinessException {
     private final Object context;
