@@ -4,9 +4,13 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+// DTO (Data Transfer Object) para receber dados de cadastro ou atualização de funcionário.
 public class EmployeeRequestDTO {
+    
+    // Identificador único do funcionário
     private Long id;
 
+    // Dados de identificação pessoal do funcionário
     @NotBlank(message = "O nome completo é obrigatório.")
     private String fullName;
 
@@ -16,6 +20,7 @@ public class EmployeeRequestDTO {
     @NotBlank(message = "O RG é obrigatório.")
     private String rg;
 
+    // Dados contratuais e de cargo
     @NotBlank(message = "O cargo é obrigatório.")
     private String position;
 
@@ -33,17 +38,26 @@ public class EmployeeRequestDTO {
     @Min(value = 1, message = "A carga horária deve ser no mínimo 1 hora.")
     private Integer weeklyHours;
 
+    // Controle de Vale-Transporte
     private Boolean transportVoucher = false;
+    
+    // Controle de Vale-Alimentação
     private Boolean mealVoucher = false;
     private BigDecimal mealVoucherValue = BigDecimal.ZERO;
+    
+    // Controle de Adicional de Periculosidade
     private Boolean dangerousWork = false;
     private BigDecimal dangerousPercentage = BigDecimal.ZERO;
+    
+    // Controle de Adicional de Insalubridade
     private Boolean unhealthyWork = false;
     private String unhealthyLevel;
 
     
+    // Construtor padrão (sem argumentos)
     public EmployeeRequestDTO() {}
 
+    // Construtor completo (com todos os campos)
     public EmployeeRequestDTO(Long id, String fullName, String cpf, String rg, String position, LocalDate admissionDate, BigDecimal salary, Integer dependents, Integer weeklyHours, Boolean transportVoucher, Boolean mealVoucher, BigDecimal mealVoucherValue, Boolean dangerousWork, BigDecimal dangerousPercentage, Boolean unhealthyWork, String unhealthyLevel) {
         this.id = id;
         this.fullName = fullName;
@@ -63,6 +77,7 @@ public class EmployeeRequestDTO {
         this.unhealthyLevel = unhealthyLevel;
     }
     
+    // Bloco de Getters e Setters padrão
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
     public Long getId() { return id; }
