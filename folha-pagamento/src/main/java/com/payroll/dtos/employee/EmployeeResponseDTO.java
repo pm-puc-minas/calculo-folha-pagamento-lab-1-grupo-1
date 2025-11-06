@@ -5,35 +5,49 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+// DTO (Data Transfer Object) para enviar dados de funcionário em respostas da API.
 public class EmployeeResponseDTO {
 
+    // Dados de identificação pessoal e de cargo
     private Long id;
     private String fullName;
     private String cpf; 
     private String rg;  
     private String position;
     
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    // Dados contratuais
+    @JsonFormat(pattern = "yyyy-MM-dd") // Formata a data de admissão para a resposta
     private LocalDate admissionDate;
 
     private BigDecimal salary;
     private Integer dependents;
     private Integer weeklyHours;
+
+    // Controle de Vale-Transporte
     private Boolean transportVoucher;
+    
+    // Controle de Vale-Alimentação
     private Boolean mealVoucher;
     private BigDecimal mealVoucherValue;
+    
+    // Controle de Adicional de Periculosidade
     private Boolean dangerousWork;
     private BigDecimal dangerousPercentage;
+    
+    // Controle de Adicional de Insalubridade
     private Boolean unhealthyWork;
     private String unhealthyLevel;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    // Dados de auditoria (quando foi criado/modificado)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") // Formata data e hora para a resposta
     private LocalDateTime createdAt;
     
-    private Long createdBy;
+    private Long createdBy; // ID do usuário que criou o registro
     
+    // Construtor padrão
     public EmployeeResponseDTO() {}
 
+    // Construtor completo com todos os campos
     public EmployeeResponseDTO(Long id, String fullName, String cpf, String rg, String position, LocalDate admissionDate, BigDecimal salary, Integer dependents, Integer weeklyHours, Boolean transportVoucher, Boolean mealVoucher, BigDecimal mealVoucherValue, Boolean dangerousWork, BigDecimal dangerousPercentage, Boolean unhealthyWork, String unhealthyLevel, LocalDateTime createdAt, Long createdBy) {
         this.id = id;
         this.fullName = fullName;
@@ -55,6 +69,7 @@ public class EmployeeResponseDTO {
         this.createdBy = createdBy;
     }
 
+    // Bloco de Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getFullName() { return fullName; }
