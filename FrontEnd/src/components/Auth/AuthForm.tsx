@@ -16,6 +16,7 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({ 
     email: "", 
+    cpf: "",
     password: "", 
     confirmPassword: "" 
   });
@@ -27,42 +28,68 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (loginData.email === "admin@admin.com" && loginData.password === "123456") {
-      onLogin("admin", loginData.password);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginData.email, password: loginData.password })
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Falha no login');
+      }
+
+      const data = await res.json();
+      if (data?.accessToken) localStorage.setItem('accessToken', data.accessToken);
+      if (data?.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+      if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
+      const user = data.user;
+      onLogin(user?.username || loginData.email, loginData.password);
       toast.success("Login realizado com sucesso!");
-    } else {
-      toast.error("Email ou senha inválidos");
+    } catch (err:any) {
+      toast.error(err.message || "Email ou senha inválidos");
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (registerData.password !== registerData.confirmPassword) {
       toast.error("As senhas não coincidem");
       return;
     }
-    
+
     if (registerData.password.length < 6) {
       toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
-    
+
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast.success("Conta criada com sucesso! Faça login para continuar.");
-    setRegisterData({ email: "", password: "", confirmPassword: "" });
-    
-    setIsLoading(false);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: registerData.email, password: registerData.password, role: 'USER' })
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Falha no registro');
+      }
+
+      await res.json();
+      toast.success("Conta criada com sucesso! Faça login para continuar.");
+      setRegisterData({ email: "", cpf: "", password: "", confirmPassword: "" });
+    } catch (err:any) {
+      toast.error(err.message || "Falha no registro");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -216,6 +243,30 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                       value={registerData.email}
                       onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
                       required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-cpf">CPF</Label>
+                    <Input
+                      id="register-cpf"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={14}
+                      placeholder="000.000.000-00"
+                      value={registerData.cpf}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, 11);
+                        const p1 = digits.slice(0, 3);
+                        const p2 = digits.slice(3, 6);
+                        const p3 = digits.slice(6, 9);
+                        const p4 = digits.slice(9, 11);
+                        let masked = p1;
+                        if (p2) masked += "." + p2;
+                        if (p3) masked += "." + p3;
+                        if (p4) masked += "-" + p4;
+                        setRegisterData({ ...registerData, cpf: masked });
+                      }}
                     />
                   </div>
                   
