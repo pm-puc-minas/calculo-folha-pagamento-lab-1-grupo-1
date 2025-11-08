@@ -1,4 +1,9 @@
 package com.payroll.config;
+/*
+ * Utilitário para criação e validação de tokens JWT.
+ * Fornece geração de access/refresh tokens, extração de claims
+ * e verificação de expiração e integridade do token.
+ */
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

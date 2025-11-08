@@ -37,7 +37,10 @@ const initialState: EmployeeState = {
 export const fetchEmployees = createAsyncThunk(
   'employee/fetchEmployees',
   async () => {
-    const response = await fetch('/api/funcionarios');
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch('/api/employees', {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch employees');
@@ -50,9 +53,10 @@ export const fetchEmployees = createAsyncThunk(
 export const createEmployee = createAsyncThunk(
   'employee/createEmployee',
   async (employeeData: Employee) => {
-    const response = await fetch('/api/funcionarios', {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch('/api/employees', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
       body: JSON.stringify(employeeData),
     });
     
@@ -67,9 +71,10 @@ export const createEmployee = createAsyncThunk(
 export const updateEmployee = createAsyncThunk(
   'employee/updateEmployee',
   async ({ id, data }: { id: number; data: Employee }) => {
-    const response = await fetch(`/api/funcionarios/${id}`, {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch(`/api/employees/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
       body: JSON.stringify(data),
     });
     
@@ -84,8 +89,10 @@ export const updateEmployee = createAsyncThunk(
 export const deleteEmployee = createAsyncThunk(
   'employee/deleteEmployee',
   async (id: number) => {
-    const response = await fetch(`/api/funcionarios/${id}`, {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch(`/api/employees/${id}`, {
       method: 'DELETE',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
     });
     
     if (!response.ok) {
@@ -99,7 +106,10 @@ export const deleteEmployee = createAsyncThunk(
 export const fetchEmployeeById = createAsyncThunk(
   'employee/fetchEmployeeById',
   async (id: number) => {
-    const response = await fetch(`/api/funcionarios/${id}`);
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch(`/api/employees/${id}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch employee');

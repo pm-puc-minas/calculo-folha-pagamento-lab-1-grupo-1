@@ -1,4 +1,9 @@
 package com.payroll.config;
+/*
+ * Componente de carga inicial de dados (seed).
+ * Cria usuários padrão (admin e user) na inicialização
+ * para facilitar testes e uso inicial do sistema.
+ */
 
 import com.payroll.entity.User;
 import com.payroll.service.UserService;

@@ -1,4 +1,9 @@
 package com.payroll.config;
+/*
+ * Filtro JWT executado por requisição.
+ * Extrai o token do cabeçalho Authorization, valida e
+ * popula o contexto de segurança com o usuário autenticado.
+ */
 
 import com.payroll.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;

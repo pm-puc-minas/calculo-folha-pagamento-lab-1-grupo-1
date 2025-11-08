@@ -2,8 +2,11 @@ package com.payroll.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,14 @@ import com.payroll.entity.Employee;
 import com.payroll.model.Employee.GrauInsalubridade;
 import com.payroll.repository.PayrollCalculationRepository;
 import com.payroll.repository.EmployeeRepository;
+import com.payroll.collections.CollectionOps;
+import com.payroll.collections.FilterSpec;
+import com.payroll.collections.GroupBySpec;
+import com.payroll.exception.DataIntegrityBusinessException;
+import com.payroll.exception.DatabaseConnectionException;
+import com.payroll.exception.InputValidationException;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 public class PayrollService implements IPayrollService {
@@ -25,16 +36,25 @@ public class PayrollService implements IPayrollService {
 
     @Override
     public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long calculatedBy) {
-        Optional<PayrollCalculation> existing = payrollRepository.findByEmployeeIdAndReferenceMonth(employeeId, referenceMonth);
-        if (existing.isPresent()) return existing.get();
+        try {
+            Optional<PayrollCalculation> existing = payrollRepository.findByEmployeeIdAndReferenceMonth(employeeId, referenceMonth);
+            if (existing.isPresent()) return existing.get();
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao verificar folha existente", e);
+        }
 
         PayrollCalculation calculation = new PayrollCalculation();
         calculation.setReferenceMonth(referenceMonth);
         calculation.setCreatedBy(calculatedBy);
 
         // Vincula o empregado à folha (necessário para validação @NotNull)
-        Employee employee = employeeRepository.findById(employeeId)
-            .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+        Employee employee;
+        try {
+            employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao buscar empregado", e);
+        }
         calculation.setEmployee(employee);
 
         // Simulação de dados de funcionário
@@ -71,10 +91,26 @@ public class PayrollService implements IPayrollService {
 
         // líquido = bruto + adicionais + benefícios − (INSS + IRRF + FGTS + VT)
         BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(fgts).add(transportDiscount);
+
+        if (grossSalary.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InputValidationException("Salário bruto deve ser maior que zero",
+                Map.of("grossSalary", grossSalary));
+        }
+        if (totalDiscounts.compareTo(grossSalary) >= 0) {
+            throw new InputValidationException("Descontos não podem ser maiores ou iguais ao salário bruto",
+                Map.of("grossSalary", grossSalary, "totalDiscounts", totalDiscounts));
+        }
+
         BigDecimal netSalary = grossSalary.subtract(totalDiscounts);
         calculation.setNetSalary(netSalary);
 
-        return payrollRepository.save(calculation);
+        try {
+            return payrollRepository.save(calculation);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityBusinessException("Violação de integridade ao salvar cálculo de folha", e);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao salvar cálculo de folha", e);
+        }
     }
 
 
@@ -184,11 +220,75 @@ public class PayrollService implements IPayrollService {
 
     @Override
     public List<PayrollCalculation> getEmployeePayrolls(Long employeeId) {
-        return payrollRepository.findByEmployeeId(employeeId);
+        List<PayrollCalculation> list;
+        try {
+            list = payrollRepository.findByEmployeeId(employeeId);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao listar folhas do empregado", e);
+        }
+        return CollectionOps.filter(list, pc -> pc != null && pc.getEmployee() != null && Objects.equals(pc.getEmployee().getId(), employeeId));
     }
 
     @Override
     public List<PayrollCalculation> getAllPayrolls() {
-        return payrollRepository.findAll();
+        List<PayrollCalculation> all;
+        try {
+            all = payrollRepository.findAll();
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao listar todas as folhas", e);
+        }
+        return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    public List<PayrollCalculation> filterPayrollsByNetSalaryRange(BigDecimal min, BigDecimal max) {
+        List<PayrollCalculation> all = getAllPayrolls();
+        return CollectionOps.filter(all, pc -> {
+            BigDecimal net = pc.getNetSalary();
+            if (net == null) return false;
+            boolean geMin = (min == null) || net.compareTo(min) >= 0;
+            boolean leMax = (max == null) || net.compareTo(max) <= 0;
+            return geMin && leMax;
+        });
+    }
+
+    public Map<String, List<PayrollCalculation>> groupPayrollsByMonth() {
+        List<PayrollCalculation> all = getAllPayrolls();
+        return CollectionOps.groupBy(all, new GroupBySpec<String, PayrollCalculation>() {
+            @Override
+            public String key(PayrollCalculation item) {
+                return item.getReferenceMonth();
+            }
+        });
+    }
+
+    public List<PayrollCalculation> findEdgeCasePayrolls() {
+        List<PayrollCalculation> all = getAllPayrolls();
+        return CollectionOps.filter(all, pc -> {
+            BigDecimal gross = pc.getGrossSalary();
+            BigDecimal inss = pc.getInssDiscount();
+            BigDecimal irpf = pc.getIrpfDiscount();
+            BigDecimal transport = pc.getTransportDiscount();
+            BigDecimal fgts = pc.getFgtsValue();
+            BigDecimal totalDiscounts = CollectionOps.sum(List.of(inss, irpf, transport, fgts), v -> v);
+            boolean nonPositiveGross = gross == null || gross.compareTo(BigDecimal.ZERO) <= 0;
+            boolean fullDiscount = (gross != null) && totalDiscounts.compareTo(gross) >= 0;
+            return nonPositiveGross || fullDiscount;
+        });
+    }
+
+    public BigDecimal totalDiscountsForEmployee(Long employeeId) {
+        List<PayrollCalculation> list = getEmployeePayrolls(employeeId);
+        return CollectionOps.sum(list, pc -> {
+            BigDecimal inss = pc.getInssDiscount();
+            BigDecimal irpf = pc.getIrpfDiscount();
+            BigDecimal transport = pc.getTransportDiscount();
+            BigDecimal fgts = pc.getFgtsValue();
+            BigDecimal total = BigDecimal.ZERO;
+            if (inss != null) total = total.add(inss);
+            if (irpf != null) total = total.add(irpf);
+            if (transport != null) total = total.add(transport);
+            if (fgts != null) total = total.add(fgts);
+            return total;
+        });
     }
 }

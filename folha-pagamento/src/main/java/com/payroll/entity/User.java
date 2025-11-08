@@ -1,6 +1,5 @@
 package com.payroll.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore; // Importação essencial
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -33,7 +32,6 @@ public class User {
     @Column(unique = true)
     private String email;
 
-    @JsonIgnore
     @NotBlank
     @Size(min = 6)
     private String password;
