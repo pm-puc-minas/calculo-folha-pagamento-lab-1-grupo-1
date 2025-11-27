@@ -223,12 +223,7 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                   </div>
                 </div>
                 
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm font-medium text-blue-900 mb-2">Credenciais de demonstração:</p>
-                  <p className="text-xs text-blue-700">
-                    <strong>Admin:</strong> admin@admin.com / 123456
-                  </p>
-                </div>
+                
               </TabsContent>
               
               <TabsContent value="register">
