@@ -31,18 +31,39 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
 
     setIsLoading(true);
     
-    // Simulação de autenticação - em produção seria uma chamada à API
+    // Credenciais válidas para teste offline
+    const validCredentials = [
+      { username: "admin", password: "123456", email: "admin@payroll.com", role: "ADMIN" },
+      { username: "user", password: "123456", email: "user@payroll.com", role: "USER" },
+      { username: "gerente", password: "123456", email: "gerente@payroll.com", role: "ADMIN" },
+    ];
+
     setTimeout(() => {
-      if (username === "admin" && password === "123456") {
-        onLogin(username, password);
+      const validUser = validCredentials.find(
+        u => u.username === username && u.password === password
+      );
+
+      if (validUser) {
+        // Armazena dados de teste no localStorage
+        const mockUser = {
+          id: Math.floor(Math.random() * 1000),
+          username: validUser.username,
+          email: validUser.email,
+          role: validUser.role,
+        };
+        
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        localStorage.setItem('accessToken', 'mock-token-' + Date.now());
+        
+        onLogin(validUser.username, validUser.password);
         toast({
           title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao Sistema de Folha de Pagamento.",
+          description: `Bem-vindo ${validUser.username}! (Modo offline)`,
         });
       } else {
         toast({
           title: "Credenciais inválidas",
-          description: "Usuário ou senha incorretos.",
+          description: "Usuário ou senha incorretos. Tente 'admin' / '123456'",
           variant: "destructive",
         });
       }
@@ -121,12 +142,16 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              <p>Credenciais de demonstração:</p>
-              <p className="font-mono mt-1">
-                <strong>Usuário:</strong> admin<br />
-                <strong>Senha:</strong> 123456
-              </p>
+            <div className="mt-6 text-center text-sm text-muted-foreground space-y-3">
+              <p className="font-semibold">Credenciais de Demonstração (Modo Offline):</p>
+              <div className="bg-blue-50 p-3 rounded-lg space-y-2">
+                <div className="font-mono text-xs">
+                  <p><strong>Admin:</strong> admin / 123456</p>
+                  <p><strong>User:</strong> user / 123456</p>
+                  <p><strong>Gerente:</strong> gerente / 123456</p>
+                </div>
+              </div>
+              <p className="text-xs italic">Não é necessário PostgreSQL ou servidor Java para testar</p>
             </div>
           </CardContent>
         </Card>
