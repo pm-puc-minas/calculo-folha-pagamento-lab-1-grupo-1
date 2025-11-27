@@ -2,8 +2,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setUser } from "@/store/slices/authSlice";
+import { Settings, Lock, User, Mail, Shield, Bell, Palette } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const SettingsPage = () => {
   const dispatch = useAppDispatch();
@@ -13,47 +18,262 @@ const SettingsPage = () => {
   const [email, setEmail] = useState(user?.email ?? "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const handleSave = () => {
-    // Atualiza somente no estado (sem backend ainda)
-    if (user) {
-      dispatch(setUser({ ...user, username, email }));
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!username.trim()) {
+      newErrors.username = "Nome de usuário é obrigatório";
     }
-    // TODO: Se newPassword informada e confirmada, enviar no PATCH quando houver API
+
+    if (!email.trim()) {
+      newErrors.email = "E-mail é obrigatório";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "E-mail inválido";
+    }
+
+    if (newPassword || confirmPassword) {
+      if (!currentPassword) {
+        newErrors.currentPassword = "Digite sua senha atual para alterar a senha";
+      }
+      if (newPassword.length < 6) {
+        newErrors.newPassword = "Nova senha deve ter no mínimo 6 caracteres";
+      }
+      if (newPassword !== confirmPassword) {
+        newErrors.confirmPassword = "Senhas não conferem";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) {
+      toast({
+        title: "Erro na validação",
+        description: "Por favor, corrija os erros antes de salvar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    setSuccessMessage("");
+
+    try {
+      // Simulando delay de API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Atualiza dados do usuário no estado
+      if (user) {
+        dispatch(setUser({ ...user, username, email }));
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSuccessMessage("Configurações salvas com sucesso!");
+
+      toast({
+        title: "Sucesso!",
+        description: "Suas configurações foram atualizadas",
+      });
+
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao salvar configurações. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="flex-1 bg-gray-50 min-h-screen p-6 space-y-6">
-      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm max-w-3xl">
-        <CardHeader>
-          <CardTitle>Meus Dados</CardTitle>
-          <p className="text-sm text-muted-foreground">Edite seus dados de usuário.</p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-muted-foreground">Nome de usuário</label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="seu_usuario" />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground">E-mail</label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@empresa.com" />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground">Nova senha</label>
-              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground">Confirmar nova senha</label>
-              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" />
-            </div>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center space-x-3 mb-2">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+            <Settings className="w-6 h-6 text-white" />
           </div>
+          <h1 className="text-3xl font-bold">Configurações</h1>
+        </div>
+        <p className="text-muted-foreground ml-13">Gerencie suas preferências e dados de conta</p>
+      </div>
 
-          <div className="mt-6">
-            <Button onClick={handleSave}>Salvar alterações</Button>
+      {/* Success Message */}
+      {successMessage && (
+        <Alert className="bg-success/10 border-success text-success">
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Dados Pessoais */}
+      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center space-x-2">
+            <User className="w-5 h-5 text-primary" />
+            <CardTitle>Dados Pessoais</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">Edite suas informações de perfil</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="username">Nome de Usuário</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errors.username) setErrors({ ...errors, username: "" });
+                }}
+                placeholder="seu_usuario"
+                className={errors.username ? "border-destructive" : ""}
+              />
+              {errors.username && (
+                <p className="text-xs text-destructive">{errors.username}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors({ ...errors, email: "" });
+                }}
+                placeholder="voce@empresa.com"
+                className={errors.email ? "border-destructive" : ""}
+              />
+              {errors.email && (
+                <p className="text-xs text-destructive">{errors.email}</p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Segurança */}
+      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center space-x-2">
+            <Lock className="w-5 h-5 text-primary" />
+            <CardTitle>Segurança</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">Altere sua senha e configure autenticação</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(newPassword || confirmPassword) && (
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Senha Atual</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => {
+                  setCurrentPassword(e.target.value);
+                  if (errors.currentPassword) setErrors({ ...errors, currentPassword: "" });
+                }}
+                placeholder="Digite sua senha atual"
+                className={errors.currentPassword ? "border-destructive" : ""}
+              />
+              {errors.currentPassword && (
+                <p className="text-xs text-destructive">{errors.currentPassword}</p>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nova Senha</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => {
+                  setNewPassword(e.target.value);
+                  if (errors.newPassword) setErrors({ ...errors, newPassword: "" });
+                }}
+                placeholder="••••••••"
+                className={errors.newPassword ? "border-destructive" : ""}
+              />
+              {errors.newPassword && (
+                <p className="text-xs text-destructive">{errors.newPassword}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: "" });
+                }}
+                placeholder="••••••••"
+                className={errors.confirmPassword ? "border-destructive" : ""}
+              />
+              {errors.confirmPassword && (
+                <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Preferências */}
+      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center space-x-2">
+            <Palette className="w-5 h-5 text-primary" />
+            <CardTitle>Preferências</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">Personalize sua experiência</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="font-medium">Tema Escuro</p>
+              <p className="text-sm text-muted-foreground">Use tema escuro no sistema</p>
+            </div>
+            <input type="checkbox" className="w-5 h-5" defaultChecked={false} />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="font-medium">Notificações por E-mail</p>
+              <p className="text-sm text-muted-foreground">Receba notificações sobre folhas de pagamento</p>
+            </div>
+            <input type="checkbox" className="w-5 h-5" defaultChecked={true} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Ações */}
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+        >
+          {isSaving ? "Salvando..." : "Salvar Alterações"}
+        </Button>
+        <Button variant="outline">
+          Cancelar
+        </Button>
+      </div>
     </div>
   );
 };
