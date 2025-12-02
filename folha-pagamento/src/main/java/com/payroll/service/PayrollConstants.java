@@ -11,19 +11,22 @@ public class PayrollConstants {
 
     // TABELA DE INSS 2024
     public static final BigDecimal[] INSS_LIMITS = {
-        new BigDecimal("1412.00"),  // até 1.412,00 → 7,5%
-        new BigDecimal("2666.68"),  // 1.412,01 até 2.666,68 → 9%
-        new BigDecimal("4000.03"),  // 2.666,69 até 4.000,03 → 12%
-        new BigDecimal("7786.02")   // 4.000,04 até 7.786,02 → 14%
+        new BigDecimal("1412.00"),// até 1.412,00 → 7,5%
+        new BigDecimal("2666.68"),// 1.412,01 até 2.666,68 → 9%
+        new BigDecimal("4000.03"),// 2.666,69 até 4.000,03 → 12%
+        new BigDecimal("7786.02") // 4.000,04 até 7.786,02 → 14%
     };
 
     public static final BigDecimal[] INSS_RATES = {
-        new BigDecimal("0.075"),  // 7,5%
-        new BigDecimal("0.09"),   // 9%
-        new BigDecimal("0.12"),   // 12%
-        new BigDecimal("0.14")    // 14%
+        new BigDecimal("0.075"), // 7,5%
+        new BigDecimal("0.09"), // 9%
+        new BigDecimal("0.12"), // 12%
+        new BigDecimal("0.14")// 14%
     };
-
+    
+    // Teto máximo de contribuição do INSS (Valor máximo do desconto)
+    public static final BigDecimal INSS_TETO_CONTRIBUICAO = new BigDecimal("877.22"); 
+    
     // TABELA DE IRPF 2024
     public static final BigDecimal IRPF_ISENTO = new BigDecimal("2259.20");
 
@@ -35,13 +38,23 @@ public class PayrollConstants {
     };
 
     public static final BigDecimal[] IRPF_RATES = {
-        new BigDecimal("0.0"),     // Isento
-        new BigDecimal("0.075"),   // 7,5%
-        new BigDecimal("0.15"),    // 15%
-        new BigDecimal("0.225"),   // 22,5%
-        new BigDecimal("0.275")    // 27,5%
+        new BigDecimal("0.0"), // Isento
+        new BigDecimal("0.075"), // 7,5%
+        new BigDecimal("0.15"),// 15%
+        new BigDecimal("0.225"), // 22,5%
+        new BigDecimal("0.275")// 27,5%
     };
 
+    // Parcelas a deduzir do IRRF (usadas na fórmula final: Imposto = Base * Alíquota - Parcela a Deduzir)
+    // O número de elementos deve ser igual a IRPF_RATES
+    public static final BigDecimal[] IRPF_DEDUCTIONS = {
+        new BigDecimal("0.00"),     // Isento (Faixa 0)
+        new BigDecimal("158.40"),   // Alíquota 7.5% (Faixa 1)
+        new BigDecimal("370.40"),   // Alíquota 15.0% (Faixa 2)
+        new BigDecimal("651.73"),   // Alíquota 22.5% (Faixa 3)
+        new BigDecimal("884.96")    // Alíquota 27.5% (Faixa 4)
+    };
+    
     // VALORES FIXOS E TAXAS GERAIS
     public static final BigDecimal DEDUCAO_DEPENDENTE = new BigDecimal("189.59");
     public static final BigDecimal SALARIO_MINIMO = new BigDecimal("1412.00");
