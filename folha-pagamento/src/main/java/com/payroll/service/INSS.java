@@ -2,7 +2,9 @@ package com.payroll.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import org.springframework.stereotype.Component; // NECESSÁRIO
 
+@Component // NECESSÁRIO
 // Calcula o desconto de INSS usando tabela progressiva por faixas.
 public class INSS implements IDesconto {
 
@@ -27,11 +29,21 @@ public class INSS implements IDesconto {
                 salarioRestante = salarioRestante.subtract(valorTributavel);
             }
         }
+        
+        // Aplica o teto máximo de contribuição
+        BigDecimal tetoContribuicao = PayrollConstants.INSS_TETO_CONTRIBUICAO;
+        if (tetoContribuicao != null && totalDesconto.compareTo(tetoContribuicao) > 0) {
+            totalDesconto = tetoContribuicao;
+        }
 
-        return totalDesconto.setScale(2, RoundingMode.HALF_UP);
+        totalDesconto = totalDesconto.setScale(2, RoundingMode.HALF_UP);
+
+        // Atualiza a base de cálculo no Contexto para a próxima estratégia (IRPF)
+        ctx.aplicarDesconto(totalDesconto); 
+        
+        return totalDesconto;
     }
 
     @Override
-    // Prioridade: 1 (antes do IRRF)
     public int prioridade() { return 1; }
 }
