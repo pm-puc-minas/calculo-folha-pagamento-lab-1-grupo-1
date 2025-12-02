@@ -1,11 +1,22 @@
 package com.payroll.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
+@Entity // Marca esta classe como uma Entidade JPA
 public class Payroll {
+    
+    // Chave primária (ID) para persistência
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id; 
+
     private String mesReferencia;
     private BigDecimal salarioHora;
     private BigDecimal totalProventos;
@@ -21,7 +32,7 @@ public class Payroll {
     private BigDecimal baseCalculoINSS;
     private BigDecimal baseCalculoFGTS;
     private BigDecimal baseCalculoIRRF;
-    private List<BigDecimal> descontos;
+    private List<BigDecimal> descontos; 
     private List<BigDecimal> proventos;
 
     // Construtor
@@ -83,6 +94,14 @@ public class Payroll {
     }
 
     // Getters e Setters
+    
+    // NOVO: Getter para o ID (Resolve o erro no teste de persistência)
+    public Long getId() {
+        return id;
+    }
+
+    // Outros getters e setters mantidos inalterados...
+
     public String getMesReferencia() {
         return mesReferencia;
     }
