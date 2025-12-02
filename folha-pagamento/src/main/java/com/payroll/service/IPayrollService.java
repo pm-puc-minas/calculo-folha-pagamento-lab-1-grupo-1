@@ -61,28 +61,14 @@ public interface IPayrollService {
     BigDecimal calcularValeAlimentacao(BigDecimal valorDiario, int diasTrabalhados);
     
     /**
-     * Calcula desconto de INSS progressivo
-     * @param salarioContribuicao Base de cálculo do INSS
-     * @return Valor do desconto
-     */
-    BigDecimal calcularINSS(BigDecimal salarioContribuicao);
-    
-    /**
      * Calcula FGTS (8% do salário)
      * @param baseCalculoFGTS Base de cálculo
      * @return Valor do FGTS
      */
     BigDecimal calcularFGTS(BigDecimal baseCalculoFGTS);
     
-    /**
-     * Calcula IRRF progressivo
-     * @param salarioBruto Salário bruto
-     * @param descontoINSS Desconto do INSS
-     * @param numDependentes Número de dependentes
-     * @param pensaoAlimenticia Valor da pensão alimentícia
-     * @return Valor do IRRF
-     */
-    BigDecimal calcularIRRF(BigDecimal salarioBruto, BigDecimal descontoINSS, int numDependentes, BigDecimal pensaoAlimenticia);
+    // MÉTODO REMOVIDO: calcularINSS (Agora a lógica é interna e feita pela Strategy INSS.java)
+    // MÉTODO REMOVIDO: calcularIRRF (Agora a lógica é interna e feita pela Strategy IRRF.java)
     
     /**
      * Busca folhas de pagamento de um funcionário
