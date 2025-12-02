@@ -2,31 +2,48 @@ package com.payroll.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import org.springframework.stereotype.Component; // Adicionar o import para a anotação de componente
 
-// IRRF: base = bruto - INSS - (dependentes*189,59) - pensao; imposto = base * aliquota
+@Component // Marca a classe como um componente Spring para injeção de dependência no PayrollService
+// IRRF: base = (base_atualizada_pelo_INSS) - (dependentes*valor_dedução) - (pensao); imposto = base * aliquota - parcela_a_deduzir
 public class IRRF implements IDesconto {
 
     @Override
-    // Calcula IRRF conforme tabela (sem parcela a deduzir)
+    // Calcula IRRF conforme tabela (agora com Parcela a Deduzir, método mais preciso)
     public BigDecimal calcular(SheetCalculator.DescontoContext ctx) {
-        BigDecimal salarioBruto = ctx.getSalarioBruto();
-        BigDecimal descontoINSS = ctx.getDescontoINSS() == null ? BigDecimal.ZERO : ctx.getDescontoINSS();
+        
+        // 1. Obtem a base de cálculo atualizada (Salário Bruto - Pensão - INSS - Outros Descontos)
+        BigDecimal baseTributavel = ctx.getSalarioBaseCalculo(); 
         int dependentes = ctx.getDependentes();
-        BigDecimal pensao = ctx.getPensaoAlimenticia() == null ? BigDecimal.ZERO : ctx.getPensaoAlimenticia();
+        
+        if (baseTributavel == null || baseTributavel.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
 
-        if (salarioBruto == null) return BigDecimal.ZERO;
-
+        // 2. Aplica a dedução por dependentes na base
         BigDecimal deducaoDependentes = PayrollConstants.DEDUCAO_DEPENDENTE.multiply(new BigDecimal(dependentes));
-        BigDecimal base = salarioBruto.subtract(descontoINSS).subtract(deducaoDependentes).subtract(pensao);
+        baseTributavel = baseTributavel.subtract(deducaoDependentes);
 
-        if (base.compareTo(PayrollConstants.IRPF_ISENTO) <= 0) return BigDecimal.ZERO;
+        // 3. Verifica se a base final está na faixa de isenção
+        if (baseTributavel.compareTo(PayrollConstants.IRPF_LIMITS[0]) <= 0) {
+            return BigDecimal.ZERO;
+        }
 
-        int faixaIndex = faixa(base);
+        // 4. Determina a faixa de imposto e a parcela a deduzir
+        int faixaIndex = faixa(baseTributavel);
         BigDecimal aliquota = PayrollConstants.IRPF_RATES[faixaIndex];
-
-        BigDecimal imposto = base.multiply(aliquota);
-        if (imposto.compareTo(BigDecimal.ZERO) < 0) return BigDecimal.ZERO;
-        return imposto.setScale(2, RoundingMode.HALF_UP);
+        // Adiciona a dedução do IRRF, que é o método correto (Faixa X Alíquota - Parcela a Deduzir)
+        BigDecimal parcelaADeduzir = PayrollConstants.IRPF_DEDUCTIONS[faixaIndex]; 
+        
+        // 5. Cálculo final: Imposto = (Base * Alíquota) - Parcela a Deduzir
+        BigDecimal imposto = baseTributavel.multiply(aliquota).subtract(parcelaADeduzir);
+        
+        if (imposto.compareTo(BigDecimal.ZERO) < 0) imposto = BigDecimal.ZERO; // Garante que não será negativo
+        
+        imposto = imposto.setScale(2, RoundingMode.HALF_UP);
+        
+        // Atualiza a base de cálculo no Contexto para eventuais cálculos futuros
+        ctx.aplicarDesconto(imposto); 
+        
+        return imposto;
     }
 
     // Retorna o indice da faixa do IR pela tabela
