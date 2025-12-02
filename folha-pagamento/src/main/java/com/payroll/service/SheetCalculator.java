@@ -4,56 +4,80 @@ import com.payroll.model.Employee;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-// Calculadora de descontos da folha (INSS, IRRF e adicionais)
+/**
+ * Calculadora de descontos e cálculos adicionais da folha.
+ * Contém o Contexto de Descontos (DescontoContext).
+ */
 public class SheetCalculator {
-    // Contexto compartilhado entre os cálculos
+    
+    // Contexto compartilhado entre os cálculos (Estratégias)
     public static class DescontoContext {
         private final BigDecimal salarioBruto;
-        private final BigDecimal descontoINSS;
+        private BigDecimal salarioBaseCalculo; // Base de cálculo que é atualizada a cada desconto
         private final int dependentes;
         private final BigDecimal pensaoAlimenticia;
 
-        public DescontoContext(BigDecimal salarioBruto, BigDecimal descontoINSS, int dependentes, BigDecimal pensaoAlimenticia) {
+        /**
+         * Inicializa o contexto com os dados de entrada.
+         */
+        public DescontoContext(BigDecimal salarioBruto, int dependentes, BigDecimal pensaoAlimenticia) {
             this.salarioBruto = salarioBruto;
-            this.descontoINSS = descontoINSS;
+            // A base de cálculo começa com o salário bruto
+            this.salarioBaseCalculo = salarioBruto; 
             this.dependentes = dependentes;
             this.pensaoAlimenticia = pensaoAlimenticia == null ? BigDecimal.ZERO : pensaoAlimenticia;
+            
+            // Deduz a pensão alimentícia da base de cálculo (regra fiscal)
+            this.salarioBaseCalculo = this.salarioBaseCalculo.subtract(this.pensaoAlimenticia);
         }
 
+        /**
+         * Retorna o salário bruto do funcionário.
+         */
         public BigDecimal getSalarioBruto() { return salarioBruto; }
-        public BigDecimal getDescontoINSS() { return descontoINSS; }
+
+        /**
+         * Retorna a base de cálculo atual (valor restante após descontos aplicados).
+         */
+        public BigDecimal getSalarioBaseCalculo() { return salarioBaseCalculo; } 
+        
+        /**
+         * Retorna o número de dependentes.
+         */
         public int getDependentes() { return dependentes; }
+        
+        /**
+         * Retorna o valor da pensão alimentícia.
+         */
         public BigDecimal getPensaoAlimenticia() { return pensaoAlimenticia; }
+        
+        /**
+         * Atualiza a base de cálculo, subtraindo o valor do desconto aplicado.
+         */
+        public void aplicarDesconto(BigDecimal valorDesconto) {
+            this.salarioBaseCalculo = this.salarioBaseCalculo.subtract(valorDesconto);
+        }
     }
 
-    // INSS progressivo
-    public static BigDecimal calcularINSS(BigDecimal salarioContribuicao) {
-        if (salarioContribuicao == null || salarioContribuicao.compareTo(BigDecimal.ZERO) <= 0)
-            return BigDecimal.ZERO;
-        DescontoContext ctx = new DescontoContext(salarioContribuicao, BigDecimal.ZERO, 0, BigDecimal.ZERO);
-        return new INSS().calcular(ctx);
-    }
-
-    // IRRF
-    public static BigDecimal calcularIRRF(BigDecimal salarioBruto, BigDecimal descontoINSS, int numDependentes) {
-        if (salarioBruto == null || descontoINSS == null) return BigDecimal.ZERO;
-        DescontoContext ctx = new DescontoContext(salarioBruto, descontoINSS, numDependentes, BigDecimal.ZERO);
-        return new IRRF().calcular(ctx);
-    }
-
-    // ====================== NOVOS MÉTODOS PARA TESTES ======================
-
+    /**
+     * Calcula o salário/valor de hora.
+     */
     public BigDecimal calcularSalarioHora(BigDecimal salario, int horas) {
         if (salario == null || horas <= 0) return BigDecimal.ZERO;
         return salario.divide(BigDecimal.valueOf(horas), 2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Calcula o adicional de periculosidade (30%).
+     */
     public BigDecimal calcularAdicionalPericulosidade(BigDecimal salario) {
         if (salario == null) return BigDecimal.ZERO;
-        // Adicional de 30%
         return salario.multiply(new BigDecimal("0.30")).setScale(2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Calcula o adicional de insalubridade, variando por grau.
+     */
     public BigDecimal calcularAdicionalInsalubridade(BigDecimal salario, Employee.GrauInsalubridade grau) {
         if (salario == null || grau == null) return BigDecimal.ZERO;
         BigDecimal percentual;
@@ -66,22 +90,29 @@ public class SheetCalculator {
         return salario.multiply(percentual).setScale(2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Calcula o desconto de Vale Transporte baseado em um percentual.
+     */
     public BigDecimal calcularDescontoValeTransporte(BigDecimal salario, BigDecimal desconto) {
         if (salario == null || desconto == null) return BigDecimal.ZERO;
         return salario.multiply(desconto).setScale(2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Calcula o valor do Vale Alimentação (exemplo por dia trabalhado).
+     */
     public BigDecimal calcularValeAlimentacao(BigDecimal salario, int dias) {
         if (salario == null || dias <= 0) return BigDecimal.ZERO;
-        // Exemplo: vale = salário / 30 * dias
         return salario.divide(new BigDecimal("30"), 2, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(dias))
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Calcula o valor do FGTS (8%).
+     */
     public BigDecimal calcularFGTS(BigDecimal salario) {
         if (salario == null) return BigDecimal.ZERO;
-        // FGTS = 8% do salário
         return salario.multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP);
     }
 }
