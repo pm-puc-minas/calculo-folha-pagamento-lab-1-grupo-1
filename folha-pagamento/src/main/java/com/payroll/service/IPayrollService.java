@@ -67,9 +67,6 @@ public interface IPayrollService {
      */
     BigDecimal calcularFGTS(BigDecimal baseCalculoFGTS);
     
-    // MÉTODO REMOVIDO: calcularINSS (Agora a lógica é interna e feita pela Strategy INSS.java)
-    // MÉTODO REMOVIDO: calcularIRRF (Agora a lógica é interna e feita pela Strategy IRRF.java)
-    
     /**
      * Busca folhas de pagamento de um funcionário
      * @param employeeId ID do funcionário
