@@ -48,7 +48,10 @@ const initialState: DashboardState = {
 export const fetchDashboardData = createAsyncThunk(
   'dashboard/fetchDashboardData',
   async () => {
-    const response = await fetch('/dashboard');
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch('/api/dashboard', {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch dashboard data');

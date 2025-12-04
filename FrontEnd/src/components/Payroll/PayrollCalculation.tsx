@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Play, Save, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchEmployees } from "@/store/slices/employeeSlice";
+import { calculatePayroll, fetchPayrollById, fetchPayrolls } from "@/store/slices/payrollSlice";
+import jsPDF from "jspdf";
 
 export const PayrollCalculation = () => {
+  const dispatch = useAppDispatch();
+  const employees = useAppSelector((s) => s.employee.employees);
+  const payrolls = useAppSelector((s) => s.payroll.payrolls);
+  const selectedPayroll = useAppSelector((s) => s.payroll.selectedPayroll);
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [payrollPeriod, setPayrollPeriod] = useState("");
+  const pdfAreaRef = useRef<HTMLDivElement | null>(null);
   const [grossSalary, setGrossSalary] = useState("5000.00");
   const [workHours, setWorkHours] = useState("220");
   const [hourlyRate, setHourlyRate] = useState("22.73");
@@ -37,22 +46,155 @@ export const PayrollCalculation = () => {
     { type: "Ausências e atrasos", amount: 50, value: 50.00 }
   ]);
 
-  const totalAdditionals = additionals.reduce((sum, item) => sum + item.value, 0);
-  const totalBenefits = benefits.reduce((sum, item) => sum + item.value, 0);
-  const totalDeductions = deductions.reduce((sum, item) => sum + item.value, 0);
-  const baseSalary = 5000.00;
-  const netSalary = baseSalary + totalAdditionals - totalDeductions;
+  const dynamicAdditionals = useMemo(() => {
+    if (!selectedPayroll) return [] as { type: string; amount?: number; value: number }[];
+    const items: { type: string; amount?: number; value: number }[] = [];
+    if (selectedPayroll.hazardPayValue) items.push({ type: "Adicional de Periculosidade", value: selectedPayroll.hazardPayValue });
+    if (selectedPayroll.insalubrityValue) items.push({ type: "Adicional de Insalubridade", value: selectedPayroll.insalubrityValue });
+    if (selectedPayroll.mealVoucherValue) items.push({ type: "Vale Alimentação", value: selectedPayroll.mealVoucherValue });
+    return items;
+  }, [selectedPayroll]);
 
-  const handleGeneratePayroll = () => {
-    toast.success("Folha de pagamento gerada com sucesso!");
+  const dynamicDeductions = useMemo(() => {
+    if (!selectedPayroll) return [] as { type: string; value: number }[];
+    const items: { type: string; value: number }[] = [];
+    if (selectedPayroll.inssDiscount) items.push({ type: "INSS", value: selectedPayroll.inssDiscount });
+    if (selectedPayroll.irrfDiscount) items.push({ type: "IRRF", value: selectedPayroll.irrfDiscount });
+    if (selectedPayroll.transportVoucherDiscount) items.push({ type: "Vale Transporte", value: selectedPayroll.transportVoucherDiscount });
+    if (selectedPayroll.fgtsValue) items.push({ type: "FGTS", value: selectedPayroll.fgtsValue });
+    return items;
+  }, [selectedPayroll]);
+
+  const totalAdditionals = dynamicAdditionals.reduce((sum, item) => sum + item.value, 0);
+  const totalDeductions = dynamicDeductions.reduce((sum, item) => sum + item.value, 0);
+  const baseSalary = selectedPayroll?.inssBase ?? 5000.0;
+  const netSalary = selectedPayroll?.netSalary ?? (baseSalary + totalAdditionals - totalDeductions);
+  const [filterMonth, setFilterMonth] = useState("");
+  const [minNet, setMinNet] = useState("");
+  const [maxNet, setMaxNet] = useState("");
+  const filteredPayrolls = useMemo(() => {
+    return payrolls.filter(p => {
+      const monthOk = !filterMonth || filterMonth === "all" || p.month === filterMonth;
+      const minOk = !minNet || p.netSalary >= parseFloat(minNet);
+      const maxOk = !maxNet || p.netSalary <= parseFloat(maxNet);
+      return monthOk && minOk && maxOk;
+    });
+  }, [payrolls, filterMonth, minNet, maxNet]);
+
+  useEffect(() => {
+    dispatch(fetchEmployees());
+    dispatch(fetchPayrolls());
+  }, [dispatch]);
+
+  useEffect(() => {
+    const emp = employees.find(e => `${e.id}` === selectedEmployee);
+    if (emp) {
+      const salary = typeof emp.baseSalary === "number" ? emp.baseSalary : Number(emp.baseSalary);
+      const monthlyHours = Math.round((typeof emp.weeklyHours === "number" ? emp.weeklyHours : Number(emp.weeklyHours)) * 5);
+      if (!Number.isNaN(salary)) setGrossSalary(salary.toFixed(2));
+      if (monthlyHours > 0) setWorkHours(String(monthlyHours));
+      if (!Number.isNaN(salary) && monthlyHours > 0) setHourlyRate((salary / monthlyHours).toFixed(2));
+    }
+  }, [selectedEmployee, employees]);
+
+  useEffect(() => {
+    const gs = parseFloat(grossSalary);
+    const hours = Number(workHours);
+    if (!Number.isNaN(gs) && hours > 0) {
+      setHourlyRate((gs / hours).toFixed(2));
+    }
+  }, [grossSalary, workHours]);
+
+  const handleGeneratePayroll = async () => {
+    try {
+      const emp = employees.find(e => `${e.id}` === selectedEmployee);
+      if (!emp || !payrollPeriod) {
+        toast.error("Selecione funcionário e período");
+        return;
+      }
+      await dispatch(calculatePayroll({ employeeId: emp.id as number, referenceMonth: payrollPeriod })).unwrap();
+      toast.success("Folha de pagamento gerada com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao calcular folha");
+    }
   };
 
-  const handleSave = () => {
-    toast.success("Cálculo salvo com sucesso!");
+  const handleSave = async () => {
+    try {
+      if (!selectedPayroll?.id) {
+        toast.error("Nenhum cálculo selecionado para salvar");
+        return;
+      }
+      await dispatch(fetchPayrollById(selectedPayroll.id)).unwrap();
+      toast.success("Cálculo salvo e verificado no banco com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao verificar salvamento");
+    }
   };
 
-  const handleExportPDF = () => {
-    toast.success("PDF exportado com sucesso!");
+  const handleExportPDF = async () => {
+    try {
+      if (!selectedPayroll) {
+        toast.error("Nenhum cálculo selecionado. Gere a folha primeiro.");
+        return;
+      }
+      const p = selectedPayroll;
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const marginLeft = 15;
+      let y = 20;
+      const lh = 7;
+
+      pdf.setFontSize(18);
+      pdf.text("Folha de Pagamento", marginLeft, y);
+      y += lh * 2;
+
+      pdf.setFontSize(12);
+      pdf.text(`Funcionário: ${p.employeeName} (ID: ${p.employeeId})`, marginLeft, y); y += lh;
+      pdf.text(`Mês de referência: ${p.month}`, marginLeft, y); y += lh;
+      if (p.calculatedAt) { pdf.text(`Calculado em: ${p.calculatedAt}`, marginLeft, y); y += lh; }
+      y += lh;
+
+      pdf.setFontSize(14);
+      pdf.text("Bases de cálculo", marginLeft, y); y += lh;
+      pdf.setFontSize(12);
+      pdf.text(`Base INSS: R$ ${Number(p.inssBase).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`Base IRRF: R$ ${Number(p.irrfBase).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`Base FGTS: R$ ${Number(p.fgtsBase).toFixed(2)}`, marginLeft, y); y += lh * 2;
+
+      pdf.setFontSize(14);
+      pdf.text("Proventos", marginLeft, y); y += lh;
+      pdf.setFontSize(12);
+      pdf.text(`Adic. Periculosidade: R$ ${Number(p.hazardPayValue).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`Adic. Insalubridade: R$ ${Number(p.insalubrityValue).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`Vale Alimentação: R$ ${Number(p.mealVoucherValue).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`Total Proventos: R$ ${Number(p.totalEarnings).toFixed(2)}`, marginLeft, y); y += lh * 2;
+
+      pdf.setFontSize(14);
+      pdf.text("Descontos", marginLeft, y); y += lh;
+      pdf.setFontSize(12);
+      pdf.text(`Vale Transporte: R$ ${Number(p.transportVoucherDiscount).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`INSS: R$ ${Number(p.inssDiscount).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`IRRF: R$ ${Number(p.irrfDiscount).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`Total Descontos: R$ ${Number(p.totalDeductions).toFixed(2)}`, marginLeft, y); y += lh * 2;
+
+      pdf.setFontSize(14);
+      pdf.text("Contribuições", marginLeft, y); y += lh;
+      pdf.setFontSize(12);
+      pdf.text(`FGTS: R$ ${Number(p.fgtsValue).toFixed(2)}`, marginLeft, y); y += lh * 2;
+
+      pdf.setFontSize(14);
+      pdf.text("Resumo", marginLeft, y); y += lh;
+      pdf.setFontSize(12);
+      pdf.text(`Taxa Horária: R$ ${Number(p.hourlyRate).toFixed(2)}`, marginLeft, y); y += lh;
+      pdf.text(`Salário Líquido: R$ ${Number(p.netSalary).toFixed(2)}`, marginLeft, y); y += lh;
+
+      const filename = `folha_${p.employeeName}_${p.month}.pdf`;
+      pdf.save(filename);
+      toast.success("PDF exportado com dados calculados!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao exportar PDF");
+    }
   };
 
   return (
@@ -80,7 +222,7 @@ export const PayrollCalculation = () => {
       </header>
 
       {/* Main Content */}
-      <main className="p-6 space-y-6">
+      <main className="p-6 space-y-6" ref={pdfAreaRef}>
         {/* Employee Selection */}
         <Card>
           <CardHeader>
@@ -91,12 +233,12 @@ export const PayrollCalculation = () => {
               <Label>Selecione Funcionário</Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="John Smith - ID: 001" />
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="john-smith">John Smith - ID: 001</SelectItem>
-                  <SelectItem value="maria-silva">Maria Silva - ID: 002</SelectItem>
-                  <SelectItem value="pedro-santos">Pedro Santos - ID: 003</SelectItem>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={`${e.id}`}>{e.name} - ID: {e.id}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -104,12 +246,12 @@ export const PayrollCalculation = () => {
               <Label>Período de pagamento</Label>
               <Select value={payrollPeriod} onValueChange={setPayrollPeriod}>
                 <SelectTrigger>
-                  <SelectValue placeholder="January 2024" />
+                  <SelectValue placeholder="2024-11" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="jan-2024">January 2024</SelectItem>
-                  <SelectItem value="feb-2024">February 2024</SelectItem>
-                  <SelectItem value="mar-2024">March 2024</SelectItem>
+                  <SelectItem value="2024-10">2024-10</SelectItem>
+                  <SelectItem value="2024-11">2024-11</SelectItem>
+                  <SelectItem value="2024-12">2024-12</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -135,11 +277,11 @@ export const PayrollCalculation = () => {
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-600">Taxa horária:</div>
-              <div className="text-xl font-bold text-green-600">R$ {hourlyRate}</div>
+              <div className="text-xl font-bold text-green-600">R$ {(selectedPayroll?.hourlyRate ?? parseFloat(hourlyRate)).toFixed(2)}</div>
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-600">Salário Bruto</div>
-              <div className="text-xl font-bold text-green-600">R$ {grossSalary}</div>
+              <div className="text-xl font-bold text-green-600">R$ {Number(selectedPayroll?.inssBase ?? parseFloat(grossSalary)).toFixed(2)}</div>
             </div>
           </CardContent>
         </Card>
@@ -154,7 +296,7 @@ export const PayrollCalculation = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {additionals.map((item, index) => (
+              {dynamicAdditionals.map((item, index) => (
                 <div key={index} className="flex justify-between items-center">
                   <div>
                     <div className="font-medium">{item.type}:</div>
@@ -180,11 +322,10 @@ export const PayrollCalculation = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {deductions.map((item, index) => (
+              {dynamicDeductions.map((item, index) => (
                 <div key={index} className="flex justify-between items-center">
                   <div>
                     <div className="font-medium">{item.type}:</div>
-                    {item.amount && <div className="text-sm text-gray-600">{item.amount}</div>}
                   </div>
                   <div className="text-red-600 font-bold">-R$ {item.value.toFixed(2)}</div>
                 </div>
@@ -198,29 +339,47 @@ export const PayrollCalculation = () => {
           </Card>
         </div>
 
-        {/* Benefits */}
+        {/* Filtros e lista */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-blue-700">Benefícios</CardTitle>
-            <div className="bg-blue-100 p-2 rounded-full">
-              <Plus className="w-4 h-4 text-blue-600" />
-            </div>
+            <CardTitle className="text-blue-700">Filtrar cálculos</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {benefits.map((item, index) => (
-              <div key={index} className="flex justify-between items-center">
-                <div>
-                  <div className="font-medium">{item.type}:</div>
-                  <div className="text-sm text-gray-600">{item.amount}</div>
-                </div>
-                <div className="text-blue-600 font-bold">R$ {item.value.toFixed(2)}</div>
-              </div>
-            ))}
-            <div className="md:col-span-2">
+          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>Mês</Label>
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="2024-10">2024-10</SelectItem>
+                  <SelectItem value="2024-11">2024-11</SelectItem>
+                  <SelectItem value="2024-12">2024-12</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Salário líquido mínimo</Label>
+              <Input value={minNet} onChange={(e) => setMinNet(e.target.value)} placeholder="0" />
+            </div>
+            <div className="space-y-2">
+              <Label>Salário líquido máximo</Label>
+              <Input value={maxNet} onChange={(e) => setMaxNet(e.target.value)} placeholder="10000" />
+            </div>
+            <div className="flex items-end">
+              <Button variant="outline" onClick={() => { setFilterMonth(""); setMinNet(""); setMaxNet(""); }}>Limpar filtros</Button>
+            </div>
+            <div className="md:col-span-4">
               <Separator />
-              <div className="flex justify-between items-center font-bold text-lg mt-2">
-                <span>Total Benefícios:</span>
-                <span className="text-blue-600">R$ {totalBenefits.toFixed(2)}</span>
+              <div className="mt-4 space-y-2">
+                {filteredPayrolls.map((p) => (
+                  <div key={p.id} className="flex justify-between bg-white rounded p-3 border">
+                    <div className="font-medium">{p.employeeName}</div>
+                    <div className="text-sm text-gray-600">{p.month}</div>
+                    <div className="font-bold">R$ {p.netSalary.toFixed(2)}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>

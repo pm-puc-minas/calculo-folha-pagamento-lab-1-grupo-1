@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { createEmployee } from "@/store/slices/employeeSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +15,11 @@ interface EmployeeRegistrationProps {
 }
 
 export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps) => {
+  const dispatch = useAppDispatch();
   const [formData, setFormData] = useState({
     fullName: "",
     cpf: "",
+    rg: "",
     position: "",
     grossSalary: "",
     weeklyHours: "40",
@@ -26,6 +30,8 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
     inss: "0.00",
     irrf: "0.00"
   });
+
+  const [admissionDate, setAdmissionDate] = useState("");
 
   const [netSalary, setNetSalary] = useState("0.00");
 
@@ -47,28 +53,51 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
     setNetSalary(net.toFixed(2));
   };
 
-  const handleSave = () => {
-    if (!formData.fullName || !formData.cpf || !formData.position || !formData.grossSalary) {
+  const handleSave = async () => {
+    if (!formData.fullName || !formData.cpf || !formData.rg || !formData.position || !formData.grossSalary || !admissionDate) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
-    
-    toast.success("Funcionário salvo com sucesso!");
-    // Reset form
-    setFormData({
-      fullName: "",
-      cpf: "",
-      position: "",
-      grossSalary: "",
-      weeklyHours: "40",
-      dangerousWork: false,
-      nonDangerousWork: false,
-      hourlyRate: "0.00",
-      monthlyHours: "0h",
-      inss: "0.00",
-      irrf: "0.00"
-    });
-    setNetSalary("0.00");
+    try {
+      const salaryNumber = parseFloat(formData.grossSalary);
+      const weeklyHoursNumber = parseInt(formData.weeklyHours, 10);
+      await dispatch(createEmployee({
+        fullName: formData.fullName,
+        cpf: formData.cpf,
+        rg: formData.rg,
+        position: formData.position,
+        admissionDate,
+        salary: isNaN(salaryNumber) ? 0 : salaryNumber,
+        weeklyHours: isNaN(weeklyHoursNumber) ? 40 : weeklyHoursNumber,
+        dependents: 0,
+        transportVoucher: false,
+        mealVoucher: false,
+        mealVoucherValue: 0,
+        dangerousWork: formData.dangerousWork,
+        dangerousPercentage: 0,
+        unhealthyWork: false,
+        unhealthyLevel: "NONE"
+      })).unwrap();
+      toast.success("Funcionário salvo com sucesso!");
+      setFormData({
+        fullName: "",
+        cpf: "",
+        rg: "",
+        position: "",
+        grossSalary: "",
+        weeklyHours: "40",
+        dangerousWork: false,
+        nonDangerousWork: false,
+        hourlyRate: "0.00",
+        monthlyHours: "0h",
+        inss: "0.00",
+        irrf: "0.00"
+      });
+      setAdmissionDate("");
+      setNetSalary("0.00");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao salvar funcionário");
+    }
   };
 
   const handleCancel = () => {
@@ -119,6 +148,27 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
                   placeholder="000.000.000-00"
                   value={formData.cpf}
                   onChange={(e) => handleInputChange("cpf", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="rg">RG *</Label>
+                <Input
+                  id="rg"
+                  placeholder="MG1234567"
+                  value={formData.rg}
+                  onChange={(e) => handleInputChange("rg", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admissionDate">Data de Admissão *</Label>
+                <Input
+                  id="admissionDate"
+                  type="date"
+                  value={admissionDate}
+                  onChange={(e) => setAdmissionDate(e.target.value)}
                 />
               </div>
             </div>

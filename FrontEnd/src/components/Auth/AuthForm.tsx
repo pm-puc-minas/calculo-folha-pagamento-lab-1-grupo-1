@@ -7,50 +7,30 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calculator, Eye, EyeOff, Users, BarChart3, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { loginUser, registerUser } from "@/store/slices/authSlice";
 
-interface AuthFormProps {
-  onLogin: (username: string, password: string) => void;
-}
-
-export const AuthForm = ({ onLogin }: AuthFormProps) => {
+export const AuthForm = () => {
+  const dispatch = useAppDispatch();
+  const isLoading = useAppSelector((s) => s.auth.isLoading);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
-  const [registerData, setRegisterData] = useState({ 
-    email: "", 
-    password: "", 
-    confirmPassword: "" 
+  const [registerData, setRegisterData] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    roleAdmin: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginData.email, password: loginData.password })
-      });
-
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || 'Falha no login');
-      }
-
-      const data = await res.json();
-      if (data?.accessToken) localStorage.setItem('accessToken', data.accessToken);
-      if (data?.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
-      if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
-      const user = data.user;
-      onLogin(user?.username || loginData.email, loginData.password);
+      await dispatch(loginUser({ email: loginData.email, password: loginData.password })).unwrap();
       toast.success("Login realizado com sucesso!");
-    } catch (err:any) {
+    } catch (err: any) {
       toast.error(err.message || "Email ou senha inválidos");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -67,27 +47,14 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: registerData.email, password: registerData.password, role: 'USER' })
-      });
-
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || 'Falha no registro');
-      }
-
-      await res.json();
+      await dispatch(
+        registerUser({ username: "", email: registerData.email, password: registerData.password, role: registerData.roleAdmin ? "ADMIN" : "USER" })
+      ).unwrap();
       toast.success("Conta criada com sucesso! Faça login para continuar.");
-      setRegisterData({ email: "", password: "", confirmPassword: "" });
-    } catch (err:any) {
+      setRegisterData({ email: "", password: "", confirmPassword: "", roleAdmin: false });
+    } catch (err: any) {
       toast.error(err.message || "Falha no registro");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -150,6 +117,15 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                       onChange={(e) => setLoginData({...loginData, email: e.target.value})}
                       required
                     />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="register-admin"
+                      checked={registerData.roleAdmin}
+                      onCheckedChange={(checked) => setRegisterData({ ...registerData, roleAdmin: !!checked })}
+                    />
+                    <Label htmlFor="register-admin" className="text-sm">Registrar como Admin</Label>
                   </div>
                   
                   <div className="space-y-2">

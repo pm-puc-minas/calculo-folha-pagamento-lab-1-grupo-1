@@ -46,8 +46,9 @@ public class AuthController implements IAuthController {
                 "perfil", user.getRole().name()
         );
 
-        String accessToken = jwtUtil.generateAccessToken(username, claims);
-        String refreshToken = jwtUtil.generateRefreshToken(username);
+        String subject = user.getUsername();
+        String accessToken = jwtUtil.generateAccessToken(subject, claims);
+        String refreshToken = jwtUtil.generateRefreshToken(subject);
 
         return ResponseEntity.ok(Map.of(
                 "accessToken", accessToken,

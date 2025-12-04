@@ -42,20 +42,40 @@ const generateSalaryDistribution = () => {
 
 export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) => {
   const [dashboardData, setDashboardData] = useState({
-    totalEmployees: 155,
-    lastPayroll: "Novembro 2024",
-    pendingCalculations: 8,
-    totalCosts: "R$ 425.000,00"
+    totalEmployees: 0,
+    lastPayroll: "",
+    pendingCalculations: 0,
+    totalCosts: ""
   });
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Integrar com API: GET /api/dashboard
-    // const fetchData = async () => {
-    //   const response = await fetch('/api/dashboard');
-    //   const data = await response.json();
-    //   setDashboardData(data);
-    // };
-    // fetchData();
+    const fetchData = async () => {
+      try {
+        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        const res = await fetch('/api/dashboard', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+        });
+        if (!res.ok) {
+          if (res.status === 401) setErrorMsg('Sessão expirada. Faça login novamente.');
+          else if (res.status === 403) setErrorMsg('Acesso negado. Permissão insuficiente para o dashboard.');
+          else setErrorMsg('Falha ao carregar dashboard.');
+          return;
+        }
+        const data = await res.json();
+        const totalEmployees = data.totalEmployees ?? 0;
+        const totalPayrolls = data.totalPayrolls ?? 0;
+        setDashboardData({
+          totalEmployees,
+          lastPayroll: `${totalPayrolls} folhas`,
+          pendingCalculations: 0,
+          totalCosts: ""
+        });
+      } catch (e) {
+        setErrorMsg('Erro de rede ao carregar dashboard.');
+      }
+    };
+    fetchData();
   }, []);
 
   const chartData = generateChartData();
@@ -82,6 +102,15 @@ export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) =>
           </div>
         </div>
       </header>
+
+      {/* Alert */}
+      {errorMsg && (
+        <div className="mx-6 mt-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {errorMsg}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="p-6">
