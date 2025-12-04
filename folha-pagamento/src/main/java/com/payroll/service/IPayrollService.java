@@ -1,6 +1,5 @@
 package com.payroll.service;
 
-import com.payroll.entity.Employee;
 import com.payroll.entity.PayrollCalculation;
 import com.payroll.model.Employee.GrauInsalubridade;
 

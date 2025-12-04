@@ -7,7 +7,6 @@ package com.payroll.web;
  */
 
 import com.payroll.exception.*;
-import com.payroll.exception.base.BusinessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

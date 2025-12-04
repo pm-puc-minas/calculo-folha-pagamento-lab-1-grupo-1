@@ -1,4 +1,4 @@
-package com.payroll.controller;
+﻿package com.payroll.controller;
 
 import java.util.List;
 import java.util.Map;
@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,6 +27,7 @@ import com.payroll.service.UserService;
 
 @RestController
 @RequestMapping("/api/payroll")
+@CrossOrigin(origins = "http://localhost:5173") // libera chamadas do front local
 public class PayrollController implements IPayrollController {
 
     @Autowired
@@ -54,15 +56,19 @@ public class PayrollController implements IPayrollController {
     public ResponseEntity<?> calculatePayroll(@RequestBody Map<String, String> request,
                                               @AuthenticationPrincipal UserDetails currentUser) {
         try {
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Usuario nao autenticado");
+            }
             Long employeeId = Long.parseLong(request.get("employeeId"));
             String referenceMonth = request.get("referenceMonth");
 
-            // Obter ID do usuário logado
-            User user = userService.findByUsername(currentUser.getUsername()).orElse(null);
+            // Obter ID do usuario logado
+            User user = userService.findByUsername(currentUser.getUsername()).orElse(null); // pega usuario logado para atribuir ao calculo
             Long userId = user != null ? user.getId() : null;
 
             PayrollCalculation calculation = payrollService.calculatePayroll(employeeId, referenceMonth, userId);
-            PayrollDTO dto = PayrollDTO.fromEntity(calculation, null);
+            PayrollDTO dto = PayrollDTO.fromEntity(calculation, user);
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);
 
         } catch (Exception e) {
@@ -80,20 +86,20 @@ public class PayrollController implements IPayrollController {
                 .findFirst();
 
         if (calculation.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Folha de pagamento não encontrada");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Folha de pagamento nao encontrada");
         }
 
         PayrollCalculation pc = calculation.get();
         return ResponseEntity.ok(PayrollDTO.fromEntity(pc, null));
     }
 
-    // Visualizar folhas de pagamento de um funcionário específico
+    // Visualizar folhas de pagamento de um funcionario especifico
     @GetMapping("/employee/{employeeId}")
     @Override
     public ResponseEntity<?> viewEmployeePayrolls(@PathVariable Long employeeId) {
         Optional<Employee> employee = employeeService.getEmployeeById(employeeId);
         if (employee.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionario nao encontrado");
         }
         List<PayrollCalculation> calculations = payrollService.getEmployeePayrolls(employeeId);
         List<PayrollDTO> dtos = calculations.stream()

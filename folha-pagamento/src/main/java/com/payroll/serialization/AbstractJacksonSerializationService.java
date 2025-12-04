@@ -6,7 +6,7 @@ package com.payroll.serialization;
  * Fundação comum para serviços de serialização do projeto.
  */
 
-import com.fasterxml.jackson.core.type.TypeReference;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import org.slf4j.Logger;

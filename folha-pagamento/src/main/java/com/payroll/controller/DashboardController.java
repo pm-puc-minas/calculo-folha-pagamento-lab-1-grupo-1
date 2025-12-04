@@ -13,6 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/dashboard")
+@CrossOrigin(origins = "http://localhost:5173") // libera chamadas do front local
 public class DashboardController implements IDashboardController {
 
     @Autowired

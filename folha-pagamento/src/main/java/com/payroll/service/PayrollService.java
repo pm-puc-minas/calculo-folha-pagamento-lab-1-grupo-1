@@ -17,7 +17,7 @@ import com.payroll.model.Employee.GrauInsalubridade;
 import com.payroll.repository.PayrollCalculationRepository;
 import com.payroll.repository.EmployeeRepository;
 import com.payroll.collections.CollectionOps;
-import com.payroll.collections.FilterSpec;
+
 import com.payroll.collections.GroupBySpec;
 import com.payroll.exception.DataIntegrityBusinessException;
 import com.payroll.exception.DatabaseConnectionException;
