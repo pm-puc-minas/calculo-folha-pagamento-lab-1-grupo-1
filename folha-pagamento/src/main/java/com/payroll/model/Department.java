@@ -1,20 +1,28 @@
 package com.payroll.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Transient;
 import java.util.ArrayList;
 import java.util.List;
 
+@Entity
 public class Department {
-    private int idDepartamento;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String nome;
+    @Transient
     private List<Employee> employees;
 
-    // Construtores
     public Department() {
         this.employees = new ArrayList<>();
     }
 
-    public Department(int idDepartamento, String nome) {
-        this.idDepartamento = idDepartamento;
+    public Department(Long id, String nome) {
+        this.id = id;
         this.nome = nome;
         this.employees = new ArrayList<>();
     }
@@ -32,16 +40,15 @@ public class Department {
     }
 
     public String exibirInformacoes() {
-        return "Department: " + nome + " (ID: " + idDepartamento + ") - " + employees.size() + " funcionários";
+        return "Department: " + nome + " (ID: " + id + ") - " + employees.size() + " funcionários";
     }
 
-    // Getters e Setters
-    public int getIdDepartamento() {
-        return idDepartamento;
+    public Long getId() {
+        return id;
     }
 
-    public void setIdDepartamento(int idDepartamento) {
-        this.idDepartamento = idDepartamento;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getNome() {

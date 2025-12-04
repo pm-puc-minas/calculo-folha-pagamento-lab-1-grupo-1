@@ -1,17 +1,23 @@
 package com.payroll.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import java.math.BigDecimal;
 
+@Entity
 public class Position {
-    private int idCargo;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String nome;
     private BigDecimal salarioBase;
 
-    // Construtores
     public Position() {}
 
-    public Position(int idCargo, String nome, BigDecimal salarioBase) {
-        this.idCargo = idCargo;
+    public Position(Long id, String nome, BigDecimal salarioBase) {
+        this.id = id;
         this.nome = nome;
         this.salarioBase = salarioBase;
     }
@@ -20,13 +26,12 @@ public class Position {
         this.salarioBase = novoSalario;
     }
 
-    // Getters e Setters
-    public int getIdCargo() {
-        return idCargo;
+    public Long getId() {
+        return id;
     }
 
-    public void setIdCargo(int idCargo) {
-        this.idCargo = idCargo;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getNome() {
