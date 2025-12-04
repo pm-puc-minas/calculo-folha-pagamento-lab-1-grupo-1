@@ -1,0 +1,109 @@
+package com.payroll.controller;
+
+import com.payroll.dto.PayrollDTO;
+import com.payroll.entity.Employee;
+import com.payroll.entity.PayrollCalculation;
+import com.payroll.entity.User;
+import com.payroll.service.EmployeeService;
+import com.payroll.service.PayrollService;
+import com.payroll.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/payroll")
+public class PayrollController implements IPayrollController {
+
+    @Autowired
+    private PayrollService payrollService;
+
+    @Autowired
+    private EmployeeService employeeService;
+
+    @Autowired
+    private UserService userService;
+
+    // Listar todas as folhas de pagamento
+    @GetMapping
+    @Override
+    public ResponseEntity<List<PayrollDTO>> payrollList() {
+        List<PayrollDTO> dtos = payrollService.getAllPayrolls()
+                .stream()
+                .map(pc -> PayrollDTO.fromEntity(pc, null))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
+    // Calcular folha de pagamento
+    @PostMapping("/calculate")
+    @Override
+    public ResponseEntity<?> calculatePayroll(@RequestBody Map<String, String> request,
+                                              @AuthenticationPrincipal UserDetails currentUser) {
+        try {
+            Long employeeId = Long.parseLong(request.get("employeeId"));
+            String referenceMonth = request.get("referenceMonth");
+
+            Long userId = getCurrentUserId(currentUser);
+
+            PayrollCalculation calculation = payrollService.calculatePayroll(employeeId, referenceMonth, userId);
+            PayrollDTO dto = PayrollDTO.fromEntity(calculation, null);
+            return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("ID do funcionário inválido");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao calcular folha: " + e.getMessage());
+        }
+    }
+
+    // Visualizar folha de pagamento por ID
+    @GetMapping("/{id}")
+    @Override
+    public ResponseEntity<?> viewPayroll(@PathVariable Long id) {
+        Optional<PayrollCalculation> calculationOpt = payrollService.getAllPayrolls()
+                .stream()
+                .filter(p -> p.getId().equals(id))
+                .findFirst();
+
+        return calculationOpt
+                .map(pc -> ResponseEntity.ok(PayrollDTO.fromEntity(pc, null)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Folha de pagamento não encontrada"));
+    }
+
+    // Visualizar folhas de pagamento de um funcionário específico
+    @GetMapping("/employee/{employeeId}")
+    @Override
+    public ResponseEntity<?> viewEmployeePayrolls(@PathVariable Long employeeId) {
+        Optional<Employee> employeeOpt = employeeService.getEmployeeById(employeeId);
+        if (employeeOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
+        }
+
+        List<PayrollDTO> dtos = payrollService.getEmployeePayrolls(employeeId)
+                .stream()
+                .map(pc -> PayrollDTO.fromEntity(pc, null))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
+    }
+
+    // Método auxiliar para obter ID do usuário logado
+    private Long getCurrentUserId(UserDetails currentUser) {
+        if (currentUser == null) return null;
+        return userService.findByUsername(currentUser.getUsername())
+                .map(User::getId)
+                .orElse(null);
+    }
+}
