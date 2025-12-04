@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { createEmployee, fetchEmployees } from "@/store/slices/employeeSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +15,12 @@ interface EmployeeRegistrationProps {
 }
 
 export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps) => {
+  const dispatch = useAppDispatch();
+  const { isLoading, error } = useAppSelector((state) => state.employee);
   const [formData, setFormData] = useState({
     fullName: "",
     cpf: "",
+    rg: "",
     position: "",
     grossSalary: "",
     weeklyHours: "40",
@@ -27,7 +32,13 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
     irrf: "0.00"
   });
 
+  const [admissionDate, setAdmissionDate] = useState("");
+
   const [netSalary, setNetSalary] = useState("0.00");
+
+  useEffect(() => {
+    dispatch(fetchEmployees());
+  }, [dispatch]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     const newFormData = { ...formData, [field]: value };
@@ -47,28 +58,54 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
     setNetSalary(net.toFixed(2));
   };
 
-  const handleSave = () => {
-    if (!formData.fullName || !formData.cpf || !formData.position || !formData.grossSalary) {
+  const handleSave = async () => {
+    if (!formData.fullName || !formData.cpf || !formData.position || !formData.grossSalary || !admissionDate) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
-    
-    toast.success("Funcionário salvo com sucesso!");
-    // Reset form
-    setFormData({
-      fullName: "",
-      cpf: "",
-      position: "",
-      grossSalary: "",
-      weeklyHours: "40",
-      dangerousWork: false,
-      nonDangerousWork: false,
-      hourlyRate: "0.00",
-      monthlyHours: "0h",
-      inss: "0.00",
-      irrf: "0.00"
-    });
-    setNetSalary("0.00");
+    try {
+      const salaryNumber = parseFloat(formData.grossSalary);
+      const weeklyHoursNumber = parseInt(formData.weeklyHours, 10);
+
+      const payload = {
+        fullName: formData.fullName,
+        cpf: formData.cpf,
+        rg: formData.rg || formData.cpf,
+        position: formData.position,
+        admissionDate,
+        salary: isNaN(salaryNumber) ? 0 : salaryNumber,
+        weeklyHours: isNaN(weeklyHoursNumber) ? 40 : weeklyHoursNumber,
+        dependents: 0,
+        transportVoucher: false,
+        mealVoucher: false,
+        mealVoucherValue: 0,
+        dangerousWork: formData.dangerousWork,
+        dangerousPercentage: formData.dangerousWork ? 0.3 : 0,
+        unhealthyWork: formData.nonDangerousWork,
+        unhealthyLevel: formData.nonDangerousWork ? "LOW" : "NONE",
+      };
+
+      await dispatch(createEmployee(payload)).unwrap();
+      toast.success("Funcionário salvo com sucesso!");
+      setFormData({
+        fullName: "",
+        cpf: "",
+        rg: "",
+        position: "",
+        grossSalary: "",
+        weeklyHours: "40",
+        dangerousWork: false,
+        nonDangerousWork: false,
+        hourlyRate: "0.00",
+        monthlyHours: "0h",
+        inss: "0.00",
+        irrf: "0.00"
+      });
+      setAdmissionDate("");
+      setNetSalary("0.00");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao salvar funcionário");
+    }
   };
 
   const handleCancel = () => {
@@ -92,6 +129,12 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
           </div>
         </div>
       </header>
+
+      {error && (
+        <div className="mx-6 mt-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="p-6">
@@ -119,6 +162,27 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
                   placeholder="000.000.000-00"
                   value={formData.cpf}
                   onChange={(e) => handleInputChange("cpf", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="rg">RG *</Label>
+                <Input
+                  id="rg"
+                  placeholder="MG1234567"
+                  value={formData.rg}
+                  onChange={(e) => handleInputChange("rg", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admissionDate">Data de Admissão *</Label>
+                <Input
+                  id="admissionDate"
+                  type="date"
+                  value={admissionDate}
+                  onChange={(e) => setAdmissionDate(e.target.value)}
                 />
               </div>
             </div>
@@ -239,9 +303,9 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
             {/* Action Buttons */}
             <div className="flex justify-between pt-6">
               <div className="flex space-x-3">
-                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
                   <Save className="w-4 h-4 mr-2" />
-                  Salvar funcionário
+                  {isLoading ? "Salvando..." : "Salvar funcionário"}
                 </Button>
                 <Button variant="outline">
                   <Eye className="w-4 h-4 mr-2" />

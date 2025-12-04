@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { apiFetch } from '@/lib/apiClient';
 
 export interface Employee {
   id?: number;
@@ -15,6 +16,25 @@ export interface Employee {
   mealVoucherDaily: number;
   workDaysMonth: number;
   weeklyHours: number;
+}
+
+// Payload específico para criação/atualização alinhado ao backend (Entity Employee)
+export interface CreateEmployeePayload {
+  fullName: string;
+  cpf: string;
+  rg: string;
+  position: string;
+  admissionDate: string; // yyyy-MM-dd
+  salary: number;
+  weeklyHours: number;
+  dependents?: number;
+  transportVoucher?: boolean;
+  mealVoucher?: boolean;
+  mealVoucherValue?: number;
+  dangerousWork?: boolean;
+  dangerousPercentage?: number;
+  unhealthyWork?: boolean;
+  unhealthyLevel?: string;
 }
 
 interface EmployeeState {
@@ -37,51 +57,66 @@ const initialState: EmployeeState = {
 export const fetchEmployees = createAsyncThunk(
   'employee/fetchEmployees',
   async () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch('/api/employees', {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch employees');
-    }
-    
+    const response = await apiFetch('/api/employees');
     return response.json();
   }
 );
 
 export const createEmployee = createAsyncThunk(
   'employee/createEmployee',
-  async (employeeData: Employee) => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch('/api/employees', {
+  async (employeeData: CreateEmployeePayload) => {
+    // Mapeia o payload do frontend para o schema esperado pelo backend (Entity Employee)
+    const body = {
+      fullName: employeeData.fullName,
+      cpf: employeeData.cpf,
+      rg: employeeData.rg,
+      position: employeeData.position,
+      admissionDate: employeeData.admissionDate,
+      salary: employeeData.salary,
+      weeklyHours: employeeData.weeklyHours,
+      dependents: employeeData.dependents ?? 0,
+      transportVoucher: employeeData.transportVoucher ?? false,
+      mealVoucher: employeeData.mealVoucher ?? false,
+      mealVoucherValue: employeeData.mealVoucherValue ?? 0,
+      dangerousWork: employeeData.dangerousWork ?? false,
+      dangerousPercentage: employeeData.dangerousPercentage ?? 0,
+      unhealthyWork: employeeData.unhealthyWork ?? false,
+      unhealthyLevel: employeeData.unhealthyLevel ?? 'NONE'
+    };
+
+    const response = await apiFetch('/api/employees', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-      body: JSON.stringify(employeeData),
+      body: JSON.stringify(body),
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create employee');
-    }
-    
     return response.json();
   }
 );
 
 export const updateEmployee = createAsyncThunk(
   'employee/updateEmployee',
-  async ({ id, data }: { id: number; data: Employee }) => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch(`/api/employees/${id}`, {
+  async ({ id, data }: { id: number; data: CreateEmployeePayload }) => {
+    const body = {
+      fullName: data.fullName,
+      cpf: data.cpf,
+      rg: data.rg,
+      position: data.position,
+      admissionDate: data.admissionDate,
+      salary: data.salary,
+      weeklyHours: data.weeklyHours,
+      dependents: data.dependents ?? 0,
+      transportVoucher: data.transportVoucher ?? false,
+      mealVoucher: data.mealVoucher ?? false,
+      mealVoucherValue: data.mealVoucherValue ?? 0,
+      dangerousWork: data.dangerousWork ?? false,
+      dangerousPercentage: data.dangerousPercentage ?? 0,
+      unhealthyWork: data.unhealthyWork ?? false,
+      unhealthyLevel: data.unhealthyLevel ?? 'NONE'
+    };
+
+    const response = await apiFetch(`/api/employees/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-      body: JSON.stringify(data),
+      body: JSON.stringify(body),
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to update employee');
-    }
-    
     return response.json();
   }
 );
@@ -89,16 +124,9 @@ export const updateEmployee = createAsyncThunk(
 export const deleteEmployee = createAsyncThunk(
   'employee/deleteEmployee',
   async (id: number) => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch(`/api/employees/${id}`, {
+    const response = await apiFetch(`/api/employees/${id}`, {
       method: 'DELETE',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to delete employee');
-    }
-    
     return id;
   }
 );
@@ -106,15 +134,7 @@ export const deleteEmployee = createAsyncThunk(
 export const fetchEmployeeById = createAsyncThunk(
   'employee/fetchEmployeeById',
   async (id: number) => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch(`/api/employees/${id}`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch employee');
-    }
-    
+    const response = await apiFetch(`/api/employees/${id}`);
     return response.json();
   }
 );

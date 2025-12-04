@@ -2,31 +2,49 @@ package com.payroll.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import org.springframework.stereotype.Component; // Adicionar o import para a anotação de componente
 
-// IRPF (teórico): imposto = base * aliquota (sem parcela a deduzir)
+@Component // Marca a classe como um componente Spring para injeção de dependência no PayrollService
+// IRPF: imposto = (base * aliquota) - parcela_a_deduzir
 public class IRPF implements IDesconto {
 
     @Override
-    // Calcula IRPF teórico (sem parcela a deduzir)
+    // Calcula IRPF conforme tabela (Base * Alíquota - Parcela a Deduzir)
     public BigDecimal calcular(SheetCalculator.DescontoContext ctx) {
-        BigDecimal salarioBruto = ctx.getSalarioBruto();
-        BigDecimal descontoINSS = ctx.getDescontoINSS() == null ? BigDecimal.ZERO : ctx.getDescontoINSS();
+        
+        // Obtém a base de cálculo que já está atualizada pelo INSS e Pensão (se deduzida no Contexto)
+        BigDecimal baseTributavel = ctx.getSalarioBaseCalculo(); 
         int dependentes = ctx.getDependentes();
-        BigDecimal pensao = ctx.getPensaoAlimenticia() == null ? BigDecimal.ZERO : ctx.getPensaoAlimenticia();
-
-        if (salarioBruto == null) return BigDecimal.ZERO;
-
+        
+        if (baseTributavel == null || baseTributavel.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+        
+        // Aplica a dedução por dependentes na base de cálculo
         BigDecimal deducaoDependentes = PayrollConstants.DEDUCAO_DEPENDENTE.multiply(new BigDecimal(dependentes));
-        BigDecimal base = salarioBruto.subtract(descontoINSS).subtract(deducaoDependentes).subtract(pensao);
+        baseTributavel = baseTributavel.subtract(deducaoDependentes);
 
-        if (base.compareTo(PayrollConstants.IRPF_ISENTO) <= 0) return BigDecimal.ZERO;
-
-        int faixaIndex = faixa(base);
+        // Se a base final, após todas as deduções, for menor ou igual à isenção.
+        if (baseTributavel.compareTo(PayrollConstants.IRPF_ISENTO) <= 0) return BigDecimal.ZERO;
+        
+        // Retorna o indice da faixa do IRPF
+        int faixaIndex = faixa(baseTributavel);
+        // Alíquota da faixa
         BigDecimal aliquota = PayrollConstants.IRPF_RATES[faixaIndex];
+        // Parcela a deduzir da faixa (essencial para o cálculo correto)
+        BigDecimal parcelaADeduzir = PayrollConstants.IRPF_DEDUCTIONS[faixaIndex]; 
 
-        BigDecimal imposto = base.multiply(aliquota);
-        if (imposto.compareTo(BigDecimal.ZERO) < 0) return BigDecimal.ZERO;
-        return imposto.setScale(2, RoundingMode.HALF_UP);
+        // Cálculo final: Imposto = (Base * Alíquota) - Parcela a Deduzir
+        BigDecimal imposto = baseTributavel.multiply(aliquota).subtract(parcelaADeduzir);
+
+        // Garante que o imposto não seja negativo
+        if (imposto.compareTo(BigDecimal.ZERO) < 0) imposto = BigDecimal.ZERO; 
+        
+        // Arredondamento
+        imposto = imposto.setScale(2, RoundingMode.HALF_UP);
+        
+        // Atualiza a base de cálculo no Contexto subtraindo o imposto de renda
+        ctx.aplicarDesconto(imposto);
+        
+        return imposto;
     }
 
     // Retorna o indice da faixa do IRPF
@@ -39,6 +57,6 @@ public class IRPF implements IDesconto {
     }
 
     @Override
-    // Prioridade de execucao: 3 (simulacoes)
-    public int prioridade() { return 3; }
+    // Prioridade de execucao: 2 (deve vir apos o INSS, que tem prioridade 1)
+    public int prioridade() { return 2; }
 }

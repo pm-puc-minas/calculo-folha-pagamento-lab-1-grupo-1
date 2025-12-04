@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { apiFetch } from '@/lib/apiClient';
 
 export interface User {
   id: number;
@@ -16,28 +17,27 @@ interface AuthState {
   refreshToken: string | null;
 }
 
+const accessTokenLS = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+const refreshTokenLS = typeof localStorage !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+const userLS = typeof localStorage !== 'undefined' ? localStorage.getItem('user') : null;
+
 const initialState: AuthState = {
-  user: null,
+  user: userLS ? JSON.parse(userLS) : null,
   isLoading: false,
-  isAuthenticated: false,
+  isAuthenticated: !!accessTokenLS,
   error: null,
-  accessToken: typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null,
-  refreshToken: typeof localStorage !== 'undefined' ? localStorage.getItem('refreshToken') : null,
+  accessToken: accessTokenLS,
+  refreshToken: refreshTokenLS,
 };
 
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials: { username?: string; email?: string; password: string }) => {
-    const response = await fetch('/api/auth/login', {
+    const response = await apiFetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
+      skipAuth: true
     });
-    
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
-    
     return response.json();
   }
 );
@@ -45,16 +45,27 @@ export const loginUser = createAsyncThunk(
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (userData: { username: string; email: string; password: string; role: string }) => {
-    const response = await fetch('/api/auth/register', {
+    const response = await apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+      skipAuth: true
+    });
+    return response.json();
+  }
+);
+
+export const refreshAccessToken = createAsyncThunk(
+  'auth/refreshAccessToken',
+  async () => {
+    const refreshToken = typeof localStorage !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+    const response = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
+      body: JSON.stringify({ refreshToken }),
     });
-    
     if (!response.ok) {
-      throw new Error('Registration failed');
+      throw new Error('Token refresh failed');
     }
-    
     return response.json();
   }
 );
@@ -113,6 +124,12 @@ const authSlice = createSlice({
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || 'Registration failed';
+      })
+      .addCase(refreshAccessToken.fulfilled, (state, action) => {
+        state.accessToken = action.payload?.accessToken || null;
+        if (action.payload?.accessToken) {
+          localStorage.setItem('accessToken', action.payload.accessToken);
+        }
       })
       // Logout cases
       .addCase(logoutUser.fulfilled, (state) => {

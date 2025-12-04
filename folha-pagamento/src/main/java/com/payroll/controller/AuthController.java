@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -48,7 +47,7 @@ public class AuthController implements IAuthController {
                 "perfil", user.getRole().name()
         );
 
-        String subject = user.getUsername(); // usa username persistido
+        String subject = user.getUsername();
         String accessToken = jwtUtil.generateAccessToken(subject, claims);
         String refreshToken = jwtUtil.generateRefreshToken(subject);
 

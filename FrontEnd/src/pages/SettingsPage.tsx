@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,15 +19,65 @@ const SettingsPage = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
+  const [preferences, setPreferences] = useState({
+    darkMode: false,
+    emailNotifications: true,
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [sessionError, setSessionError] = useState<string | null>(null);
+
+  const accessToken = useMemo(
+    () => (typeof localStorage !== "undefined" ? localStorage.getItem("accessToken") : null),
+    []
+  );
+
+  useEffect(() => {
+    const savedUser = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null;
+    if (!user && savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        dispatch(setUser(parsed));
+      } catch {
+        /* ignore */
+      }
+    }
+    const fetchProfile = async () => {
+      if (!accessToken) return;
+      try {
+        const res = await fetch("/api/users/me", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (res.status === 401) {
+          setSessionError("Sessão expirada. Faça login novamente.");
+          return;
+        }
+        if (!res.ok) return;
+        const data = await res.json();
+        dispatch(setUser(data));
+        setUsername(data.username ?? "");
+        setEmail(data.email ?? "");
+        if (data.preferences) {
+          setPreferences({
+            darkMode: !!data.preferences.darkMode,
+            emailNotifications: !!data.preferences.emailNotifications,
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchProfile();
+  }, [user, dispatch, accessToken]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!username.trim()) {
       newErrors.username = "Nome de usuário é obrigatório";
+    } else if (/\s/.test(username)) {
+      newErrors.username = "Não use espaços no nome de usuário";
     }
 
     if (!email.trim()) {
@@ -66,13 +116,41 @@ const SettingsPage = () => {
     setSuccessMessage("");
 
     try {
-      // Simulando delay de API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Atualiza dados do usuário no estado
-      if (user) {
-        dispatch(setUser({ ...user, username, email }));
+      const payload: Record<string, any> = {
+        username,
+        email,
+        preferences,
+      };
+      if (newPassword) {
+        payload.currentPassword = currentPassword;
+        payload.newPassword = newPassword;
       }
+
+      const res = await fetch("/api/users/me", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 401) {
+        setSessionError("Sessão expirada. Faça login novamente.");
+        toast({
+          title: "Sessão expirada",
+          description: "Faça login novamente para salvar as alterações.",
+          variant: "destructive",
+        });
+        setIsSaving(false);
+        return;
+      }
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "Falha ao salvar configurações.");
+      }
+
+      const updated = await res.json();
+      dispatch(setUser(updated));
 
       setCurrentPassword("");
       setNewPassword("");
@@ -86,15 +164,28 @@ const SettingsPage = () => {
 
       setTimeout(() => setSuccessMessage(""), 5000);
     } catch (error) {
+      const msg = (error as Error)?.message || "Falha ao salvar configurações. Tente novamente.";
       toast({
         title: "Erro",
-        description: "Falha ao salvar configurações. Tente novamente.",
+        description: msg,
         variant: "destructive"
       });
     } finally {
       setIsSaving(false);
     }
   };
+
+  const isFormInvalid = Object.values(errors).some(Boolean);
+
+  if (!user && !accessToken) {
+    return (
+      <div className="flex-1 bg-gray-50 min-h-screen p-6">
+        <div className="text-center mt-10">
+          <p className="text-lg font-semibold">Faça login para acessar as configurações.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-gray-50 min-h-screen p-6 space-y-6">
@@ -108,6 +199,12 @@ const SettingsPage = () => {
         </div>
         <p className="text-muted-foreground ml-13">Gerencie suas preferências e dados de conta</p>
       </div>
+
+      {sessionError && (
+        <Alert className="bg-destructive/10 border-destructive text-destructive">
+          <AlertDescription>{sessionError}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Success Message */}
       {successMessage && (
@@ -248,7 +345,12 @@ const SettingsPage = () => {
               <p className="font-medium">Tema Escuro</p>
               <p className="text-sm text-muted-foreground">Use tema escuro no sistema</p>
             </div>
-            <input type="checkbox" className="w-5 h-5" defaultChecked={false} />
+            <input
+              type="checkbox"
+              className="w-5 h-5"
+              checked={preferences.darkMode}
+              onChange={(e) => setPreferences((p) => ({ ...p, darkMode: e.target.checked }))}
+            />
           </div>
           <Separator />
           <div className="flex items-center justify-between py-2">
@@ -256,7 +358,12 @@ const SettingsPage = () => {
               <p className="font-medium">Notificações por E-mail</p>
               <p className="text-sm text-muted-foreground">Receba notificações sobre folhas de pagamento</p>
             </div>
-            <input type="checkbox" className="w-5 h-5" defaultChecked={true} />
+            <input
+              type="checkbox"
+              className="w-5 h-5"
+              checked={preferences.emailNotifications}
+              onChange={(e) => setPreferences((p) => ({ ...p, emailNotifications: e.target.checked }))}
+            />
           </div>
         </CardContent>
       </Card>
@@ -265,7 +372,7 @@ const SettingsPage = () => {
       <div className="flex items-center gap-2">
         <Button
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || isFormInvalid}
           className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
         >
           {isSaving ? "Salvando..." : "Salvar Alterações"}
