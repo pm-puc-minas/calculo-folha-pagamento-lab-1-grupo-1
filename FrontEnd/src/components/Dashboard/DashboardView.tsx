@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -21,37 +21,47 @@ interface DashboardViewProps {
   onLogout: () => void;
 }
 
-// Dados simulados para demonstração
-const generateChartData = () => {
-  return [
-    { month: "Jan", payrolls: 120, processed: 120, pending: 0 },
-    { month: "Fev", payrolls: 135, processed: 133, pending: 2 },
-    { month: "Mar", payrolls: 125, processed: 125, pending: 0 },
-    { month: "Abr", payrolls: 140, processed: 138, pending: 2 },
-    { month: "Mai", payrolls: 128, processed: 126, pending: 2 },
-    { month: "Jun", payrolls: 142, processed: 141, pending: 1 },
-  ];
-};
-
-const generateSalaryDistribution = () => {
-  return [
-    { name: "Até 3k", value: 45, fill: "#3b82f6" },
-    { name: "3k - 5k", value: 55, fill: "#8b5cf6" },
-    { name: "5k - 8k", value: 35, fill: "#ec4899" },
-    { name: "Acima de 8k", value: 20, fill: "#f59e0b" },
-  ];
-};
-
 export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) => {
   const dispatch = useAppDispatch();
-  const { stats, isLoading, error } = useAppSelector((state) => state.dashboard);
+  const { stats, isLoading, error, recentPayrolls, recentEmployees } = useAppSelector((state) => state.dashboard);
 
   useEffect(() => {
     dispatch(fetchDashboardData());
   }, [dispatch]);
 
-  const chartData = generateChartData();
-  const salaryData = generateSalaryDistribution();
+  const chartData = useMemo(() => {
+    if (!recentPayrolls || recentPayrolls.length === 0) return [];
+    const byMonth: Record<string, number> = {};
+    recentPayrolls.forEach((p: any) => {
+      const key = p.month || "N/A";
+      byMonth[key] = (byMonth[key] || 0) + 1;
+    });
+    return Object.entries(byMonth).map(([month, count]) => ({
+      month,
+      payrolls: count,
+      processed: count,
+      pending: 0,
+    }));
+  }, [recentPayrolls]);
+
+  const salaryData = useMemo(() => {
+    if (!recentEmployees || recentEmployees.length === 0) return [];
+    const buckets = {
+      low: { name: "Até 3k", value: 0, fill: "#3b82f6" },
+      mid: { name: "3k - 5k", value: 0, fill: "#8b5cf6" },
+      upper: { name: "5k - 8k", value: 0, fill: "#ec4899" },
+      high: { name: "Acima de 8k", value: 0, fill: "#f59e0b" },
+    };
+    recentEmployees.forEach((e: any) => {
+      const salary = typeof e.baseSalary === "number" ? e.baseSalary : Number(e.baseSalary || 0);
+      if (salary <= 3000) buckets.low.value += 1;
+      else if (salary <= 5000) buckets.mid.value += 1;
+      else if (salary <= 8000) buckets.upper.value += 1;
+      else buckets.high.value += 1;
+    });
+    return Object.values(buckets);
+  }, [recentEmployees]);
+
   return (
     <div className="flex-1 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -192,7 +202,7 @@ export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) =>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <TrendingUp className="w-5 h-5" />
-                <span>Tendência de Cálculos (6 meses)</span>
+                <span>Tendência de Cálculos (recentes)</span>
               </CardTitle>
             </CardHeader>
             <CardContent>

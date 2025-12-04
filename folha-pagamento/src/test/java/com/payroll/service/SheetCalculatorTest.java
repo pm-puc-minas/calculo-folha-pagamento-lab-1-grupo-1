@@ -2,7 +2,6 @@ package com.payroll.service;
 
 import com.payroll.entity.Employee;
 import com.payroll.model.Employee.GrauInsalubridade; // Adicionar o import necessário
-import org.junit.jupiter.api.Assertions; // Manter ou adicionar para asserções complexas
 import java.math.BigDecimal;
 import java.math.RoundingMode; // Adicionar para precisão
 import static org.junit.jupiter.api.Assertions.assertEquals;
