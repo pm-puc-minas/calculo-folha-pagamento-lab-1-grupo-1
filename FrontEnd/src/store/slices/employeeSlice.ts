@@ -17,6 +17,25 @@ export interface Employee {
   weeklyHours: number;
 }
 
+// Payload específico para criação/atualização alinhado ao backend (Entity Employee)
+export interface CreateEmployeePayload {
+  fullName: string;
+  cpf: string;
+  rg: string;
+  position: string;
+  admissionDate: string; // yyyy-MM-dd
+  salary: number;
+  weeklyHours: number;
+  dependents?: number;
+  transportVoucher?: boolean;
+  mealVoucher?: boolean;
+  mealVoucherValue?: number;
+  dangerousWork?: boolean;
+  dangerousPercentage?: number;
+  unhealthyWork?: boolean;
+  unhealthyLevel?: string;
+}
+
 interface EmployeeState {
   employees: Employee[];
   selectedEmployee: Employee | null;
@@ -52,12 +71,31 @@ export const fetchEmployees = createAsyncThunk(
 
 export const createEmployee = createAsyncThunk(
   'employee/createEmployee',
-  async (employeeData: Employee) => {
+  async (employeeData: CreateEmployeePayload) => {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    // Mapeia o payload do frontend para o schema esperado pelo backend (Entity Employee)
+    const body = {
+      fullName: employeeData.fullName,
+      cpf: employeeData.cpf,
+      rg: employeeData.rg,
+      position: employeeData.position,
+      admissionDate: employeeData.admissionDate,
+      salary: employeeData.salary,
+      weeklyHours: employeeData.weeklyHours,
+      dependents: employeeData.dependents ?? 0,
+      transportVoucher: employeeData.transportVoucher ?? false,
+      mealVoucher: employeeData.mealVoucher ?? false,
+      mealVoucherValue: employeeData.mealVoucherValue ?? 0,
+      dangerousWork: employeeData.dangerousWork ?? false,
+      dangerousPercentage: employeeData.dangerousPercentage ?? 0,
+      unhealthyWork: employeeData.unhealthyWork ?? false,
+      unhealthyLevel: employeeData.unhealthyLevel ?? 'NONE'
+    };
+
     const response = await fetch('/api/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-      body: JSON.stringify(employeeData),
+      body: JSON.stringify(body),
     });
     
     if (!response.ok) {
@@ -70,12 +108,30 @@ export const createEmployee = createAsyncThunk(
 
 export const updateEmployee = createAsyncThunk(
   'employee/updateEmployee',
-  async ({ id, data }: { id: number; data: Employee }) => {
+  async ({ id, data }: { id: number; data: CreateEmployeePayload }) => {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const body = {
+      fullName: data.fullName,
+      cpf: data.cpf,
+      rg: data.rg,
+      position: data.position,
+      admissionDate: data.admissionDate,
+      salary: data.salary,
+      weeklyHours: data.weeklyHours,
+      dependents: data.dependents ?? 0,
+      transportVoucher: data.transportVoucher ?? false,
+      mealVoucher: data.mealVoucher ?? false,
+      mealVoucherValue: data.mealVoucherValue ?? 0,
+      dangerousWork: data.dangerousWork ?? false,
+      dangerousPercentage: data.dangerousPercentage ?? 0,
+      unhealthyWork: data.unhealthyWork ?? false,
+      unhealthyLevel: data.unhealthyLevel ?? 'NONE'
+    };
+
     const response = await fetch(`/api/employees/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-      body: JSON.stringify(data),
+      body: JSON.stringify(body),
     });
     
     if (!response.ok) {

@@ -7,20 +7,17 @@ import { PayrollCalculation } from "@/components/Payroll/PayrollCalculation";
 import ReportsPage from "@/pages/ReportsPage";
 import HistoryFilesPage from "@/pages/HistoryFilesPage";
 import SettingsPage from "@/pages/SettingsPage";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logoutUser } from "@/store/slices/authSlice";
 
 const PayrollApp = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ username: string } | null>(null);
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const user = useAppSelector((s) => s.auth.user);
   const [activeView, setActiveView] = useState("dashboard");
 
-  const handleLogin = (username: string, password: string) => {
-    setIsAuthenticated(true);
-    setUser({ username });
-  };
-
   const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
+    dispatch(logoutUser());
     setActiveView("dashboard");
   };
 
@@ -42,7 +39,7 @@ const PayrollApp = () => {
   };
 
   if (!isAuthenticated) {
-    return <AuthForm onLogin={handleLogin} />;
+    return <AuthForm />;
   }
 
   return (

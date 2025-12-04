@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Play, Save, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchEmployees } from "@/store/slices/employeeSlice";
+import { calculatePayroll } from "@/store/slices/payrollSlice";
 
 export const PayrollCalculation = () => {
+  const dispatch = useAppDispatch();
+  const employees = useAppSelector((s) => s.employee.employees);
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [payrollPeriod, setPayrollPeriod] = useState("");
   const [grossSalary, setGrossSalary] = useState("5000.00");
@@ -43,8 +48,22 @@ export const PayrollCalculation = () => {
   const baseSalary = 5000.00;
   const netSalary = baseSalary + totalAdditionals - totalDeductions;
 
-  const handleGeneratePayroll = () => {
-    toast.success("Folha de pagamento gerada com sucesso!");
+  useEffect(() => {
+    dispatch(fetchEmployees());
+  }, [dispatch]);
+
+  const handleGeneratePayroll = async () => {
+    try {
+      const emp = employees.find(e => `${e.id}` === selectedEmployee);
+      if (!emp || !payrollPeriod) {
+        toast.error("Selecione funcionário e período");
+        return;
+      }
+      await dispatch(calculatePayroll({ employeeId: emp.id as number, referenceMonth: payrollPeriod })).unwrap();
+      toast.success("Folha de pagamento gerada com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao calcular folha");
+    }
   };
 
   const handleSave = () => {
@@ -91,12 +110,12 @@ export const PayrollCalculation = () => {
               <Label>Selecione Funcionário</Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="John Smith - ID: 001" />
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="john-smith">John Smith - ID: 001</SelectItem>
-                  <SelectItem value="maria-silva">Maria Silva - ID: 002</SelectItem>
-                  <SelectItem value="pedro-santos">Pedro Santos - ID: 003</SelectItem>
+                  {employees.map((e) => (
+                    <SelectItem key={e.id} value={`${e.id}`}>{e.name} - ID: {e.id}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -104,12 +123,12 @@ export const PayrollCalculation = () => {
               <Label>Período de pagamento</Label>
               <Select value={payrollPeriod} onValueChange={setPayrollPeriod}>
                 <SelectTrigger>
-                  <SelectValue placeholder="January 2024" />
+                  <SelectValue placeholder="2024-11" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="jan-2024">January 2024</SelectItem>
-                  <SelectItem value="feb-2024">February 2024</SelectItem>
-                  <SelectItem value="mar-2024">March 2024</SelectItem>
+                  <SelectItem value="2024-10">2024-10</SelectItem>
+                  <SelectItem value="2024-11">2024-11</SelectItem>
+                  <SelectItem value="2024-12">2024-12</SelectItem>
                 </SelectContent>
               </Select>
             </div>
