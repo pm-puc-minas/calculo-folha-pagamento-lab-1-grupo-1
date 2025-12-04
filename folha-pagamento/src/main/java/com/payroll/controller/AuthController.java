@@ -9,8 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -22,7 +22,7 @@ public class AuthController implements IAuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // Login com geração de tokens
+    /** LOGIN **/
     @PostMapping("/login")
     @Override
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
@@ -30,61 +30,45 @@ public class AuthController implements IAuthController {
         String email = loginRequest.get("email");
         String password = loginRequest.get("password");
 
-        User user = null;
-        if (username != null && !username.isBlank()) {
-            user = userService.findByUsername(username).orElse(null);
-        } else if (email != null && !email.isBlank()) {
-            user = userService.findByEmail(email).orElse(null);
-        }
+        User user = extractUserByUsernameOrEmail(username, email);
         if (user == null || !userService.validatePassword(password, user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciais inválidas");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Credenciais inválidas"));
         }
 
-        // Claims personalizadas
-        Map<String, Object> claims = Map.of(
-                "idUsuario", user.getId(),
-                "perfil", user.getRole().name()
-        );
-
-        String subject = user.getUsername();
-        String accessToken = jwtUtil.generateAccessToken(subject, claims);
-        String refreshToken = jwtUtil.generateRefreshToken(subject);
+        Map<String, Object> claims = buildClaims(user);
+        String accessToken = jwtUtil.generateAccessToken(user.getUsername(), claims);
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUsername());
 
         return ResponseEntity.ok(Map.of(
                 "accessToken", accessToken,
                 "refreshToken", refreshToken,
-                "user", user
+                "user", buildSafeUser(user)
         ));
     }
 
-    // Endpoint para refresh token
+    /** REFRESH TOKEN **/
     @PostMapping("/refresh")
     @Override
     public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
-
-        if (jwtUtil.isTokenExpired(refreshToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token expirado");
+        if (refreshToken == null || jwtUtil.isTokenExpired(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Refresh token inválido ou expirado"));
         }
 
         String username = jwtUtil.extractUsername(refreshToken);
         User user = userService.findByUsername(username).orElse(null);
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário inválido");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Usuário inválido"));
         }
 
-        // Criar novo access token
-        Map<String, Object> claims = Map.of(
-                "idUsuario", user.getId(),
-                "perfil", user.getRole().name()
-        );
-        String newAccessToken = jwtUtil.generateAccessToken(username, claims);
-
-        return ResponseEntity.ok(Map.of(
-                "accessToken", newAccessToken
-        ));
+        String newAccessToken = jwtUtil.generateAccessToken(username, buildClaims(user));
+        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
 
+    /** REGISTER **/
     @PostMapping("/register")
     @Override
     public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
@@ -95,55 +79,70 @@ public class AuthController implements IAuthController {
 
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Email e senha são obrigatórios");
+                    .body(Map.of("error", "Email e senha são obrigatórios"));
         }
         if (password.length() < 6) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("A senha deve ter pelo menos 6 caracteres");
+                    .body(Map.of("error", "A senha deve ter pelo menos 6 caracteres"));
         }
         if (userService.existsByEmail(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Email já está em uso");
+                    .body(Map.of("error", "Email já está em uso"));
         }
 
-        // Gerar username se não fornecido, garantindo unicidade
-        if (username == null || username.isBlank()) {
-            String base = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
-            String candidate = base;
-            int suffix = 1;
-            while (userService.existsByUsername(candidate)) {
-                candidate = base + suffix;
-                suffix++;
-            }
-            username = candidate;
-        } else {
-            if (userService.existsByUsername(username)) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("Username já está em uso");
-            }
-        }
+        username = generateUniqueUsername(username, email);
 
         Role role = Role.USER;
         if (roleStr != null && !roleStr.isBlank()) {
             try {
                 role = Role.valueOf(roleStr.toUpperCase());
-            } catch (IllegalArgumentException ex) {
-                role = Role.USER;
-            }
+            } catch (IllegalArgumentException ignored) {}
         }
 
-        User toCreate = new User(username, email, password, role);
-        User created = userService.createUser(toCreate, null);
+        User created = userService.createUser(new User(username, email, password, role), null);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("user", buildSafeUser(created)));
+    }
 
+    /** --------------------- MÉTODOS PRIVADOS --------------------- **/
+
+    private User extractUserByUsernameOrEmail(String username, String email) {
+        if (username != null && !username.isBlank()) {
+            return userService.findByUsername(username).orElse(null);
+        } else if (email != null && !email.isBlank()) {
+            return userService.findByEmail(email).orElse(null);
+        }
+        return null;
+    }
+
+    private Map<String, Object> buildClaims(User user) {
+        return Map.of(
+                "idUsuario", user.getId(),
+                "perfil", user.getRole().name()
+        );
+    }
+
+    private Map<String, Object> buildSafeUser(User user) {
         Map<String, Object> safeUser = new HashMap<>();
-        safeUser.put("id", created.getId());
-        safeUser.put("username", created.getUsername());
-        safeUser.put("email", created.getEmail());
-        safeUser.put("role", created.getRole());
-        safeUser.put("createdAt", created.getCreatedAt());
-        safeUser.put("active", created.isActive());
+        safeUser.put("id", user.getId());
+        safeUser.put("username", user.getUsername());
+        safeUser.put("email", user.getEmail());
+        safeUser.put("role", user.getRole());
+        safeUser.put("createdAt", user.getCreatedAt());
+        safeUser.put("active", user.isActive());
+        return safeUser;
+    }
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("user", safeUser));
+    private String generateUniqueUsername(String username, String email) {
+        if (username != null && !username.isBlank() && !userService.existsByUsername(username)) {
+            return username;
+        }
+        String base = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        String candidate = base;
+        int suffix = 1;
+        while (userService.existsByUsername(candidate)) {
+            candidate = base + suffix++;
+        }
+        return candidate;
     }
 }
-
