@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useAppDispatch } from "@/store/hooks";
-import { createEmployee } from "@/store/slices/employeeSlice";
+import { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { createEmployee, fetchEmployees } from "@/store/slices/employeeSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Save, X, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { EmployeeDto } from "@/types/api";
 
 interface EmployeeRegistrationProps {
   onViewChange: (view: string) => void;
@@ -16,6 +17,7 @@ interface EmployeeRegistrationProps {
 
 export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps) => {
   const dispatch = useAppDispatch();
+  const { isLoading, error } = useAppSelector((state) => state.employee);
   const [formData, setFormData] = useState({
     fullName: "",
     cpf: "",
@@ -34,6 +36,10 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
   const [admissionDate, setAdmissionDate] = useState("");
 
   const [netSalary, setNetSalary] = useState("0.00");
+
+  useEffect(() => {
+    dispatch(fetchEmployees());
+  }, [dispatch]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     const newFormData = { ...formData, [field]: value };
@@ -54,30 +60,31 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
   };
 
   const handleSave = async () => {
-    if (!formData.fullName || !formData.cpf || !formData.rg || !formData.position || !formData.grossSalary || !admissionDate) {
+    if (!formData.fullName || !formData.cpf || !formData.position || !formData.grossSalary || !admissionDate) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
     try {
       const salaryNumber = parseFloat(formData.grossSalary);
       const weeklyHoursNumber = parseInt(formData.weeklyHours, 10);
-      await dispatch(createEmployee({
-        fullName: formData.fullName,
+
+      const payload: EmployeeDto = {
+        name: formData.fullName,
         cpf: formData.cpf,
-        rg: formData.rg,
         position: formData.position,
+        department: "Geral",
         admissionDate,
-        salary: isNaN(salaryNumber) ? 0 : salaryNumber,
-        weeklyHours: isNaN(weeklyHoursNumber) ? 40 : weeklyHoursNumber,
+        baseSalary: isNaN(salaryNumber) ? 0 : salaryNumber,
         dependents: 0,
-        transportVoucher: false,
-        mealVoucher: false,
-        mealVoucherValue: 0,
-        dangerousWork: formData.dangerousWork,
-        dangerousPercentage: 0,
-        unhealthyWork: false,
-        unhealthyLevel: "NONE"
-      })).unwrap();
+        hasHazardPay: formData.dangerousWork,
+        insalubrity: "NONE",
+        transportVoucherValue: 0,
+        mealVoucherDaily: 0,
+        workDaysMonth: 22,
+        weeklyHours: isNaN(weeklyHoursNumber) ? 40 : weeklyHoursNumber,
+      };
+
+      await dispatch(createEmployee(payload)).unwrap();
       toast.success("Funcionário salvo com sucesso!");
       setFormData({
         fullName: "",
@@ -121,6 +128,12 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
           </div>
         </div>
       </header>
+
+      {error && (
+        <div className="mx-6 mt-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="p-6">
@@ -289,9 +302,9 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
             {/* Action Buttons */}
             <div className="flex justify-between pt-6">
               <div className="flex space-x-3">
-                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
                   <Save className="w-4 h-4 mr-2" />
-                  Salvar funcionário
+                  {isLoading ? "Salvando..." : "Salvar funcionário"}
                 </Button>
                 <Button variant="outline">
                   <Eye className="w-4 h-4 mr-2" />

@@ -6,31 +6,42 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Upload, File, Trash2, Download, ChevronLeft, ChevronRight, FileText, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface FileEntry {
-  id: string;
-  name: string;
-  uploadedAt: string;
-  size: number;
-  type: string;
-  uploadedBy: string;
-}
+import { FileEntryDto } from "@/types/api";
 
 const ITEMS_PER_PAGE = 8;
 
 const HistoryFilesPage = () => {
-  const [files, setFiles] = useState<FileEntry[]>([
-    { id: "1", name: "folha_pagamento_nov2024.xlsx", uploadedAt: "2024-11-26T10:30:00", size: 125000, type: "xlsx", uploadedBy: "Admin" },
-    { id: "2", name: "folha_pagamento_out2024.xlsx", uploadedAt: "2024-10-26T14:15:00", size: 118000, type: "xlsx", uploadedBy: "Admin" },
-    { id: "3", name: "relatorio_funcionarios_nov.pdf", uploadedAt: "2024-11-26T09:00:00", size: 256000, type: "pdf", uploadedBy: "Gerente" },
-    { id: "4", name: "folha_pagamento_set2024.xlsx", uploadedAt: "2024-09-26T11:45:00", size: 122000, type: "xlsx", uploadedBy: "Admin" },
-    { id: "5", name: "resumo_payroll_q3.pdf", uploadedAt: "2024-09-30T16:20:00", size: 350000, type: "pdf", uploadedBy: "Admin" },
-    { id: "6", name: "folha_pagamento_ago2024.xlsx", uploadedAt: "2024-08-26T13:30:00", size: 120000, type: "xlsx", uploadedBy: "Admin" },
-  ]);
+  const [files, setFiles] = useState<FileEntryDto[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        const res = await fetch('/api/files', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+        });
+        if (!res.ok) {
+          const message = await res.text();
+          throw new Error(message || 'Falha ao carregar arquivos');
+        }
+        const data = await res.json();
+        setFiles(data);
+      } catch (err: any) {
+        setError(err?.message || "Erro ao carregar arquivos");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchFiles();
+  }, []);
 
   // Filtrar e ordenar arquivos
   const filteredFiles = files
@@ -89,19 +100,46 @@ const HistoryFilesPage = () => {
     return <Badge className={`${config.bg} ${config.text}`}>{config.label}</Badge>;
   };
 
-  const handleDownload = (fileId: string, fileName: string) => {
-    toast({
-      title: "Download iniciado",
-      description: `${fileName} está sendo baixado...`
-    });
+  const handleDownload = async (fileId: string, fileName: string) => {
+    try {
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const res = await fetch(`/api/files/${fileId}/download`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) throw new Error("Falha ao iniciar download");
+      toast({
+        title: "Download iniciado",
+        description: `${fileName} está sendo baixado...`
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err?.message || "Não foi possível baixar o arquivo",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDelete = (fileId: string, fileName: string) => {
-    setFiles(files.filter(f => f.id !== fileId));
-    toast({
-      title: "Arquivo removido",
-      description: `${fileName} foi deletado com sucesso`
-    });
+  const handleDelete = async (fileId: string, fileName: string) => {
+    try {
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const res = await fetch(`/api/files/${fileId}`, {
+        method: "DELETE",
+        headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) throw new Error("Falha ao remover arquivo");
+      setFiles(files.filter(f => f.id !== fileId));
+      toast({
+        title: "Arquivo removido",
+        description: `${fileName} foi deletado com sucesso`
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err?.message || "Não foi possível remover o arquivo",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -121,7 +159,7 @@ const HistoryFilesPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardContent className="p-6 text-center">
-            <div className="text-2xl font-bold text-primary">{filteredFiles.length}</div>
+            <div className="text-2xl font-bold text-primary">{isLoading ? "..." : filteredFiles.length}</div>
             <div className="text-sm text-muted-foreground">Total de Arquivos</div>
           </CardContent>
         </Card>
@@ -140,6 +178,12 @@ const HistoryFilesPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {error && (
+        <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
       {/* Upload e Filtros */}
       <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
@@ -240,6 +284,11 @@ const HistoryFilesPage = () => {
               )}
             </TableBody>
           </Table>
+          {isLoading && (
+            <div className="text-center text-muted-foreground py-4 text-sm">
+              Carregando arquivos...
+            </div>
+          )}
 
           {/* Pagination */}
           {filteredFiles.length > ITEMS_PER_PAGE && (

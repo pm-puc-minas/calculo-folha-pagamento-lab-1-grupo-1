@@ -33,6 +33,7 @@ interface PayrollState {
   selectedPayroll: PayrollCalculation | null;
   reportHistory: ReportHistoryEntry[];
   isLoading: boolean;
+  reportLoading: boolean;
   error: string | null;
   calculationInProgress: boolean;
 }
@@ -57,6 +58,7 @@ const initialState: PayrollState = {
   selectedPayroll: null,
   reportHistory: [],
   isLoading: false,
+  reportLoading: false,
   error: null,
   calculationInProgress: false,
 };
@@ -128,6 +130,41 @@ export const fetchPayrollsByEmployee = createAsyncThunk(
   }
 );
 
+export const fetchReportHistory = createAsyncThunk(
+  'payroll/fetchReportHistory',
+  async () => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch('/api/reports/history', {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch report history');
+    }
+    
+    return response.json();
+  }
+);
+
+export const generateReport = createAsyncThunk(
+  'payroll/generateReport',
+  async (data: { month?: string; employee?: string; type?: string }) => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch('/api/reports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      const msg = await response.text();
+      throw new Error(msg || 'Failed to generate report');
+    }
+    
+    return response.json();
+  }
+);
+
 const payrollSlice = createSlice({
   name: 'payroll',
   initialState,
@@ -185,6 +222,31 @@ const payrollSlice = createSlice({
             state.payrolls.push(payroll);
           }
         });
+      })
+      // Reports history
+      .addCase(fetchReportHistory.pending, (state) => {
+        state.reportLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchReportHistory.fulfilled, (state, action) => {
+        state.reportLoading = false;
+        state.reportHistory = action.payload;
+      })
+      .addCase(fetchReportHistory.rejected, (state, action) => {
+        state.reportLoading = false;
+        state.error = action.error.message || 'Failed to fetch report history';
+      })
+      // Generate report
+      .addCase(generateReport.pending, (state) => {
+        state.reportLoading = true;
+        state.error = null;
+      })
+      .addCase(generateReport.fulfilled, (state) => {
+        state.reportLoading = false;
+      })
+      .addCase(generateReport.rejected, (state, action) => {
+        state.reportLoading = false;
+        state.error = action.error.message || 'Failed to generate report';
       });
   },
 });

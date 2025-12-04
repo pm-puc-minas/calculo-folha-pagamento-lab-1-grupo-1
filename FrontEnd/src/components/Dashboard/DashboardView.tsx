@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -13,6 +13,8 @@ import {
   TrendingUp,
   AlertCircle
 } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchDashboardData } from "@/store/slices/dashboardSlice";
 
 interface DashboardViewProps {
   onViewChange: (view: string) => void;
@@ -41,42 +43,12 @@ const generateSalaryDistribution = () => {
 };
 
 export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) => {
-  const [dashboardData, setDashboardData] = useState({
-    totalEmployees: 0,
-    lastPayroll: "",
-    pendingCalculations: 0,
-    totalCosts: ""
-  });
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const { stats, isLoading, error } = useAppSelector((state) => state.dashboard);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-        const res = await fetch('/api/dashboard', {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
-        });
-        if (!res.ok) {
-          if (res.status === 401) setErrorMsg('Sessão expirada. Faça login novamente.');
-          else if (res.status === 403) setErrorMsg('Acesso negado. Permissão insuficiente para o dashboard.');
-          else setErrorMsg('Falha ao carregar dashboard.');
-          return;
-        }
-        const data = await res.json();
-        const totalEmployees = data.totalEmployees ?? 0;
-        const totalPayrolls = data.totalPayrolls ?? 0;
-        setDashboardData({
-          totalEmployees,
-          lastPayroll: `${totalPayrolls} folhas`,
-          pendingCalculations: 0,
-          totalCosts: ""
-        });
-      } catch (e) {
-        setErrorMsg('Erro de rede ao carregar dashboard.');
-      }
-    };
-    fetchData();
-  }, []);
+    dispatch(fetchDashboardData());
+  }, [dispatch]);
 
   const chartData = generateChartData();
   const salaryData = generateSalaryDistribution();
@@ -104,10 +76,10 @@ export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) =>
       </header>
 
       {/* Alert */}
-      {errorMsg && (
+      {error && (
         <div className="mx-6 mt-4">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {errorMsg}
+            {error}
           </div>
         </div>
       )}
@@ -121,7 +93,9 @@ export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) =>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Total de funcionários</p>
-                  <p className="text-3xl font-bold text-gray-900">{dashboardData.totalEmployees}</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {isLoading ? "..." : stats.totalEmployees}
+                  </p>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-lg">
                   <Users className="w-6 h-6 text-blue-600" />
@@ -134,8 +108,10 @@ export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) =>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Última folha de pagamento</p>
-                  <p className="text-3xl font-bold text-gray-900">{dashboardData.lastPayroll.split(" ")[0]}</p>
+                  <p className="text-sm text-gray-600 mb-1">Folhas processadas</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {isLoading ? "..." : stats.totalPayrolls}
+                  </p>
                 </div>
                 <div className="bg-green-100 p-3 rounded-lg">
                   <Calendar className="w-6 h-6 text-green-600" />
@@ -148,8 +124,10 @@ export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) =>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Cálculos pendentes</p>
-                  <p className="text-3xl font-bold text-gray-900">{dashboardData.pendingCalculations}</p>
+                  <p className="text-sm text-gray-600 mb-1">Total bruto</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {isLoading ? "..." : stats.totalGrossSalary.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
                 </div>
                 <div className="bg-yellow-100 p-3 rounded-lg">
                   <Clock className="w-6 h-6 text-yellow-600" />
