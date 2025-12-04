@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { apiFetch } from '@/lib/apiClient';
 
 export interface User {
   id: number;
@@ -32,16 +33,11 @@ const initialState: AuthState = {
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials: { username?: string; email?: string; password: string }) => {
-    const response = await fetch('/api/auth/login', {
+    const response = await apiFetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
+      skipAuth: true
     });
-    
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
-    
     return response.json();
   }
 );
@@ -49,16 +45,11 @@ export const loginUser = createAsyncThunk(
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (userData: { username: string; email: string; password: string; role: string }) => {
-    const response = await fetch('/api/auth/register', {
+    const response = await apiFetch('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
+      skipAuth: true
     });
-    
-    if (!response.ok) {
-      throw new Error('Registration failed');
-    }
-    
     return response.json();
   }
 );

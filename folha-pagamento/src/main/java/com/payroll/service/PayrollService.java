@@ -1,4 +1,4 @@
-package com.payroll.service;
+﻿package com.payroll.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.Comparator; // NOVO: Import para ordenação
-import com.payroll.service.SheetCalculator.DescontoContext; // NOVO: Importa a classe de Contexto
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,7 +17,7 @@ import com.payroll.model.Employee.GrauInsalubridade;
 import com.payroll.repository.PayrollCalculationRepository;
 import com.payroll.repository.EmployeeRepository;
 import com.payroll.collections.CollectionOps;
-import com.payroll.collections.FilterSpec;
+
 import com.payroll.collections.GroupBySpec;
 import com.payroll.exception.DataIntegrityBusinessException;
 import com.payroll.exception.DatabaseConnectionException;
@@ -30,31 +28,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 @Service
 public class PayrollService implements IPayrollService {
 
-    // Mantido: Injeção de repositórios
-    private PayrollCalculationRepository payrollRepository;
-    private EmployeeRepository employeeRepository;
-
-    // NOVO: Campo para armazenar a lista de estratégias (o Contexto do Padrão Strategy)
-    private final List<IDesconto> calculoDescontos; 
-
-    /**
-     * NOVO: Construtor que recebe todas as implementações de IDesconto (Estratégias)
-     * e as ordena usando a prioridade.
-     */
-    public PayrollService(List<IDesconto> calculoDescontos) {
-        // NOVO: Ordena as estratégias pela prioridade para garantir a ordem de execução (INSS -> IRPF)
-        this.calculoDescontos = calculoDescontos.stream()
-            .sorted(Comparator.comparing(IDesconto::prioridade))
-            .collect(Collectors.toList());
-    }
-
-    // NOVO: Setter para repositórios (Alternativa para injeção de campo quando há construtor customizado)
     @Autowired
-    public void setRepositories(PayrollCalculationRepository payrollRepository, EmployeeRepository employeeRepository) {
-        this.payrollRepository = payrollRepository;
-        this.employeeRepository = employeeRepository;
-    }
+    private PayrollCalculationRepository payrollRepository;
 
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     @Override
     public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long calculatedBy) {
@@ -79,17 +57,24 @@ public class PayrollService implements IPayrollService {
         }
         calculation.setEmployee(employee);
 
-        // Simulação de dados de funcionário
-        BigDecimal baseSalary = new BigDecimal("3000.00");
-        
-        // Mantido: Busca de dados necessários para o Contexto
-        int dependents = 0;
-        BigDecimal pensionAlimony = BigDecimal.ZERO;
-        BigDecimal transportVoucher = new BigDecimal("150.00"); // Apenas para o desconto de VT
+        // Dados reais do empregado
+        BigDecimal baseSalary = employee.getSalary() != null ? employee.getSalary() : BigDecimal.ZERO;
+        int horasSemanais = employee.getWeeklyHours() != null ? employee.getWeeklyHours() : 40;
+        boolean trabalhoPerigoso = employee.getDangerousWork() != null && employee.getDangerousWork();
+        BigDecimal periculosidadePct = employee.getDangerousPercentage() != null ? employee.getDangerousPercentage() : PayrollConstants.DANGER_RATE;
+        String unhealthyLevel = employee.getUnhealthyLevel() != null ? employee.getUnhealthyLevel() : "NONE";
+        GrauInsalubridade grau = switch (unhealthyLevel.toUpperCase()) {
+            case "BAIXO", "LOW" -> GrauInsalubridade.BAIXO;
+            case "MEDIO", "MÉDIO", "MEDIUM" -> GrauInsalubridade.MEDIO;
+            case "ALTO", "HIGH" -> GrauInsalubridade.ALTO;
+            default -> GrauInsalubridade.NENHUM;
+        };
 
-        BigDecimal hourlyWage = calcularSalarioHora(baseSalary, 40);
-        BigDecimal dangerousBonus = calcularAdicionalPericulosidade(baseSalary);
-        BigDecimal unhealthyBonus = calcularAdicionalInsalubridade(PayrollConstants.SALARIO_MINIMO, GrauInsalubridade.MEDIO);
+        BigDecimal hourlyWage = calcularSalarioHora(baseSalary, horasSemanais);
+        BigDecimal dangerousBonus = trabalhoPerigoso
+                ? baseSalary.multiply(periculosidadePct).setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        BigDecimal unhealthyBonus = calcularAdicionalInsalubridade(PayrollConstants.SALARIO_MINIMO, grau);
 
         calculation.setHourlyWage(hourlyWage);
         calculation.setDangerousBonus(dangerousBonus);
@@ -97,47 +82,31 @@ public class PayrollService implements IPayrollService {
 
         BigDecimal grossSalary = baseSalary.add(dangerousBonus).add(unhealthyBonus);
         calculation.setGrossSalary(grossSalary);
-        
-        // ====================================================================================
-        // NOVO: ORQUESTRAÇÃO DOS DESCONTOS (Padrão Strategy)
-        // ====================================================================================
-        
-        // 1. Cria o Contexto
-        DescontoContext context = new DescontoContext(grossSalary, dependents, pensionAlimony); 
-        
-        BigDecimal totalMandatoryDiscounts = BigDecimal.ZERO;
 
-        // 2. Itera sobre as estratégias (INSS, IRPF, etc.) na ordem de Prioridade (garantida pelo construtor)
-        for (IDesconto estrategia : calculoDescontos) {
-            BigDecimal desconto = estrategia.calcular(context);
-            totalMandatoryDiscounts = totalMandatoryDiscounts.add(desconto);
-            
-            // NOVO: Salva os resultados das principais estratégias na entidade PayrollCalculation
-            if (estrategia instanceof INSS) {
-                calculation.setInssDiscount(desconto);
-            } else if (estrategia instanceof IRPF) {
-                calculation.setIrpfDiscount(desconto);
-            }
-        }
-        
-        // Linhas removidas que chamavam o calcularINSS/calcularIRRF antigo.
-        
-        // --- CÁLCULOS REMANESCENTES / BENEFÍCIOS ---
-        
+        BigDecimal inssDiscount = calcularINSS(grossSalary);
+        int dependents = employee.getDependents() != null ? employee.getDependents() : 0;
+        BigDecimal pensionAlimony = BigDecimal.ZERO;
+        BigDecimal transportVoucher = (employee.getTransportVoucher() != null && employee.getTransportVoucher())
+                ? grossSalary.multiply(PayrollConstants.TRANSPORTE_RATE)
+                : BigDecimal.ZERO;
+
+        BigDecimal irrfDiscount = calcularIRRF(grossSalary, inssDiscount, dependents, pensionAlimony);
         BigDecimal transportDiscount = calcularDescontoValeTransporte(grossSalary, transportVoucher);
-        
+
+        calculation.setInssDiscount(inssDiscount);
+        calculation.setIrpfDiscount(irrfDiscount);
         calculation.setTransportDiscount(transportDiscount);
 
         BigDecimal fgts = calcularFGTS(grossSalary);
         calculation.setFgtsValue(fgts);
 
-        BigDecimal mealVoucher = calcularValeAlimentacao(new BigDecimal("25.00"), 22);
+        BigDecimal valeDiario = employee.getMealVoucherValue() != null ? employee.getMealVoucherValue() : BigDecimal.ZERO;
+        BigDecimal mealVoucher = calcularValeAlimentacao(valeDiario, PayrollConstants.DEFAULT_WORK_DAYS);
         calculation.setMealVoucherValue(mealVoucher);
 
-        // líquido = bruto − (Mandatórios + VT + FGTS)
-        BigDecimal totalDiscounts = totalMandatoryDiscounts.add(transportDiscount).add(fgts);
-        
-        // Mantido: Validações
+        // líquido = bruto + adicionais + benefícios - (INSS + IRRF + FGTS + VT)
+        BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(fgts).add(transportDiscount);
+
         if (grossSalary.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InputValidationException("Salário bruto deve ser maior que zero",
                 Map.of("grossSalary", grossSalary));
@@ -150,7 +119,6 @@ public class PayrollService implements IPayrollService {
         BigDecimal netSalary = grossSalary.subtract(totalDiscounts);
         calculation.setNetSalary(netSalary);
 
-        // Mantido: Salvamento
         try {
             return payrollRepository.save(calculation);
         } catch (DataIntegrityViolationException e) {
@@ -201,10 +169,68 @@ public class PayrollService implements IPayrollService {
     }
 
     @Override
+    public BigDecimal calcularINSS(BigDecimal salarioContribuicao) {
+        if (salarioContribuicao == null || salarioContribuicao.compareTo(BigDecimal.ZERO) <= 0)
+            return BigDecimal.ZERO;
+
+        BigDecimal totalDesconto = BigDecimal.ZERO;
+        BigDecimal salarioRestante = salarioContribuicao;
+
+        for (int i = 0; i < PayrollConstants.INSS_LIMITS.length && salarioRestante.compareTo(BigDecimal.ZERO) > 0; i++) {
+            BigDecimal limite = PayrollConstants.INSS_LIMITS[i];
+            BigDecimal limiteAnterior = i > 0 ? PayrollConstants.INSS_LIMITS[i - 1] : BigDecimal.ZERO;
+            BigDecimal valorTributavel = salarioRestante.min(limite.subtract(limiteAnterior));
+
+            if (valorTributavel.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal desconto = valorTributavel.multiply(PayrollConstants.INSS_RATES[i]);
+                totalDesconto = totalDesconto.add(desconto);
+                salarioRestante = salarioRestante.subtract(valorTributavel);
+            }
+        }
+
+        return totalDesconto.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    @Override
     public BigDecimal calcularFGTS(BigDecimal baseCalculoFGTS) {
         if (baseCalculoFGTS == null || baseCalculoFGTS.compareTo(BigDecimal.ZERO) <= 0)
             return BigDecimal.ZERO;
         return baseCalculoFGTS.multiply(PayrollConstants.FGTS_RATE).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    public BigDecimal calcularIRRF(BigDecimal salarioBruto, BigDecimal descontoINSS, int numDependentes, BigDecimal pensaoAlimenticia) {
+        if (salarioBruto == null || descontoINSS == null) return BigDecimal.ZERO;
+
+        BigDecimal deducaoDependentes = PayrollConstants.DEDUCAO_DEPENDENTE.multiply(new BigDecimal(numDependentes));
+        BigDecimal pensao = pensaoAlimenticia != null ? pensaoAlimenticia : BigDecimal.ZERO;
+        BigDecimal baseCalculo = salarioBruto.subtract(descontoINSS).subtract(deducaoDependentes).subtract(pensao);
+
+        if (baseCalculo.compareTo(PayrollConstants.IRPF_ISENTO) <= 0) return BigDecimal.ZERO;
+
+        BigDecimal totalIRRF = BigDecimal.ZERO;
+        BigDecimal baseRestante = baseCalculo;
+
+        for (int i = 0; i < PayrollConstants.IRPF_LIMITS.length && baseRestante.compareTo(BigDecimal.ZERO) > 0; i++) {
+            BigDecimal limite = PayrollConstants.IRPF_LIMITS[i];
+            BigDecimal limiteAnterior = i > 0 ? PayrollConstants.IRPF_LIMITS[i - 1] : BigDecimal.ZERO;
+
+            if (baseCalculo.compareTo(limite) > 0) {
+                BigDecimal valorTributavel = limite.subtract(limiteAnterior);
+                totalIRRF = totalIRRF.add(valorTributavel.multiply(PayrollConstants.IRPF_RATES[i]));
+                baseRestante = baseRestante.subtract(valorTributavel);
+            } else {
+                BigDecimal valorTributavel = baseCalculo.subtract(limiteAnterior);
+                totalIRRF = totalIRRF.add(valorTributavel.multiply(PayrollConstants.IRPF_RATES[i]));
+                break;
+            }
+        }
+
+        if (baseRestante.compareTo(BigDecimal.ZERO) > 0) {
+            totalIRRF = totalIRRF.add(baseRestante.multiply(PayrollConstants.IRPF_RATES[PayrollConstants.IRPF_RATES.length - 1]));
+        }
+
+        return totalIRRF.setScale(2, RoundingMode.HALF_UP);
     }
 
     @Override

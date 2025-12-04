@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { apiFetch } from '@/lib/apiClient';
 
 interface Employee {
   id: number;
@@ -48,15 +49,7 @@ const initialState: DashboardState = {
 export const fetchDashboardData = createAsyncThunk(
   'dashboard/fetchDashboardData',
   async () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch('/api/dashboard', {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch dashboard data');
-    }
-    
+    const response = await apiFetch('/api/dashboard');
     return response.json();
   }
 );
@@ -80,9 +73,15 @@ const dashboardSlice = createSlice({
       })
       .addCase(fetchDashboardData.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.stats = action.payload.stats;
-        state.recentEmployees = action.payload.recentEmployees;
-        state.recentPayrolls = action.payload.recentPayrolls;
+        const payload = action.payload || {};
+        state.stats = {
+          totalEmployees: payload.totalEmployees ?? 0,
+          totalPayrolls: payload.totalPayrolls ?? 0,
+          totalGrossSalary: payload.totalGrossSalary ?? 0,
+          totalNetSalary: payload.totalNetSalary ?? 0,
+        };
+        state.recentEmployees = payload.recentEmployees ?? [];
+        state.recentPayrolls = payload.recentPayrolls ?? [];
       })
       .addCase(fetchDashboardData.rejected, (state, action) => {
         state.isLoading = false;

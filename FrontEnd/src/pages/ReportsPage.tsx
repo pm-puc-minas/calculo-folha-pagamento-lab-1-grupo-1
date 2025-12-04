@@ -5,21 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "lucide-react";
 import { ReportHistory, ReportHistoryEntry } from "@/components/Reports/ReportHistory";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchReportHistory, generateReport } from "@/store/slices/payrollSlice";
+import { toast } from "sonner";
 
 const ReportsPage = () => {
-  const [items, setItems] = useState<ReportHistoryEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const items = useAppSelector((s) => s.payroll.reportHistory) as ReportHistoryEntry[];
+  const loading = useAppSelector((s) => s.payroll.reportLoading);
   const [month, setMonth] = useState("");
   const [employee, setEmployee] = useState("");
   const [type, setType] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    // TODO: Integrar com API: GET /reports/history
-    setItems([]);
-  }, []);
+    dispatch(fetchReportHistory());
+  }, [dispatch]);
 
-  const handleGenerate = () => {
-    // TODO: Integrar com API geração de relatório
+  const handleGenerate = async () => {
+    try {
+      await dispatch(generateReport({ month, employee, type })).unwrap();
+      toast.success("Relatório solicitado com sucesso");
+      dispatch(fetchReportHistory());
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao gerar relatório");
+    }
   };
 
   return (

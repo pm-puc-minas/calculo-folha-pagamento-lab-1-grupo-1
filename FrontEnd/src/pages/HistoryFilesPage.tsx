@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,43 +6,64 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Upload, File, Trash2, Download, ChevronLeft, ChevronRight, FileText, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/apiClient";
 
 interface FileEntry {
-  id: string;
+  id: number;
   name: string;
-  uploadedAt: string;
-  size: number;
-  type: string;
-  uploadedBy: string;
+  uploadedAt?: string;
+  size?: number;
+  type?: string;
+  uploadedBy?: string;
 }
 
 const ITEMS_PER_PAGE = 8;
 
 const HistoryFilesPage = () => {
-  const [files, setFiles] = useState<FileEntry[]>([
-    { id: "1", name: "folha_pagamento_nov2024.xlsx", uploadedAt: "2024-11-26T10:30:00", size: 125000, type: "xlsx", uploadedBy: "Admin" },
-    { id: "2", name: "folha_pagamento_out2024.xlsx", uploadedAt: "2024-10-26T14:15:00", size: 118000, type: "xlsx", uploadedBy: "Admin" },
-    { id: "3", name: "relatorio_funcionarios_nov.pdf", uploadedAt: "2024-11-26T09:00:00", size: 256000, type: "pdf", uploadedBy: "Gerente" },
-    { id: "4", name: "folha_pagamento_set2024.xlsx", uploadedAt: "2024-09-26T11:45:00", size: 122000, type: "xlsx", uploadedBy: "Admin" },
-    { id: "5", name: "resumo_payroll_q3.pdf", uploadedAt: "2024-09-30T16:20:00", size: 350000, type: "pdf", uploadedBy: "Admin" },
-    { id: "6", name: "folha_pagamento_ago2024.xlsx", uploadedAt: "2024-08-26T13:30:00", size: 120000, type: "xlsx", uploadedBy: "Admin" },
-  ]);
-
+  const [files, setFiles] = useState<FileEntry[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Filtrar e ordenar arquivos
-  const filteredFiles = files
-    .filter(f => {
-      const matchesSearch = f.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = !filterType || f.type === filterType;
-      return matchesSearch && matchesType;
-    })
-    .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  const loadFiles = async () => {
+    try {
+      setLoading(true);
+      const res = await apiFetch("/api/files");
+      const data = await res.json();
+      const normalized: FileEntry[] = (data || []).map((f: any) => ({
+        id: f.id,
+        name: f.filename || f.name || `file-${f.id}`,
+        type: (f.contentType || "").split("/").pop(),
+        uploadedAt: f.createdAt,
+        size: f.size,
+        uploadedBy: f.uploadedBy
+      }));
+      setFiles(normalized);
+    } catch (err: any) {
+      toast({ title: "Erro ao carregar arquivos", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Paginação
-  const totalPages = Math.ceil(filteredFiles.length / ITEMS_PER_PAGE);
+  useEffect(() => {
+    loadFiles();
+  }, []);
+
+  const filteredFiles = useMemo(() => {
+    return files
+      .filter(f => {
+        const matchesSearch = f.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = !filterType || f.type === filterType;
+        return matchesSearch && matchesType;
+      })
+      .sort((a, b) => new Date(b.uploadedAt || 0).getTime() - new Date(a.uploadedAt || 0).getTime());
+  }, [files, searchTerm, filterType]);
+
+  const totalPages = Math.ceil(filteredFiles.length / ITEMS_PER_PAGE) || 1;
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedFiles = filteredFiles.slice(startIndex, endIndex);
@@ -51,15 +72,16 @@ const HistoryFilesPage = () => {
     setCurrentPage(1);
   }, [searchTerm, filterType]);
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes) return "-";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
-  const formatDate = (dateStr: string): string => {
+  const formatDate = (dateStr?: string): string => {
+    if (!dateStr) return "-";
     return new Date(dateStr).toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -69,7 +91,7 @@ const HistoryFilesPage = () => {
     });
   };
 
-  const getFileIcon = (type: string) => {
+  const getFileIcon = (type?: string) => {
     switch (type) {
       case "pdf":
         return <File className="w-4 h-4 text-red-500" />;
@@ -80,28 +102,64 @@ const HistoryFilesPage = () => {
     }
   };
 
-  const getFileTypeBadge = (type: string) => {
+  const getFileTypeBadge = (type?: string) => {
     const badgeConfig = {
       pdf: { bg: "bg-red-100", text: "text-red-800", label: "PDF" },
       xlsx: { bg: "bg-green-100", text: "text-green-800", label: "Excel" }
-    };
-    const config = badgeConfig[type as keyof typeof badgeConfig] || { bg: "bg-gray-100", text: "text-gray-800", label: type.toUpperCase() };
+    } as const;
+    const config = (type && badgeConfig[type as keyof typeof badgeConfig]) || { bg: "bg-gray-100", text: "text-gray-800", label: (type || "--").toUpperCase() };
     return <Badge className={`${config.bg} ${config.text}`}>{config.label}</Badge>;
   };
 
-  const handleDownload = (fileId: string, fileName: string) => {
-    toast({
-      title: "Download iniciado",
-      description: `${fileName} está sendo baixado...`
-    });
+  const handleUpload = async () => {
+    if (!fileToUpload) {
+      toast({ title: "Selecione um arquivo", variant: "destructive" });
+      return;
+    }
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append("file", fileToUpload);
+      await apiFetch("/api/files", {
+        method: "POST",
+        body: formData,
+      });
+      toast({ title: "Upload concluído" });
+      setFileToUpload(null);
+      await loadFiles();
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleDelete = (fileId: string, fileName: string) => {
-    setFiles(files.filter(f => f.id !== fileId));
-    toast({
-      title: "Arquivo removido",
-      description: `${fileName} foi deletado com sucesso`
-    });
+  const handleDownload = async (fileId: number, fileName: string) => {
+    try {
+      const res = await apiFetch(`/api/files/${fileId}/download`, { method: "GET" });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast({ title: "Download iniciado", description: fileName });
+    } catch (err: any) {
+      toast({ title: "Erro ao baixar", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (fileId: number, fileName: string) => {
+    try {
+      await apiFetch(`/api/files/${fileId}`, { method: "DELETE" });
+      setFiles(files.filter(f => f.id !== fileId));
+      toast({ title: "Arquivo removido", description: `${fileName} foi deletado` });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -148,9 +206,10 @@ const HistoryFilesPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <Button variant="outline" disabled className="opacity-50">
+            <Input type="file" onChange={(e) => setFileToUpload(e.target.files?.[0] || null)} />
+            <Button onClick={handleUpload} disabled={uploading || !fileToUpload}>
               <Upload className="w-4 h-4 mr-2" />
-              Enviar Arquivo (em desenvolvimento)
+              {uploading ? "Enviando..." : "Enviar Arquivo"}
             </Button>
           </div>
 
@@ -198,7 +257,11 @@ const HistoryFilesPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedFiles.length > 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell>
+                </TableRow>
+              ) : paginatedFiles.length > 0 ? (
                 paginatedFiles.map((file) => (
                   <TableRow key={file.id}>
                     <TableCell className="font-medium flex items-center gap-2">
@@ -210,7 +273,7 @@ const HistoryFilesPage = () => {
                     </TableCell>
                     <TableCell>{formatFileSize(file.size)}</TableCell>
                     <TableCell className="text-sm">{formatDate(file.uploadedAt)}</TableCell>
-                    <TableCell>{file.uploadedBy}</TableCell>
+                    <TableCell>{file.uploadedBy || "-"}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button
                         variant="ghost"

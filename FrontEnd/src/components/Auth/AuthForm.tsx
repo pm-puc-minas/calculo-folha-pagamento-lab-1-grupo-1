@@ -18,7 +18,6 @@ export const AuthForm = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    roleAdmin: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -49,10 +48,10 @@ export const AuthForm = () => {
 
     try {
       await dispatch(
-        registerUser({ username: "", email: registerData.email, password: registerData.password, role: registerData.roleAdmin ? "ADMIN" : "USER" })
+        registerUser({ username: "", email: registerData.email, password: registerData.password, role: "USER" })
       ).unwrap();
       toast.success("Conta criada com sucesso! Faça login para continuar.");
-      setRegisterData({ email: "", password: "", confirmPassword: "", roleAdmin: false });
+      setRegisterData({ email: "", password: "", confirmPassword: "" });
     } catch (err: any) {
       toast.error(err.message || "Falha no registro");
     }
@@ -119,15 +118,6 @@ export const AuthForm = () => {
                     />
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="register-admin"
-                      checked={registerData.roleAdmin}
-                      onCheckedChange={(checked) => setRegisterData({ ...registerData, roleAdmin: !!checked })}
-                    />
-                    <Label htmlFor="register-admin" className="text-sm">Registrar como Admin</Label>
-                  </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="password">Senha</Label>
                     <div className="relative">

@@ -1,4 +1,4 @@
-package com.payroll.service;
+﻿package com.payroll.service;
 
 import com.payroll.entity.Employee;
 import com.payroll.repository.EmployeeRepository;
@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.payroll.collections.CollectionOps;
-import com.payroll.collections.FilterSpec;
 import com.payroll.collections.GroupBySpec;
 
 @Service
@@ -31,9 +30,9 @@ public class EmployeeService implements IEmployeeService {
             employee.setCreatedBy(createdBy);
             return employeeRepository.save(employee);
         } catch (DataIntegrityViolationException e) {
-            throw new DataIntegrityBusinessException("Violação de integridade ao criar funcionário", e);
+            throw new DataIntegrityBusinessException("Violacao de integridade ao criar funcionario", e);
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao criar funcionário", e);
+            throw new DatabaseConnectionException("Falha de conexao ao criar funcionario", e);
         }
     }
 @Override
@@ -42,7 +41,7 @@ public class EmployeeService implements IEmployeeService {
             List<Employee> all = employeeRepository.findAll();
             return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao listar funcionários", e);
+            throw new DatabaseConnectionException("Falha de conexao ao listar funcionarios", e);
         }
     }
 @Override
@@ -50,7 +49,7 @@ public class EmployeeService implements IEmployeeService {
         try {
             return employeeRepository.findById(id);
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao buscar funcionário por ID", e);
+            throw new DatabaseConnectionException("Falha de conexao ao buscar funcionario por ID", e);
         }
     }
 @Override
@@ -58,7 +57,7 @@ public class EmployeeService implements IEmployeeService {
         try {
             return employeeRepository.findByCpf(cpf);
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao buscar funcionário por CPF", e);
+            throw new DatabaseConnectionException("Falha de conexao ao buscar funcionario por CPF", e);
         }
     }
 @Override
@@ -66,19 +65,20 @@ public class EmployeeService implements IEmployeeService {
         try {
             return employeeRepository.existsByCpf(cpf);
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao verificar CPF", e);
+            throw new DatabaseConnectionException("Falha de conexao ao verificar CPF", e);
         }
     }
 @Override
     public Employee updateEmployee(Long id, Employee employeeDetails) {
         try {
-            Employee employee = employeeRepository.findById(id).orElseThrow(() -> new NotFoundBusinessException("Funcionário não encontrado: " + id));
-            employee.setFullName(employeeDetails.getFullName());
+            Employee employee = employeeRepository.findById(id).orElseThrow(() -> new NotFoundBusinessException("Funcionario nao encontrado: " + id));
+            employee.setFullName(employeeDetails.getFullName()); // atualiza nome
             employee.setCpf(employeeDetails.getCpf());
             employee.setRg(employeeDetails.getRg());
             employee.setPosition(employeeDetails.getPosition());
             employee.setAdmissionDate(employeeDetails.getAdmissionDate());
             employee.setSalary(employeeDetails.getSalary());
+            employee.setDependents(employeeDetails.getDependents());
             employee.setWeeklyHours(employeeDetails.getWeeklyHours());
             employee.setTransportVoucher(employeeDetails.getTransportVoucher());
             employee.setMealVoucher(employeeDetails.getMealVoucher());
@@ -89,9 +89,9 @@ public class EmployeeService implements IEmployeeService {
             employee.setUnhealthyLevel(employeeDetails.getUnhealthyLevel());
             return employeeRepository.save(employee);
         } catch (DataIntegrityViolationException e) {
-            throw new DataIntegrityBusinessException("Violação de integridade ao atualizar funcionário", e);
+            throw new DataIntegrityBusinessException("Violacao de integridade ao atualizar funcionario", e);
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao atualizar funcionário", e);
+            throw new DatabaseConnectionException("Falha de conexao ao atualizar funcionario", e);
         }
     }
 @Override
@@ -99,7 +99,7 @@ public class EmployeeService implements IEmployeeService {
         try {
             employeeRepository.deleteById(id);
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao deletar funcionário", e);
+            throw new DatabaseConnectionException("Falha de conexao ao deletar funcionario", e);
         }
     }
 

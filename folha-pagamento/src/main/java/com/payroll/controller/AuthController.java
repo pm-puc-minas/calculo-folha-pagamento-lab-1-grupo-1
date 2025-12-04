@@ -14,6 +14,7 @@ import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController implements IAuthController {
 
     @Autowired
@@ -40,7 +41,7 @@ public class AuthController implements IAuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciais inválidas");
         }
 
-        // Claims personalizadas
+        // Claims personalizadas para incluir id e perfil no token
         Map<String, Object> claims = Map.of(
                 "idUsuario", user.getId(),
                 "perfil", user.getRole().name()
@@ -50,10 +51,18 @@ public class AuthController implements IAuthController {
         String accessToken = jwtUtil.generateAccessToken(subject, claims);
         String refreshToken = jwtUtil.generateRefreshToken(subject);
 
+        Map<String, Object> safeUser = new HashMap<>();
+        safeUser.put("id", user.getId());
+        safeUser.put("username", user.getUsername());
+        safeUser.put("email", user.getEmail());
+        safeUser.put("role", user.getRole());
+        safeUser.put("createdAt", user.getCreatedAt());
+        safeUser.put("active", user.isActive());
+
         return ResponseEntity.ok(Map.of(
                 "accessToken", accessToken,
                 "refreshToken", refreshToken,
-                "user", user
+                "user", safeUser
         ));
     }
 
