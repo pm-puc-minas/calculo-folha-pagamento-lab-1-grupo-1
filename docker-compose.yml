@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./folha-pagamento
+      dockerfile: Dockerfile
+    container_name: folha-backend
+    environment:
+      - JAVA_OPTS=
+      # Ajuste se quiser sobrepor a URL do H2 (por padrão usa ./data/payroll)
+      # - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/payroll;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE
+    volumes:
+      - ./folha-pagamento/data:/app/data
+    ports:
+      - "8080:8080"
+    networks:
+      - folha-net
+
+  frontend:
+    build:
+      context: ./FrontEnd
+      dockerfile: Dockerfile
+    container_name: folha-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    networks:
+      - folha-net
+
+networks:
+  folha-net:
+    driver: bridge

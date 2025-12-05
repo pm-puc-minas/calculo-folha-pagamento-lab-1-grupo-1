@@ -22,7 +22,7 @@ public class AuthController implements IAuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // Login com geração de tokens
+    // Login com geracao de tokens (email ou username + senha)
     @PostMapping("/login")
     @Override
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
@@ -37,7 +37,7 @@ public class AuthController implements IAuthController {
             user = userService.findByEmail(email).orElse(null);
         }
         if (user == null || !userService.validatePassword(password, user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciais inválidas");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciais invalidas");
         }
 
         // Claims personalizadas
@@ -46,13 +46,23 @@ public class AuthController implements IAuthController {
                 "perfil", user.getRole().name()
         );
 
-        String accessToken = jwtUtil.generateAccessToken(username, claims);
-        String refreshToken = jwtUtil.generateRefreshToken(username);
+        // Sempre usar o username da conta para o token, mesmo que o login tenha sido por email
+        String principal = user.getUsername();
+        String accessToken = jwtUtil.generateAccessToken(principal, claims);
+        String refreshToken = jwtUtil.generateRefreshToken(principal);
+
+        Map<String, Object> safeUser = new HashMap<>();
+        safeUser.put("id", user.getId());
+        safeUser.put("username", user.getUsername());
+        safeUser.put("email", user.getEmail());
+        safeUser.put("role", user.getRole());
+        safeUser.put("createdAt", user.getCreatedAt());
+        safeUser.put("active", user.isActive());
 
         return ResponseEntity.ok(Map.of(
                 "accessToken", accessToken,
                 "refreshToken", refreshToken,
-                "user", user
+                "user", safeUser
         ));
     }
 
@@ -69,7 +79,7 @@ public class AuthController implements IAuthController {
         String username = jwtUtil.extractUsername(refreshToken);
         User user = userService.findByUsername(username).orElse(null);
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário inválido");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuario invalido");
         }
 
         // Criar novo access token
@@ -94,7 +104,7 @@ public class AuthController implements IAuthController {
 
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Email e senha são obrigatórios");
+                    .body("Email e senha sao obrigatorios");
         }
         if (password.length() < 6) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -102,10 +112,10 @@ public class AuthController implements IAuthController {
         }
         if (userService.existsByEmail(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Email já está em uso");
+                    .body("Email ja esta em uso");
         }
 
-        // Gerar username se não fornecido, garantindo unicidade
+        // Gerar username se nao fornecido, garantindo unicidade
         if (username == null || username.isBlank()) {
             String base = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
             String candidate = base;
@@ -118,7 +128,7 @@ public class AuthController implements IAuthController {
         } else {
             if (userService.existsByUsername(username)) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("Username já está em uso");
+                        .body("Username ja esta em uso");
             }
         }
 
@@ -145,4 +155,3 @@ public class AuthController implements IAuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("user", safeUser));
     }
 }
-

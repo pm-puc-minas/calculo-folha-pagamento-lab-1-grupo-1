@@ -2,10 +2,10 @@ package com.payroll.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Map;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import com.payroll.entity.PayrollCalculation;
 import com.payroll.entity.Employee;
-import com.payroll.model.Employee.GrauInsalubridade;
 import com.payroll.repository.PayrollCalculationRepository;
 import com.payroll.repository.EmployeeRepository;
 import com.payroll.collections.CollectionOps;
@@ -40,79 +39,91 @@ public class PayrollService implements IPayrollService {
             Optional<PayrollCalculation> existing = payrollRepository.findByEmployeeIdAndReferenceMonth(employeeId, referenceMonth);
             if (existing.isPresent()) return existing.get();
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao verificar folha existente", e);
+            throw new DatabaseConnectionException("Falha de conexao ao verificar folha existente", e);
         }
 
         PayrollCalculation calculation = new PayrollCalculation();
         calculation.setReferenceMonth(referenceMonth);
         calculation.setCreatedBy(calculatedBy);
 
-        // Vincula o empregado à folha (necessário para validação @NotNull)
+        // Vincula o empregado à folha
         Employee employee;
         try {
             employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao buscar empregado", e);
+            throw new DatabaseConnectionException("Falha de conexao ao buscar empregado", e);
         }
         calculation.setEmployee(employee);
 
-        // Simulação de dados de funcionário
-        BigDecimal baseSalary = new BigDecimal("3000.00");
+        BigDecimal baseSalary = nz(employee.getSalary());
+        int weeklyHours = employee.getWeeklyHours() != null ? employee.getWeeklyHours() : 40;
+        int workDaysMonth = 22;
+        int dependents = employee.getDependents() != null ? employee.getDependents() : 0;
 
-        BigDecimal hourlyWage = calcularSalarioHora(baseSalary, 40);
-        BigDecimal dangerousBonus = calcularAdicionalPericulosidade(baseSalary);
-        BigDecimal unhealthyBonus = calcularAdicionalInsalubridade(PayrollConstants.SALARIO_MINIMO, GrauInsalubridade.MEDIO);
+        BigDecimal hourlyWage = calcularSalarioHora(baseSalary, weeklyHours);
+        BigDecimal dangerousBonus = employee.getDangerousWork() != null && employee.getDangerousWork()
+                ? baseSalary.multiply(employee.getDangerousPercentage() != null ? employee.getDangerousPercentage() : new BigDecimal("0.30"))
+                : BigDecimal.ZERO;
 
-        calculation.setHourlyWage(hourlyWage);
-        calculation.setDangerousBonus(dangerousBonus);
-        calculation.setUnhealthyBonus(unhealthyBonus);
+        BigDecimal unhealthyBonus = BigDecimal.ZERO;
+        String level = employee.getUnhealthyLevel() != null ? employee.getUnhealthyLevel().toUpperCase() : "NONE";
+        switch (level) {
+            case "LOW", "BAIXO" -> unhealthyBonus = baseSalary.multiply(new BigDecimal("0.10"));
+            case "MEDIUM", "MEDIO", "MÉDIO" -> unhealthyBonus = baseSalary.multiply(new BigDecimal("0.20"));
+            case "HIGH", "ALTO" -> unhealthyBonus = baseSalary.multiply(new BigDecimal("0.40"));
+            default -> unhealthyBonus = BigDecimal.ZERO;
+        }
 
-        BigDecimal grossSalary = baseSalary.add(dangerousBonus).add(unhealthyBonus);
-        calculation.setGrossSalary(grossSalary);
+        BigDecimal mealVoucher = employee.getMealVoucherValue() != null ? employee.getMealVoucherValue() : BigDecimal.ZERO;
+
+        BigDecimal grossSalary = baseSalary.add(dangerousBonus).add(unhealthyBonus).add(mealVoucher);
 
         BigDecimal inssDiscount = calcularINSS(grossSalary);
-        int dependents = 0;
-        BigDecimal pensionAlimony = BigDecimal.ZERO;
-        BigDecimal transportVoucher = new BigDecimal("150.00");
+        BigDecimal transportVoucher = employee.getTransportVoucher() != null && employee.getTransportVoucher()
+                ? grossSalary.multiply(PayrollConstants.TRANSPORTE_RATE)
+                : BigDecimal.ZERO;
 
-        BigDecimal irrfDiscount = calcularIRRF(grossSalary, inssDiscount, dependents, pensionAlimony);
+        BigDecimal irrfDiscount = calcularIRRF(grossSalary, inssDiscount, dependents, BigDecimal.ZERO);
         BigDecimal transportDiscount = calcularDescontoValeTransporte(grossSalary, transportVoucher);
 
-        calculation.setInssDiscount(inssDiscount);
-        calculation.setIrpfDiscount(irrfDiscount);
-        calculation.setTransportDiscount(transportDiscount);
+        calculation.setHourlyWage(hourlyWage);
+        calculation.setDangerousBonus(dangerousBonus.setScale(2, RoundingMode.HALF_UP));
+        calculation.setUnhealthyBonus(unhealthyBonus.setScale(2, RoundingMode.HALF_UP));
+        calculation.setGrossSalary(grossSalary.setScale(2, RoundingMode.HALF_UP));
+        calculation.setInssDiscount(inssDiscount.setScale(2, RoundingMode.HALF_UP));
+        calculation.setIrpfDiscount(irrfDiscount.setScale(2, RoundingMode.HALF_UP));
+        calculation.setTransportDiscount(transportDiscount.setScale(2, RoundingMode.HALF_UP));
 
         BigDecimal fgts = calcularFGTS(grossSalary);
-        calculation.setFgtsValue(fgts);
+        calculation.setFgtsValue(fgts.setScale(2, RoundingMode.HALF_UP));
 
-        BigDecimal mealVoucher = calcularValeAlimentacao(new BigDecimal("25.00"), 22);
-        calculation.setMealVoucherValue(mealVoucher);
+        calculation.setMealVoucherValue(mealVoucher.setScale(2, RoundingMode.HALF_UP));
 
-        // líquido = bruto + adicionais + benefícios − (INSS + IRRF + FGTS + VT)
         BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(fgts).add(transportDiscount);
 
         if (grossSalary.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InputValidationException("Salário bruto deve ser maior que zero",
+            throw new InputValidationException("Salario bruto deve ser maior que zero",
                 Map.of("grossSalary", grossSalary));
         }
         if (totalDiscounts.compareTo(grossSalary) >= 0) {
-            throw new InputValidationException("Descontos não podem ser maiores ou iguais ao salário bruto",
+            throw new InputValidationException("Descontos nao podem ser maiores ou iguais ao salario bruto",
                 Map.of("grossSalary", grossSalary, "totalDiscounts", totalDiscounts));
         }
 
         BigDecimal netSalary = grossSalary.subtract(totalDiscounts);
-        calculation.setNetSalary(netSalary);
+        calculation.setNetSalary(netSalary.setScale(2, RoundingMode.HALF_UP));
 
         try {
             return payrollRepository.save(calculation);
         } catch (DataIntegrityViolationException e) {
-            throw new DataIntegrityBusinessException("Violação de integridade ao salvar cálculo de folha", e);
+            throw new DataIntegrityBusinessException("Violacao de integridade ao salvar calculo de folha", e);
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao salvar cálculo de folha", e);
+            throw new DatabaseConnectionException("Falha de conexao ao salvar calculo de folha", e);
         }
     }
 
+    private BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 
     @Override
     public BigDecimal calcularSalarioHora(BigDecimal salarioBruto, int horasSemanais) {
@@ -128,8 +139,8 @@ public class PayrollService implements IPayrollService {
     }
 
     @Override
-    public BigDecimal calcularAdicionalInsalubridade(BigDecimal salarioMinimo, GrauInsalubridade grau) {
-        if (salarioMinimo == null || grau == null || grau == GrauInsalubridade.NENHUM) return BigDecimal.ZERO;
+    public BigDecimal calcularAdicionalInsalubridade(BigDecimal salarioMinimo, com.payroll.model.Employee.GrauInsalubridade grau) {
+        if (salarioMinimo == null || grau == null || grau == com.payroll.model.Employee.GrauInsalubridade.NENHUM) return BigDecimal.ZERO;
 
         BigDecimal percentual = switch (grau) {
             case BAIXO -> PayrollConstants.INSALUBRITY_LOW;
@@ -224,7 +235,7 @@ public class PayrollService implements IPayrollService {
         try {
             list = payrollRepository.findByEmployeeId(employeeId);
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao listar folhas do empregado", e);
+            throw new DatabaseConnectionException("Falha de conexao ao listar folhas do empregado", e);
         }
         return CollectionOps.filter(list, pc -> pc != null && pc.getEmployee() != null && Objects.equals(pc.getEmployee().getId(), employeeId));
     }
@@ -235,7 +246,7 @@ public class PayrollService implements IPayrollService {
         try {
             all = payrollRepository.findAll();
         } catch (DataAccessResourceFailureException e) {
-            throw new DatabaseConnectionException("Falha de conexão ao listar todas as folhas", e);
+            throw new DatabaseConnectionException("Falha de conexao ao listar todas as folhas", e);
         }
         return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }

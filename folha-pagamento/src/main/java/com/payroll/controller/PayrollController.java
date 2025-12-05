@@ -57,9 +57,12 @@ public class PayrollController implements IPayrollController {
             Long employeeId = Long.parseLong(request.get("employeeId"));
             String referenceMonth = request.get("referenceMonth");
 
-            // Obter ID do usuário logado
-            User user = userService.findByUsername(currentUser.getUsername()).orElse(null);
-            Long userId = user != null ? user.getId() : null;
+            // Obter ID do usuario logado (opcional)
+            Long userId = null;
+            if (currentUser != null) {
+                User user = userService.findByUsername(currentUser.getUsername()).orElse(null);
+                userId = user != null ? user.getId() : null;
+            }
 
             PayrollCalculation calculation = payrollService.calculatePayroll(employeeId, referenceMonth, userId);
             PayrollDTO dto = PayrollDTO.fromEntity(calculation, null);
@@ -80,20 +83,20 @@ public class PayrollController implements IPayrollController {
                 .findFirst();
 
         if (calculation.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Folha de pagamento não encontrada");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Folha de pagamento nao encontrada");
         }
 
         PayrollCalculation pc = calculation.get();
         return ResponseEntity.ok(PayrollDTO.fromEntity(pc, null));
     }
 
-    // Visualizar folhas de pagamento de um funcionário específico
+    // Visualizar folhas de pagamento de um funcionario especifico
     @GetMapping("/employee/{employeeId}")
     @Override
     public ResponseEntity<?> viewEmployeePayrolls(@PathVariable Long employeeId) {
         Optional<Employee> employee = employeeService.getEmployeeById(employeeId);
         if (employee.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionario nao encontrado");
         }
         List<PayrollCalculation> calculations = payrollService.getEmployeePayrolls(employeeId);
         List<PayrollDTO> dtos = calculations.stream()

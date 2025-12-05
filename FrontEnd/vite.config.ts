@@ -8,7 +8,14 @@ export default defineConfig({
   root: ".", // raiz é a própria pasta frontend
   server: {
     host: "localhost",
-    port: 5173
+    port: 5173,
+    proxy: {
+      // Redireciona chamadas /api para o backend local (Spring Boot)
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true
+      }
+    }
   },
   resolve: {
     alias: {
