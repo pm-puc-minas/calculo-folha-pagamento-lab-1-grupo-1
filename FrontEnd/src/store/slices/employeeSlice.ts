@@ -1,21 +1,7 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+﻿import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { Employee } from '@/types/employee';
 
-export interface Employee {
-  id?: number;
-  name: string;
-  cpf: string;
-  position: string;
-  department: string;
-  admissionDate: string;
-  baseSalary: number;
-  dependents: number;
-  hasHazardPay: boolean;
-  insalubrity: 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH';
-  transportVoucherValue: number;
-  mealVoucherDaily: number;
-  workDaysMonth: number;
-  weeklyHours: number;
-}
+type ApiEmployee = any;
 
 interface EmployeeState {
   employees: Employee[];
@@ -33,91 +19,109 @@ const initialState: EmployeeState = {
   searchTerm: '',
 };
 
-// Async thunks for employee operations
-export const fetchEmployees = createAsyncThunk(
-  'employee/fetchEmployees',
-  async () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch('/api/employees', {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch employees');
-    }
-    
-    return response.json();
-  }
-);
+const toApiPayload = (emp: Employee): any => {
+  return {
+    id: emp.id,
+    name: emp.name,
+    cpf: emp.cpf,
+    position: emp.position,
+    admissionDate: emp.admissionDate,
+    baseSalary: emp.grossSalary,
+    grossSalary: emp.grossSalary,
+    dependents: emp.dependents,
+    weeklyHours: emp.hoursPerDay * emp.daysPerWeek,
+    transportVoucherValue: emp.transportVoucherValue,
+    mealVoucherDaily: emp.mealVoucherDaily,
+    pensionAlimony: emp.pensionAlimony,
+    hasHazardPay: emp.isDangerous,
+    insalubrity: emp.unhealthyLevel?.toUpperCase(),
+    workDaysMonth: emp.workDaysInMonth,
+  };
+};
 
-export const createEmployee = createAsyncThunk(
-  'employee/createEmployee',
-  async (employeeData: Employee) => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch('/api/employees', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-      body: JSON.stringify(employeeData),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create employee');
-    }
-    
-    return response.json();
+const fromApi = (api: ApiEmployee): Employee => {
+  return {
+    id: api.id,
+    name: api.name || api.fullName,
+    cpf: api.cpf,
+    position: api.position,
+    admissionDate: api.admissionDate,
+    grossSalary: api.grossSalary ?? api.baseSalary ?? 0,
+    hoursPerDay: api.weeklyHours ? Math.round(api.weeklyHours / 5) : 8,
+    daysPerWeek: api.workDaysMonth ? Math.round((api.weeklyHours || 40) / (api.workDaysMonth / 4)) : 5,
+    dependents: api.dependents ?? 0,
+    transportVoucherValue: api.transportVoucherValue ?? 0,
+    mealVoucherDaily: api.mealVoucherDaily ?? 0,
+    workDaysInMonth: api.workDaysMonth ?? 22,
+    isDangerous: api.hasHazardPay ?? api.dangerousWork ?? false,
+    unhealthyLevel: (api.insalubrity || api.unhealthyLevel || 'none').toLowerCase(),
+    pensionAlimony: api.pensionAlimony ?? 0,
+  };
+};
+
+const authHeader = () => {
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const fetchEmployees = createAsyncThunk('employee/fetchEmployees', async () => {
+  const response = await fetch('/api/employees', { headers: authHeader() });
+  if (!response.ok) {
+    throw new Error('Failed to fetch employees');
   }
-);
+  const data = await response.json();
+  return (Array.isArray(data) ? data : []).map(fromApi);
+});
+
+export const createEmployee = createAsyncThunk('employee/createEmployee', async (employeeData: Employee) => {
+  const payload = toApiPayload(employeeData);
+  const response = await fetch('/api/employees', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to create employee');
+  }
+  const data = await response.json();
+  return fromApi(data);
+});
 
 export const updateEmployee = createAsyncThunk(
   'employee/updateEmployee',
   async ({ id, data }: { id: number; data: Employee }) => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
     const response = await fetch(`/api/employees/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(toApiPayload({ ...data, id } as Employee)),
     });
-    
     if (!response.ok) {
       throw new Error('Failed to update employee');
     }
-    
-    return response.json();
+    const updated = await response.json();
+    return fromApi(updated);
   }
 );
 
-export const deleteEmployee = createAsyncThunk(
-  'employee/deleteEmployee',
-  async (id: number) => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch(`/api/employees/${id}`, {
-      method: 'DELETE',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to delete employee');
-    }
-    
-    return id;
+export const deleteEmployee = createAsyncThunk('employee/deleteEmployee', async (id: number) => {
+  const response = await fetch(`/api/employees/${id}`, {
+    method: 'DELETE',
+    headers: authHeader(),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete employee');
   }
-);
+  return id;
+});
 
-export const fetchEmployeeById = createAsyncThunk(
-  'employee/fetchEmployeeById',
-  async (id: number) => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const response = await fetch(`/api/employees/${id}`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch employee');
-    }
-    
-    return response.json();
+export const fetchEmployeeById = createAsyncThunk('employee/fetchEmployeeById', async (id: number) => {
+  const response = await fetch(`/api/employees/${id}`, { headers: authHeader() });
+  if (!response.ok) {
+    throw new Error('Failed to fetch employee');
   }
-);
+  const data = await response.json();
+  return fromApi(data);
+});
 
 const employeeSlice = createSlice({
   name: 'employee',
@@ -135,7 +139,6 @@ const employeeSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch employees
       .addCase(fetchEmployees.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -148,7 +151,6 @@ const employeeSlice = createSlice({
         state.isLoading = false;
         state.error = action.error.message || 'Failed to fetch employees';
       })
-      // Create employee
       .addCase(createEmployee.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -161,18 +163,15 @@ const employeeSlice = createSlice({
         state.isLoading = false;
         state.error = action.error.message || 'Failed to create employee';
       })
-      // Update employee
       .addCase(updateEmployee.fulfilled, (state, action) => {
-        const index = state.employees.findIndex(emp => emp.id === action.payload.id);
+        const index = state.employees.findIndex((emp) => emp.id === action.payload.id);
         if (index !== -1) {
           state.employees[index] = action.payload;
         }
       })
-      // Delete employee
       .addCase(deleteEmployee.fulfilled, (state, action) => {
-        state.employees = state.employees.filter(emp => emp.id !== action.payload);
+        state.employees = state.employees.filter((emp) => emp.id !== action.payload);
       })
-      // Fetch employee by ID
       .addCase(fetchEmployeeById.fulfilled, (state, action) => {
         state.selectedEmployee = action.payload;
       });

@@ -12,6 +12,20 @@ import { Employee } from "@/types/employee";
 import { useToast } from "@/hooks/use-toast";
 import { formatCPF } from "@/utils/formatters";
 
+const validateCPF = (value: string): boolean => {
+  const cpf = (value || "").replace(/\D/g, "");
+  if (cpf.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+  const calcCheck = (base: string, factor: number) => {
+    const total = base.split("").reduce((sum, num, idx) => sum + parseInt(num, 10) * (factor - idx), 0);
+    const rest = (total * 10) % 11;
+    return rest === 10 ? 0 : rest;
+  };
+  const d1 = calcCheck(cpf.slice(0, 9), 10);
+  const d2 = calcCheck(cpf.slice(0, 10), 11);
+  return d1 === parseInt(cpf[9], 10) && d2 === parseInt(cpf[10], 10);
+};
+
 interface EmployeeFormProps {
   onAddEmployee: (employee: Employee) => void;
   employees: Employee[];
@@ -33,23 +47,32 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
     workDaysInMonth: 22,
     isDangerous: false,
     unhealthyLevel: "none",
-    pensionAlimony: 0
+    pensionAlimony: 0,
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleInputChange = (field: keyof Employee, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.cpf || !formData.position || !formData.admissionDate) {
       toast({
-        title: "Campos obrigat√≥rios",
-        description: "Por favor, preencha todos os campos obrigat√≥rios.",
+        title: "Campos obrigatÛrios",
+        description: "Por favor, preencha todos os campos obrigatÛrios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateCPF(formData.cpf)) {
+      toast({
+        title: "CPF inv·lido",
+        description: "Digite um CPF v·lido (11 dÌgitos com verificaÁ„o).",
         variant: "destructive",
       });
       return;
@@ -58,7 +81,6 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
     setIsSubmitting(true);
 
     const employee: Employee = {
-      id: Date.now().toString(),
       name: formData.name || "",
       cpf: formData.cpf || "",
       position: formData.position || "",
@@ -72,17 +94,16 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
       workDaysInMonth: formData.workDaysInMonth || 22,
       isDangerous: formData.isDangerous || false,
       unhealthyLevel: formData.unhealthyLevel || "none",
-      pensionAlimony: formData.pensionAlimony || 0
+      pensionAlimony: formData.pensionAlimony || 0,
     };
 
     onAddEmployee(employee);
-    
+
     toast({
-      title: "Funcion√°rio cadastrado com sucesso!",
+      title: "Funcion·rio cadastrado com sucesso!",
       description: `${employee.name} foi adicionado ao sistema.`,
     });
 
-    // Reset form
     setFormData({
       name: "",
       cpf: "",
@@ -97,31 +118,28 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
       workDaysInMonth: 22,
       isDangerous: false,
       unhealthyLevel: "none",
-      pensionAlimony: 0
+      pensionAlimony: 0,
     });
-    
+
     setIsSubmitting(false);
   };
 
   return (
     <div className="space-y-6">
-      {/* Employee List */}
       {employees.length > 0 && (
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Users className="w-5 h-5" />
-              <span>Funcion√°rios Cadastrados ({employees.length})</span>
+              <span>Funcion·rios Cadastrados ({employees.length})</span>
             </CardTitle>
-            <CardDescription>
-              Lista de todos os funcion√°rios cadastrados no sistema
-            </CardDescription>
+            <CardDescription>Lista de todos os funcion·rios cadastrados no sistema</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {employees.map((employee) => (
-                <Card 
-                  key={employee.id} 
+                <Card
+                  key={employee.id}
                   className="cursor-pointer hover:shadow-md transition-all border border-border/50 hover:border-primary/30"
                   onClick={() => onSelectEmployee(employee)}
                 >
@@ -134,21 +152,17 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
                       <p className="text-xs text-muted-foreground">{employee.position}</p>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-success">
-                          R$ {employee.grossSalary.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {(employee.grossSalary || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                         <Badge variant="outline" className="text-xs">
                           {employee.admissionDate}
                         </Badge>
                       </div>
-                      {(employee.isDangerous || employee.unhealthyLevel !== 'none') && (
+                      {(employee.isDangerous || employee.unhealthyLevel !== "none") && (
                         <div className="flex space-x-1">
-                          {employee.isDangerous && (
-                            <Badge variant="secondary" className="text-xs">Periculosidade</Badge>
-                          )}
-                          {employee.unhealthyLevel !== 'none' && (
-                            <Badge variant="outline" className="text-xs">
-                              Insalubridade {employee.unhealthyLevel}
-                            </Badge>
+                          {employee.isDangerous && <Badge variant="secondary" className="text-xs">Periculosidade</Badge>}
+                          {employee.unhealthyLevel !== "none" && (
+                            <Badge variant="outline" className="text-xs">Insalubridade {employee.unhealthyLevel}</Badge>
                           )}
                         </div>
                       )}
@@ -161,32 +175,26 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
         </Card>
       )}
 
-      {/* Employee Form */}
       <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Plus className="w-5 h-5" />
-            <span>Cadastrar Novo Funcion√°rio</span>
+            <span>Cadastrar Novo Funcion·rio</span>
           </CardTitle>
-          <CardDescription>
-            Preencha os dados do funcion√°rio para cadastro no sistema
-          </CardDescription>
+          <CardDescription>Preencha os dados do funcion·rio para cadastro no sistema</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Dados Pessoais */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                üìã Dados Pessoais
-              </h3>
+              <h3 className="text-lg font-semibold">Dados Pessoais</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Nome completo do funcion√°rio"
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    placeholder="Nome completo do funcion·rio"
                     required
                   />
                 </div>
@@ -195,7 +203,7 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
                   <Input
                     id="cpf"
                     value={formData.cpf}
-                    onChange={(e) => handleInputChange('cpf', formatCPF(e.target.value))}
+                    onChange={(e) => handleInputChange("cpf", formatCPF(e.target.value))}
                     placeholder="000.000.000-00"
                     required
                   />
@@ -205,18 +213,18 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
                   <Input
                     id="position"
                     value={formData.position}
-                    onChange={(e) => handleInputChange('position', e.target.value)}
-                    placeholder="Cargo do funcion√°rio"
+                    onChange={(e) => handleInputChange("position", e.target.value)}
+                    placeholder="Cargo do funcion·rio"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="admissionDate">Data de Admiss√£o *</Label>
+                  <Label htmlFor="admissionDate">Data de Admiss„o *</Label>
                   <Input
                     id="admissionDate"
                     type="date"
                     value={formData.admissionDate}
-                    onChange={(e) => handleInputChange('admissionDate', e.target.value)}
+                    onChange={(e) => handleInputChange("admissionDate", e.target.value)}
                     required
                   />
                 </div>
@@ -225,20 +233,17 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
 
             <Separator />
 
-            {/* Dados Salariais */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                üí∞ Dados Salariais e Jornada
-              </h3>
+              <h3 className="text-lg font-semibold">Dados Salariais e Jornada</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="grossSalary">Sal√°rio Bruto (R$)</Label>
+                  <Label htmlFor="grossSalary">Sal·rio Bruto (R$)</Label>
                   <Input
                     id="grossSalary"
                     type="number"
                     step="0.01"
                     value={formData.grossSalary}
-                    onChange={(e) => handleInputChange('grossSalary', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleInputChange("grossSalary", parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
                   />
                 </div>
@@ -248,7 +253,7 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
                     id="hoursPerDay"
                     type="number"
                     value={formData.hoursPerDay}
-                    onChange={(e) => handleInputChange('hoursPerDay', parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleInputChange("hoursPerDay", parseInt(e.target.value) || 0)}
                     placeholder="8"
                   />
                 </div>
@@ -258,17 +263,17 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
                     id="daysPerWeek"
                     type="number"
                     value={formData.daysPerWeek}
-                    onChange={(e) => handleInputChange('daysPerWeek', parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleInputChange("daysPerWeek", parseInt(e.target.value) || 0)}
                     placeholder="5"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="workDaysInMonth">Dias √öteis no M√™s</Label>
+                  <Label htmlFor="workDaysInMonth">Dias ˙teis no MÍs</Label>
                   <Input
                     id="workDaysInMonth"
                     type="number"
                     value={formData.workDaysInMonth}
-                    onChange={(e) => handleInputChange('workDaysInMonth', parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleInputChange("workDaysInMonth", parseInt(e.target.value) || 0)}
                     placeholder="22"
                   />
                 </div>
@@ -278,18 +283,18 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
                     id="dependents"
                     type="number"
                     value={formData.dependents}
-                    onChange={(e) => handleInputChange('dependents', parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleInputChange("dependents", parseInt(e.target.value) || 0)}
                     placeholder="0"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="pensionAlimony">Pens√£o Aliment√≠cia (R$)</Label>
+                  <Label htmlFor="pensionAlimony">Pens„o AlimentÌcia (R$)</Label>
                   <Input
                     id="pensionAlimony"
                     type="number"
                     step="0.01"
                     value={formData.pensionAlimony}
-                    onChange={(e) => handleInputChange('pensionAlimony', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleInputChange("pensionAlimony", parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
                   />
                 </div>
@@ -298,36 +303,29 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
 
             <Separator />
 
-            {/* Adicionais e Benef√≠cios */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                üéÅ Benef√≠cios e Adicionais
-              </h3>
-              
+              <h3 className="text-lg font-semibold">BenefÌcios e Adicionais</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="isDangerous"
                       checked={formData.isDangerous}
-                      onCheckedChange={(checked) => handleInputChange('isDangerous', checked)}
+                      onCheckedChange={(checked) => handleInputChange("isDangerous", checked)}
                     />
                     <Label htmlFor="isDangerous">Trabalho com Periculosidade (30%)</Label>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="unhealthyLevel">N√≠vel de Insalubridade</Label>
-                    <Select 
-                      value={formData.unhealthyLevel} 
-                      onValueChange={(value) => handleInputChange('unhealthyLevel', value)}
-                    >
+                    <Label htmlFor="unhealthyLevel">NÌvel de Insalubridade</Label>
+                    <Select value={formData.unhealthyLevel} onValueChange={(value) => handleInputChange("unhealthyLevel", value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Sem Insalubridade</SelectItem>
                         <SelectItem value="low">Baixo (10%)</SelectItem>
-                        <SelectItem value="medium">M√©dio (20%)</SelectItem>
+                        <SelectItem value="medium">MÈdio (20%)</SelectItem>
                         <SelectItem value="high">Alto (40%)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -342,19 +340,19 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
                       type="number"
                       step="0.01"
                       value={formData.transportVoucherValue}
-                      onChange={(e) => handleInputChange('transportVoucherValue', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleInputChange("transportVoucherValue", parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="mealVoucherDaily">Vale Alimenta√ß√£o Di√°rio (R$)</Label>
+                    <Label htmlFor="mealVoucherDaily">Vale AlimentaÁ„o Di·rio (R$)</Label>
                     <Input
                       id="mealVoucherDaily"
                       type="number"
                       step="0.01"
                       value={formData.mealVoucherDaily}
-                      onChange={(e) => handleInputChange('mealVoucherDaily', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleInputChange("mealVoucherDaily", parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
                   </div>
@@ -363,12 +361,8 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
             </div>
 
             <div className="flex justify-end space-x-4 pt-6">
-              <Button 
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent/90 px-8"
-              >
-                {isSubmitting ? "Cadastrando..." : "Cadastrar Funcion√°rio"}
+              <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent/90 px-8">
+                {isSubmitting ? "Cadastrando..." : "Cadastrar Funcion·rio"}
               </Button>
             </div>
           </form>
