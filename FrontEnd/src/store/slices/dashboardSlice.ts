@@ -1,45 +1,37 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
-interface Employee {
+interface SalaryDistribution {
+  range: string;
+  count: number;
+}
+
+interface RecentEmployee {
   id: number;
-  name: string;
-  cpf: string;
+  fullName: string;
   position: string;
+  salary: number;
   admissionDate: string;
 }
 
-interface PayrollRecord {
-  id: number;
-  employeeName: string;
-  month: string;
-  grossSalary: number;
-  netSalary: number;
-}
-
-interface DashboardStats {
+interface DashboardData {
+  currentUser: string | null;
   totalEmployees: number;
+  lastPayrollDate: string | null;
+  pendingCalculations: number;
+  salaryDistribution: SalaryDistribution[];
+  recentEmployees: RecentEmployee[];
   totalPayrolls: number;
-  totalGrossSalary: number;
-  totalNetSalary: number;
+  totalSalaries: number;
 }
 
 interface DashboardState {
-  stats: DashboardStats;
-  recentEmployees: Employee[];
-  recentPayrolls: PayrollRecord[];
+  data: DashboardData | null;
   isLoading: boolean;
   error: string | null;
 }
 
 const initialState: DashboardState = {
-  stats: {
-    totalEmployees: 0,
-    totalPayrolls: 0,
-    totalGrossSalary: 0,
-    totalNetSalary: 0,
-  },
-  recentEmployees: [],
-  recentPayrolls: [],
+  data: null,
   isLoading: false,
   error: null,
 };
@@ -48,7 +40,10 @@ const initialState: DashboardState = {
 export const fetchDashboardData = createAsyncThunk(
   'dashboard/fetchDashboardData',
   async () => {
-    const response = await fetch('/dashboard');
+    const token = localStorage.getItem('accessToken');
+    const response = await fetch('/api/dashboard', {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch dashboard data');
@@ -65,9 +60,6 @@ const dashboardSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    updateStats: (state, action: PayloadAction<Partial<DashboardStats>>) => {
-      state.stats = { ...state.stats, ...action.payload };
-    },
   },
   extraReducers: (builder) => {
     builder
@@ -77,9 +69,7 @@ const dashboardSlice = createSlice({
       })
       .addCase(fetchDashboardData.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.stats = action.payload.stats;
-        state.recentEmployees = action.payload.recentEmployees;
-        state.recentPayrolls = action.payload.recentPayrolls;
+        state.data = action.payload;
       })
       .addCase(fetchDashboardData.rejected, (state, action) => {
         state.isLoading = false;
@@ -88,5 +78,5 @@ const dashboardSlice = createSlice({
   },
 });
 
-export const { clearError, updateStats } = dashboardSlice.actions;
+export const { clearError } = dashboardSlice.actions;
 export default dashboardSlice.reducer;

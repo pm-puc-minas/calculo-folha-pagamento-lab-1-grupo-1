@@ -34,10 +34,15 @@ public class User {
 
     @NotBlank
     @Size(min = 6)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String password;
 
     @Enumerated(EnumType.STRING)
     private Role role = Role.USER;
+
+    public String getName() {
+        return username;
+    }
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

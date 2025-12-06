@@ -1,0 +1,13 @@
+package com.payroll.repository;
+
+import com.payroll.entity.Report;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ReportRepository extends JpaRepository<Report, Long> {
+    List<Report> findByEmployeeIdAndReferenceMonthAndReportType(Long employeeId, String referenceMonth, String reportType);
+    List<Report> findByEmployeeId(Long employeeId);
+}

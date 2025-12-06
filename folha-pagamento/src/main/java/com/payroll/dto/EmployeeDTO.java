@@ -20,6 +20,17 @@ public class EmployeeDTO {
     public Integer workDaysMonth;
     public Integer weeklyHours;
 
+    public Boolean hasHealthPlan;
+    public BigDecimal healthPlanValue;
+    public Boolean hasDentalPlan;
+    public BigDecimal dentalPlanValue;
+    public Boolean hasGym;
+    public BigDecimal gymValue;
+    public Boolean hasTimeBank;
+    public BigDecimal timeBankHours;
+    public Boolean hasOvertime;
+    public BigDecimal overtimeHours;
+
     // Compatibilidade com frontend: alias grossSalary
     public BigDecimal grossSalary;
 
@@ -37,10 +48,29 @@ public class EmployeeDTO {
         dto.dependents = e.getDependents();
         dto.hasHazardPay = e.getDangerousWork();
         dto.insalubrity = normalizeInsalubrity(e.getUnhealthyLevel(), e.getUnhealthyWork());
-        dto.transportVoucherValue = e.getTransportVoucher() != null && e.getTransportVoucher() ? BigDecimal.ZERO : BigDecimal.ZERO;
+        
+        // Transport Voucher logic: if value > 0 use value, else if boolean true use 1, else 0
+        if (e.getTransportVoucherValue() != null && e.getTransportVoucherValue().compareTo(BigDecimal.ZERO) > 0) {
+             dto.transportVoucherValue = e.getTransportVoucherValue();
+        } else {
+             dto.transportVoucherValue = e.getTransportVoucher() != null && e.getTransportVoucher() ? BigDecimal.ONE : BigDecimal.ZERO;
+        }
+        
         dto.mealVoucherDaily = e.getMealVoucherValue();
         dto.workDaysMonth = 22; // default
         dto.weeklyHours = e.getWeeklyHours();
+        
+        dto.hasHealthPlan = e.getHealthPlan();
+        dto.healthPlanValue = e.getHealthPlanValue();
+        dto.hasDentalPlan = e.getDentalPlan();
+        dto.dentalPlanValue = e.getDentalPlanValue();
+        dto.hasGym = e.getGym();
+        dto.gymValue = e.getGymValue();
+        dto.hasTimeBank = e.getTimeBank();
+        dto.timeBankHours = e.getTimeBankHours();
+        dto.hasOvertime = e.getOvertimeEligible();
+        dto.overtimeHours = e.getOvertimeHours();
+        
         return dto;
     }
 
@@ -61,9 +91,32 @@ public class EmployeeDTO {
         e.setDangerousPercentage(e.getDangerousWork() ? new BigDecimal("0.30") : BigDecimal.ZERO);
         e.setUnhealthyWork(dto.insalubrity != null && !"NONE".equalsIgnoreCase(dto.insalubrity));
         e.setUnhealthyLevel(dto.insalubrity);
-        e.setMealVoucher(true);
+        
+        boolean hasMealVoucher = dto.mealVoucherDaily != null && dto.mealVoucherDaily.compareTo(BigDecimal.ZERO) > 0;
+        e.setMealVoucher(hasMealVoucher);
         e.setMealVoucherValue(dto.mealVoucherDaily != null ? dto.mealVoucherDaily : BigDecimal.ZERO);
-        e.setTransportVoucher(dto.transportVoucherValue != null && dto.transportVoucherValue.compareTo(BigDecimal.ZERO) > 0);
+        
+        // Transport voucher: if value > 0, set value and true. If value 0, set false (unless strictly boolean logic needed)
+        // Assuming frontend sends value > 0 for active transport voucher
+        boolean hasTransport = dto.transportVoucherValue != null && dto.transportVoucherValue.compareTo(BigDecimal.ZERO) > 0;
+        e.setTransportVoucher(hasTransport);
+        e.setTransportVoucherValue(dto.transportVoucherValue != null ? dto.transportVoucherValue : BigDecimal.ZERO);
+        
+        e.setHealthPlan(dto.hasHealthPlan != null && dto.hasHealthPlan);
+        e.setHealthPlanValue(dto.healthPlanValue != null ? dto.healthPlanValue : BigDecimal.ZERO);
+        
+        e.setDentalPlan(dto.hasDentalPlan != null && dto.hasDentalPlan);
+        e.setDentalPlanValue(dto.dentalPlanValue != null ? dto.dentalPlanValue : BigDecimal.ZERO);
+        
+        e.setGym(dto.hasGym != null && dto.hasGym);
+        e.setGymValue(dto.gymValue != null ? dto.gymValue : BigDecimal.ZERO);
+        
+        e.setTimeBank(dto.hasTimeBank != null && dto.hasTimeBank);
+        e.setTimeBankHours(dto.timeBankHours != null ? dto.timeBankHours : BigDecimal.ZERO);
+        
+        e.setOvertimeEligible(dto.hasOvertime != null && dto.hasOvertime);
+        e.setOvertimeHours(dto.overtimeHours != null ? dto.overtimeHours : BigDecimal.ZERO);
+        
         return e;
     }
 

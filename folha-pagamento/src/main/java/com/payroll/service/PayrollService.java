@@ -33,6 +33,9 @@ public class PayrollService implements IPayrollService {
     @Autowired
     private EmployeeRepository employeeRepository;
 
+    @Autowired
+    private ReportsService reportsService;
+
     @Override
     public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long calculatedBy) {
         try {
@@ -77,7 +80,15 @@ public class PayrollService implements IPayrollService {
 
         BigDecimal mealVoucher = employee.getMealVoucherValue() != null ? employee.getMealVoucherValue() : BigDecimal.ZERO;
 
-        BigDecimal grossSalary = baseSalary.add(dangerousBonus).add(unhealthyBonus).add(mealVoucher);
+        // Overtime Calculation
+        BigDecimal overtimeHours = employee.getOvertimeHours() != null ? employee.getOvertimeHours() : BigDecimal.ZERO;
+        BigDecimal overtimeValue = BigDecimal.ZERO;
+        if (Boolean.TRUE.equals(employee.getOvertimeEligible()) && overtimeHours.compareTo(BigDecimal.ZERO) > 0) {
+             overtimeValue = hourlyWage.multiply(new BigDecimal("1.5")).multiply(overtimeHours).setScale(2, RoundingMode.HALF_UP);
+        }
+        calculation.setOvertimeValue(overtimeValue);
+
+        BigDecimal grossSalary = baseSalary.add(dangerousBonus).add(unhealthyBonus).add(mealVoucher).add(overtimeValue);
 
         BigDecimal inssDiscount = calcularINSS(grossSalary);
         BigDecimal transportVoucher = employee.getTransportVoucher() != null && employee.getTransportVoucher()
@@ -100,7 +111,27 @@ public class PayrollService implements IPayrollService {
 
         calculation.setMealVoucherValue(mealVoucher.setScale(2, RoundingMode.HALF_UP));
 
-        BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(fgts).add(transportDiscount);
+        // Benefits Discounts
+        BigDecimal healthPlanDiscount = BigDecimal.ZERO;
+        if (Boolean.TRUE.equals(employee.getHealthPlan())) {
+            healthPlanDiscount = nz(employee.getHealthPlanValue());
+        }
+        calculation.setHealthPlanDiscount(healthPlanDiscount);
+
+        BigDecimal dentalPlanDiscount = BigDecimal.ZERO;
+        if (Boolean.TRUE.equals(employee.getDentalPlan())) {
+            dentalPlanDiscount = nz(employee.getDentalPlanValue());
+        }
+        calculation.setDentalPlanDiscount(dentalPlanDiscount);
+
+        BigDecimal gymDiscount = BigDecimal.ZERO;
+        if (Boolean.TRUE.equals(employee.getGym())) {
+            gymDiscount = nz(employee.getGymValue());
+        }
+        calculation.setGymDiscount(gymDiscount);
+
+        BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(fgts).add(transportDiscount)
+                                    .add(healthPlanDiscount).add(dentalPlanDiscount).add(gymDiscount);
 
         if (grossSalary.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InputValidationException("Salario bruto deve ser maior que zero",
@@ -115,7 +146,18 @@ public class PayrollService implements IPayrollService {
         calculation.setNetSalary(netSalary.setScale(2, RoundingMode.HALF_UP));
 
         try {
-            return payrollRepository.save(calculation);
+            PayrollCalculation saved = payrollRepository.save(calculation);
+            
+            // Create a Report entry for this payroll
+            try {
+                reportsService.createReport(employeeId, referenceMonth, "PAYROLL", calculatedBy);
+            } catch (Exception e) {
+                // Log error but don't fail the transaction? 
+                // Ideally should be transactional, but for now let's just print stack trace
+                e.printStackTrace();
+            }
+            
+            return saved;
         } catch (DataIntegrityViolationException e) {
             throw new DataIntegrityBusinessException("Violacao de integridade ao salvar calculo de folha", e);
         } catch (DataAccessResourceFailureException e) {

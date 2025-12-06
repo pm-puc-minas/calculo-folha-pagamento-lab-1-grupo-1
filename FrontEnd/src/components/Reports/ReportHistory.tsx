@@ -1,13 +1,14 @@
-﻿import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { FileText, Download, User, Calendar, Eye } from "lucide-react";
+import { FileText, Download, User, Calendar, Eye, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export interface ReportHistoryEntry {
   id: string;
+  employeeId: string;
   reportType: 'payroll' | 'employee' | 'summary';
   employeeName: string;
   referenceMonth: string;
@@ -21,7 +22,13 @@ export interface ReportHistoryEntry {
   status: 'completed' | 'pending' | 'error';
 }
 
-export const ReportHistory = ({ items, loading = false }: { items: ReportHistoryEntry[]; loading?: boolean }) => {
+export const ReportHistory = ({ items, totalEmployees = 0, loading = false, onDownload, onDelete }: { 
+  items: ReportHistoryEntry[]; 
+  totalEmployees?: number;
+  loading?: boolean;
+  onDownload: (id: string) => void;
+  onDelete: (id: string) => void;
+}) => {
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -69,10 +76,10 @@ export const ReportHistory = ({ items, loading = false }: { items: ReportHistory
 
   const handleViewReport = (reportId: string) => {
     // Implementar visualização quando API estiver disponível
-  };
-
-  const handleDownloadReport = (reportId: string) => {
-    // Implementar download quando API estiver disponível
+    toast({
+      title: "Visualizar Relatório",
+      description: "Funcionalidade de visualização será implementada em breve."
+    });
   };
 
   return (
@@ -110,8 +117,10 @@ export const ReportHistory = ({ items, loading = false }: { items: ReportHistory
 
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardContent className="p-6 text-center">
-            <div className="text-2xl font-bold text-warning">{items.filter(r => r.status === 'pending').length}</div>
-            <div className="text-sm text-muted-foreground">Pendentes</div>
+            <div className="text-2xl font-bold text-warning">
+              {Math.max(0, totalEmployees - new Set(items.map(r => r.employeeId)).size)}
+            </div>
+            <div className="text-sm text-muted-foreground">Funcionários Pendentes</div>
           </CardContent>
         </Card>
 
@@ -177,8 +186,11 @@ export const ReportHistory = ({ items, loading = false }: { items: ReportHistory
                       <Button variant="ghost" size="sm" onClick={() => handleViewReport(report.id)} className="text-primary hover:text-primary">
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDownloadReport(report.id)} className="text-accent hover:text-accent" disabled={report.status !== 'completed'}>
+                      <Button variant="ghost" size="sm" onClick={() => onDownload(report.id)} className="text-accent hover:text-accent" disabled={report.status !== 'completed'}>
                         <Download className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => onDelete(report.id)} className="text-destructive hover:text-destructive">
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </TableCell>

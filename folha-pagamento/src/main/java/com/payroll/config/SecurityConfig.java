@@ -56,6 +56,10 @@ public class SecurityConfig {
                     "/api/auth/login",
                     "/api/auth/register",
                     "/api/auth/refresh",
+                    "/api/employees/**",
+                    "/api/reports/**",
+                    "/api/payroll/**",
+                    "/api/dashboard",
                     "/h2-console/**"
                 ).permitAll()
                 .anyRequest().authenticated()

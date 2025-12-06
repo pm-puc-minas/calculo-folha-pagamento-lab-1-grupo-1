@@ -63,6 +63,18 @@ public class PayrollCalculation {
     @NotNull // not blank
     private BigDecimal hourlyWage;
 
+    @Column(name = "health_plan_discount")
+    private BigDecimal healthPlanDiscount;
+
+    @Column(name = "dental_plan_discount")
+    private BigDecimal dentalPlanDiscount;
+
+    @Column(name = "gym_discount")
+    private BigDecimal gymDiscount;
+
+    @Column(name = "overtime_value")
+    private BigDecimal overtimeValue;
+
     @Column(name = "created_at", nullable = false)
     @NotNull // not blank
     private LocalDateTime createdAt;
@@ -115,6 +127,18 @@ public class PayrollCalculation {
 
     public BigDecimal getHourlyWage() { return hourlyWage; }
     public void setHourlyWage(BigDecimal hourlyWage) { this.hourlyWage = hourlyWage; }
+
+    public BigDecimal getHealthPlanDiscount() { return healthPlanDiscount; }
+    public void setHealthPlanDiscount(BigDecimal healthPlanDiscount) { this.healthPlanDiscount = healthPlanDiscount; }
+
+    public BigDecimal getDentalPlanDiscount() { return dentalPlanDiscount; }
+    public void setDentalPlanDiscount(BigDecimal dentalPlanDiscount) { this.dentalPlanDiscount = dentalPlanDiscount; }
+
+    public BigDecimal getGymDiscount() { return gymDiscount; }
+    public void setGymDiscount(BigDecimal gymDiscount) { this.gymDiscount = gymDiscount; }
+
+    public BigDecimal getOvertimeValue() { return overtimeValue; }
+    public void setOvertimeValue(BigDecimal overtimeValue) { this.overtimeValue = overtimeValue; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -20,6 +20,10 @@ public class PayrollDTO {
     public BigDecimal inssDiscount;
     public BigDecimal fgtsValue;
     public BigDecimal irrfDiscount;
+    public BigDecimal healthPlanDiscount;
+    public BigDecimal dentalPlanDiscount;
+    public BigDecimal gymDiscount;
+    public BigDecimal overtimeValue;
     public BigDecimal inssBase;
     public BigDecimal fgtsBase;
     public BigDecimal irrfBase;
@@ -51,18 +55,20 @@ public class PayrollDTO {
         dto.employeeName = p.getEmployee() != null ? p.getEmployee().getFullName() : null;
         dto.month = p.getReferenceMonth();
         dto.hourlyRate = p.getHourlyWage();
-        // Proventos total (considera salário bruto + adicionais + VA)
-        BigDecimal bruto = nz(p.getGrossSalary());
-        BigDecimal periculosidade = nz(p.getDangerousBonus());
-        BigDecimal insalubridade = nz(p.getUnhealthyBonus());
-        BigDecimal valeAlimentacao = nz(p.getMealVoucherValue());
-        dto.totalEarnings = bruto.add(periculosidade).add(insalubridade).add(valeAlimentacao);
-        // Descontos total (INSS + IRRF + VT + FGTS)
+        // Proventos total (Salário Bruto já deve incluir todos os adicionais)
+        dto.totalEarnings = nz(p.getGrossSalary());
+        
+        // Descontos total (INSS + IRRF + VT + FGTS + Beneficios)
         BigDecimal inss = nz(p.getInssDiscount());
         BigDecimal irrf = nz(p.getIrpfDiscount());
         BigDecimal vt = nz(p.getTransportDiscount());
         BigDecimal fgts = nz(p.getFgtsValue());
-        dto.totalDeductions = inss.add(irrf).add(vt).add(fgts);
+        BigDecimal health = nz(p.getHealthPlanDiscount());
+        BigDecimal dental = nz(p.getDentalPlanDiscount());
+        BigDecimal gym = nz(p.getGymDiscount());
+        
+        dto.totalDeductions = inss.add(irrf).add(vt).add(fgts).add(health).add(dental).add(gym);
+        
         dto.netSalary = p.getNetSalary();
         dto.hazardPayValue = p.getDangerousBonus();
         dto.insalubrityValue = p.getUnhealthyBonus();
@@ -71,6 +77,12 @@ public class PayrollDTO {
         dto.inssDiscount = p.getInssDiscount();
         dto.fgtsValue = p.getFgtsValue();
         dto.irrfDiscount = p.getIrpfDiscount();
+        
+        dto.healthPlanDiscount = p.getHealthPlanDiscount();
+        dto.dentalPlanDiscount = p.getDentalPlanDiscount();
+        dto.gymDiscount = p.getGymDiscount();
+        dto.overtimeValue = p.getOvertimeValue();
+
         dto.inssBase = p.getGrossSalary();
         dto.fgtsBase = p.getGrossSalary();
         dto.irrfBase = p.getGrossSalary() != null && p.getInssDiscount() != null

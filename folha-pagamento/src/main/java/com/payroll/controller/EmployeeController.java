@@ -26,10 +26,10 @@ public class EmployeeController {
     @Autowired
     private UserService userService;
 
-    // Listar todos os funcionarios
+    // Listar todos os funcionarios (com filtro opcional)
     @GetMapping
-    public ResponseEntity<List<EmployeeDTO>> listEmployees() {
-        List<Employee> employees = employeeService.getAllEmployees();
+    public ResponseEntity<List<EmployeeDTO>> listEmployees(@RequestParam(required = false) String search) {
+        List<Employee> employees = employeeService.searchEmployees(search);
         List<EmployeeDTO> dtos = employees.stream().map(EmployeeDTO::fromEntity).toList();
         return ResponseEntity.ok(dtos);
     }

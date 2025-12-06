@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface EmployeeRepository extends BaseRepository<Employee, Long> {
     Optional<Employee> findByCpf(String cpf);
     boolean existsByCpf(String cpf);
+    java.util.List<Employee> findByFullNameContainingIgnoreCase(String name);
+    java.util.List<Employee> findTop5ByOrderByAdmissionDateDesc();
 }

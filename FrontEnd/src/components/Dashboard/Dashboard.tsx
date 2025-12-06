@@ -11,7 +11,18 @@ import {
   LogOut,
   DollarSign,
   Archive,
+  BarChart as BarChartIcon,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
 import { EmployeeForm } from "@/components/Employee/EmployeeForm";
 import { PayrollCalculator } from "@/components/Payroll/PayrollCalculator";
 import { PayrollReport } from "@/components/Payroll/PayrollReport";
@@ -19,6 +30,7 @@ import { ReportsTab } from "@/components/Dashboard/ReportsTab";
 import rhProLogo from "@/assets/rh-pro-logo.png";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchEmployees, createEmployee } from "@/store/slices/employeeSlice";
+import { fetchDashboardData } from "@/store/slices/dashboardSlice";
 import { Employee, PayrollCalculation } from "@/types/employee";
 
 interface DashboardProps {
@@ -28,47 +40,56 @@ interface DashboardProps {
 export const Dashboard = ({ onLogout }: DashboardProps) => {
   const dispatch = useAppDispatch();
   const { employees } = useAppSelector((state) => state.employee);
+  const { data: dashboardData, isLoading: isDashboardLoading } = useAppSelector((state) => state.dashboard);
   const [activeTab, setActiveTab] = useState("overview");
   const [payrollResult, setPayrollResult] = useState<PayrollCalculation | null>(null);
 
   useEffect(() => {
     dispatch(fetchEmployees());
+    dispatch(fetchDashboardData());
   }, [dispatch]);
 
   const handleAddEmployee = (employee: Employee) => {
-    dispatch(createEmployee(employee));
+    dispatch(createEmployee(employee)).then(() => {
+        dispatch(fetchDashboardData()); // Refresh dashboard data after adding employee
+    });
   };
 
   const handleCalculatePayroll = (calculation: PayrollCalculation) => {
     setPayrollResult(calculation);
     setActiveTab("report");
+    // Refresh dashboard data after payroll calculation
+    dispatch(fetchDashboardData());
   };
 
   const statsCards = [
     {
-      title: "Funcion�rios Cadastrados",
-      value: employees.length,
+      title: "Funcionários Cadastrados",
+      value: dashboardData?.totalEmployees ?? 0,
       icon: Users,
       color: "text-primary",
       bgColor: "bg-primary/5",
     },
     {
-      title: "Folhas Calculadas",
-      value: payrollResult ? 1 : 0,
+      title: "Última Folha",
+      value: dashboardData?.lastPayrollDate ?? "N/A",
       icon: Calculator,
       color: "text-accent",
       bgColor: "bg-accent/5",
     },
     {
-      title: "Total Sal�rios Brutos",
-      value: `R$ ${employees
-        .reduce((sum, emp) => sum + (emp.grossSalary || 0), 0)
-        .toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      title: "Total de Salários",
+      value: dashboardData?.totalSalaries 
+        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dashboardData.totalSalaries)
+        : "R$ 0,00",
       icon: DollarSign,
-      color: "text-success",
-      bgColor: "bg-success/5",
+      color: "text-amber-600",
+      bgColor: "bg-amber-500/10",
     },
   ];
+
+  // Use recent employees from dashboard data exclusively
+  const recentEmployeesList = dashboardData?.recentEmployees || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5">
@@ -87,15 +108,22 @@ export const Dashboard = ({ onLogout }: DashboardProps) => {
                 <p className="text-sm text-muted-foreground">Sistema de Folha de Pagamento</p>
               </div>
             </div>
-            <Button
-              onClick={onLogout}
-              variant="outline"
-              size="sm"
-              className="hover:bg-destructive hover:text-destructive-foreground transition-colors"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
+            <div className="flex items-center space-x-4">
+                {dashboardData?.currentUser && (
+                    <span className="text-sm text-muted-foreground hidden md:inline-block">
+                        Olá, {dashboardData.currentUser}
+                    </span>
+                )}
+                <Button
+                  onClick={onLogout}
+                  variant="outline"
+                  size="sm"
+                  className="hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -103,14 +131,14 @@ export const Dashboard = ({ onLogout }: DashboardProps) => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-card/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4" />
-              <span>Vis�o Geral</span>
+              <span>Visão Geral</span>
             </TabsTrigger>
             <TabsTrigger value="employees" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
-              <span>Funcion�rios</span>
+              <span>Funcionários</span>
             </TabsTrigger>
             <TabsTrigger value="calculate" className="flex items-center space-x-2">
               <Calculator className="w-4 h-4" />
@@ -118,11 +146,7 @@ export const Dashboard = ({ onLogout }: DashboardProps) => {
             </TabsTrigger>
             <TabsTrigger value="report" className="flex items-center space-x-2">
               <FileText className="w-4 h-4" />
-              <span>Relat�rio</span>
-            </TabsTrigger>
-            <TabsTrigger value="reports-management" className="flex items-center space-x-2">
-              <Archive className="w-4 h-4" />
-              <span>Relat�rios e Gest�o</span>
+              <span>Relatórios</span>
             </TabsTrigger>
           </TabsList>
 
@@ -146,44 +170,86 @@ export const Dashboard = ({ onLogout }: DashboardProps) => {
               ))}
             </div>
 
-            {/* Recent Employees */}
-            <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
-                  <span>Funcion�rios Recentes</span>
-                </CardTitle>
-                <CardDescription>�ltimos funcion�rios cadastrados no sistema</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {employees.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum funcion�rio cadastrado ainda.</p>
-                    <p className="text-sm">Acesse a aba "Funcion�rios" para come�ar.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {employees.slice(-5).map((employee) => (
-                      <div key={employee.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                        <div>
-                          <h4 className="font-semibold">{employee.name}</h4>
-                          <p className="text-sm text-muted-foreground">{employee.position}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Salary Distribution Chart */}
+                <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <BarChartIcon className="w-5 h-5" />
+                      <span>Distribuição Salarial</span>
+                    </CardTitle>
+                    <CardDescription>Relação entre número de funcionários e faixas salariais</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {dashboardData?.salaryDistribution ? (
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={dashboardData.salaryDistribution} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis 
+                                        dataKey="range" 
+                                        tick={{ fontSize: 12 }} 
+                                        interval={0}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={70}
+                                    />
+                                    <YAxis allowDecimals={false} />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: 'var(--radius)' }}
+                                        itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                    />
+                                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Funcionários" />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-success">
-                            R$ {(employee.grossSalary || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </p>
-                          <Badge variant="secondary" className="text-xs">
-                            {employee.admissionDate}
-                          </Badge>
+                    ) : (
+                        <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                            <p>Carregando dados do gráfico...</p>
                         </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Recent Employees */}
+                <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Users className="w-5 h-5" />
+                      <span>Funcionários Recentes</span>
+                    </CardTitle>
+                    <CardDescription>Últimos funcionários cadastrados no sistema</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {recentEmployeesList.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>Nenhum funcionário cadastrado ainda.</p>
+                        <p className="text-sm">Acesse a aba "Funcionários" para começar.</p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    ) : (
+                      <div className="space-y-4">
+                        {recentEmployeesList.map((employee) => (
+                          <div key={employee.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                            <div>
+                              <h4 className="font-semibold">{employee.fullName}</h4>
+                              <p className="text-sm text-muted-foreground">{employee.position}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-success">
+                                R$ {(employee.salary).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </p>
+                              <Badge variant="secondary" className="text-xs">
+                                {employee.admissionDate}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="employees">
@@ -195,24 +261,6 @@ export const Dashboard = ({ onLogout }: DashboardProps) => {
           </TabsContent>
 
           <TabsContent value="report">
-            {payrollResult ? (
-              <PayrollReport calculation={payrollResult} />
-            ) : (
-              <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
-                <CardContent className="text-center py-12">
-                  <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-xl font-semibold mb-2">Nenhum Relat�rio Dispon�vel</h3>
-                  <p className="text-muted-foreground mb-4">Calcule uma folha de pagamento para visualizar o relat�rio detalhado.</p>
-                  <Button onClick={() => setActiveTab("calculate")} className="bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent/90">
-                    <Calculator className="w-4 h-4 mr-2" />
-                    Calcular Folha
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="reports-management">
             <ReportsTab />
           </TabsContent>
         </Tabs>

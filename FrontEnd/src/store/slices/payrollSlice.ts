@@ -19,6 +19,10 @@ export interface PayrollCalculation {
   inssBase: number;
   fgtsBase: number;
   irrfBase: number;
+  healthPlanDiscount?: number;
+  dentalPlanDiscount?: number;
+  gymDiscount?: number;
+  overtimeValue?: number;
   calculatedAt: string;
   generatedBy?: {
     id: string;
@@ -128,6 +132,67 @@ export const fetchPayrollsByEmployee = createAsyncThunk(
   }
 );
 
+// Report Thunks
+export const fetchReports = createAsyncThunk(
+  'payroll/fetchReports',
+  async () => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch('/api/reports/history', {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch reports');
+    }
+    
+    // Backend returns List<Report> directly, not { data: ... } envelope unless configured otherwise
+    // Assuming standard Spring Boot return
+    return response.json();
+  }
+);
+
+export const generateReport = createAsyncThunk(
+  'payroll/generateReport',
+  async (data: { type: string; employeeId: number; month: string }) => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    // Backend expects ReportRequestDTO: { employeeId, referenceMonth, type }
+    const payload = {
+        employeeId: data.employeeId,
+        referenceMonth: data.month,
+        type: data.type
+    };
+
+    const response = await fetch('/api/reports/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+      body: JSON.stringify(payload),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate report');
+    }
+    
+    return response.json();
+  }
+);
+
+export const deleteReport = createAsyncThunk(
+  'payroll/deleteReport',
+  async (id: string) => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const response = await fetch(`/api/reports/${id}/delete`, {
+      method: 'DELETE',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete report');
+    }
+    
+    return id;
+  }
+);
+
 const payrollSlice = createSlice({
   name: 'payroll',
   initialState,
@@ -140,6 +205,13 @@ const payrollSlice = createSlice({
     },
     setCalculationInProgress: (state, action: PayloadAction<boolean>) => {
       state.calculationInProgress = action.payload;
+    },
+    // Keep these for optimistic updates if needed, but thunks will handle sync
+    addReport: (state, action: PayloadAction<ReportHistoryEntry>) => {
+      state.reportHistory.unshift(action.payload);
+    },
+    removeReport: (state, action: PayloadAction<string>) => {
+      state.reportHistory = state.reportHistory.filter(r => r.id !== action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -177,7 +249,6 @@ const payrollSlice = createSlice({
       })
       // Fetch payrolls by employee
       .addCase(fetchPayrollsByEmployee.fulfilled, (state, action) => {
-        // Update the payrolls array with employee-specific payrolls
         const employeePayrolls = action.payload;
         employeePayrolls.forEach((payroll: PayrollCalculation) => {
           const index = state.payrolls.findIndex(p => p.id === payroll.id);
@@ -185,9 +256,27 @@ const payrollSlice = createSlice({
             state.payrolls.push(payroll);
           }
         });
+      })
+      // Reports
+      .addCase(fetchReports.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchReports.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.reportHistory = action.payload;
+      })
+      .addCase(fetchReports.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Failed to fetch reports';
+      })
+      .addCase(generateReport.fulfilled, (state, action) => {
+        state.reportHistory.unshift(action.payload);
+      })
+      .addCase(deleteReport.fulfilled, (state, action) => {
+        state.reportHistory = state.reportHistory.filter(r => r.id !== action.payload);
       });
   },
 });
 
-export const { clearError, clearSelectedPayroll, setCalculationInProgress } = payrollSlice.actions;
+export const { clearError, clearSelectedPayroll, setCalculationInProgress, addReport, removeReport } = payrollSlice.actions;
 export default payrollSlice.reducer;

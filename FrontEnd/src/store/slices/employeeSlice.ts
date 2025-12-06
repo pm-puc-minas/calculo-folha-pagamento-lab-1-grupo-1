@@ -1,4 +1,4 @@
-﻿import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Employee } from '@/types/employee';
 
 type ApiEmployee = any;
@@ -36,6 +36,18 @@ const toApiPayload = (emp: Employee): any => {
     hasHazardPay: emp.isDangerous,
     insalubrity: emp.unhealthyLevel?.toUpperCase(),
     workDaysMonth: emp.workDaysInMonth,
+    
+    // New fields
+    hasHealthPlan: emp.hasHealthPlan,
+    healthPlanValue: emp.healthPlanValue,
+    hasDentalPlan: emp.hasDentalPlan,
+    dentalPlanValue: emp.dentalPlanValue,
+    hasGym: emp.hasGym,
+    gymValue: emp.gymValue,
+    hasTimeBank: emp.hasTimeBank,
+    timeBankHours: emp.timeBankHours,
+    hasOvertime: emp.hasOvertime,
+    overtimeHours: emp.overtimeHours,
   };
 };
 
@@ -56,6 +68,18 @@ const fromApi = (api: ApiEmployee): Employee => {
     isDangerous: api.hasHazardPay ?? api.dangerousWork ?? false,
     unhealthyLevel: (api.insalubrity || api.unhealthyLevel || 'none').toLowerCase(),
     pensionAlimony: api.pensionAlimony ?? 0,
+    
+    // New fields
+    hasHealthPlan: api.hasHealthPlan ?? false,
+    healthPlanValue: api.healthPlanValue ?? 0,
+    hasDentalPlan: api.hasDentalPlan ?? false,
+    dentalPlanValue: api.dentalPlanValue ?? 0,
+    hasGym: api.hasGym ?? false,
+    gymValue: api.gymValue ?? 0,
+    hasTimeBank: api.hasTimeBank ?? false,
+    timeBankHours: api.timeBankHours ?? 0,
+    hasOvertime: api.hasOvertime ?? false,
+    overtimeHours: api.overtimeHours ?? 0,
   };
 };
 

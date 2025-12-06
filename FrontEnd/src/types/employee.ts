@@ -14,6 +14,18 @@ export interface Employee {
   isDangerous: boolean; // periculosidade
   unhealthyLevel: 'none' | 'low' | 'medium' | 'high'; // insalubridade
   pensionAlimony: number;
+  
+  // New Benefits & Additionals
+  hasHealthPlan?: boolean;
+  healthPlanValue?: number;
+  hasDentalPlan?: boolean;
+  dentalPlanValue?: number;
+  hasGym?: boolean;
+  gymValue?: number;
+  hasTimeBank?: boolean;
+  timeBankHours?: number;
+  hasOvertime?: boolean;
+  overtimeHours?: number;
 }
 
 export interface PayrollCalculation {

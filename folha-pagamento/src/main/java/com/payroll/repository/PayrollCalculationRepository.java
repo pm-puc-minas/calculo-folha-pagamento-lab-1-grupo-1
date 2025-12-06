@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface PayrollCalculationRepository extends BaseRepository<PayrollCalculation, Long> {
     List<PayrollCalculation> findByEmployeeId(Long employeeId);
     Optional<PayrollCalculation> findByEmployeeIdAndReferenceMonth(Long employeeId, String referenceMonth);
+    Optional<PayrollCalculation> findTopByOrderByCreatedAtDesc();
+    long countByReferenceMonth(String referenceMonth);
 }

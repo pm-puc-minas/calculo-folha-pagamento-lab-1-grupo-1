@@ -22,7 +22,6 @@ const menuItems = [
   { id: "employees", label: "Cadastrar Funcionário", icon: UserPlus },
   { id: "payroll", label: "Calcular Folha", icon: Calculator },
   { id: "reports", label: "Relatórios", icon: FileText },
-  { id: "history", label: "Histórico & Arquivos", icon: Archive },
   { id: "settings", label: "Configurações", icon: Settings },
 ];
 

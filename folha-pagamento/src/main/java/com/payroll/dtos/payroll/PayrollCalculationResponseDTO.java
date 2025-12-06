@@ -20,6 +20,10 @@ public class PayrollCalculationResponseDTO {
     private BigDecimal unhealthyBonus;
     private BigDecimal mealVoucherValue;
     private BigDecimal hourlyWage;
+    private BigDecimal healthPlanDiscount;
+    private BigDecimal dentalPlanDiscount;
+    private BigDecimal gymDiscount;
+    private BigDecimal overtimeValue;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

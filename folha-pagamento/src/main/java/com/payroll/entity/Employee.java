@@ -50,6 +50,9 @@ private Integer dependents = 0;
     @Column(name = "transport_voucher")
     private Boolean transportVoucher = false;
 
+    @Column(name = "transport_voucher_value")
+    private BigDecimal transportVoucherValue = BigDecimal.ZERO;
+
     @Column(name = "meal_voucher")
     private Boolean mealVoucher = false;
 
@@ -67,6 +70,36 @@ private Integer dependents = 0;
 
     @Column(name = "unhealthy_level")
     private String unhealthyLevel;
+
+    @Column(name = "health_plan")
+    private Boolean healthPlan = false;
+
+    @Column(name = "health_plan_value")
+    private BigDecimal healthPlanValue = BigDecimal.ZERO;
+
+    @Column(name = "dental_plan")
+    private Boolean dentalPlan = false;
+
+    @Column(name = "dental_plan_value")
+    private BigDecimal dentalPlanValue = BigDecimal.ZERO;
+
+    @Column(name = "gym")
+    private Boolean gym = false;
+
+    @Column(name = "gym_value")
+    private BigDecimal gymValue = BigDecimal.ZERO;
+
+    @Column(name = "time_bank")
+    private Boolean timeBank = false;
+
+    @Column(name = "time_bank_hours")
+    private BigDecimal timeBankHours = BigDecimal.ZERO;
+
+    @Column(name = "overtime_eligible")
+    private Boolean overtimeEligible = false;
+
+    @Column(name = "overtime_hours")
+    private BigDecimal overtimeHours = BigDecimal.ZERO;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -104,8 +137,6 @@ private Integer dependents = 0;
     public Integer getWeeklyHours() { return weeklyHours; }
     public void setWeeklyHours(Integer weeklyHours) { this.weeklyHours = weeklyHours; }
 
-    public Boolean getTransportVoucher() { return transportVoucher; }
-    public void setTransportVoucher(Boolean transportVoucher) { this.transportVoucher = transportVoucher; }
 
     public Boolean getMealVoucher() { return mealVoucher; }
     public void setMealVoucher(Boolean mealVoucher) { this.mealVoucher = mealVoucher; }
@@ -124,6 +155,42 @@ private Integer dependents = 0;
 
     public String getUnhealthyLevel() { return unhealthyLevel; }
     public void setUnhealthyLevel(String unhealthyLevel) { this.unhealthyLevel = unhealthyLevel; }
+
+    public Boolean getHealthPlan() { return healthPlan; }
+    public void setHealthPlan(Boolean healthPlan) { this.healthPlan = healthPlan; }
+
+    public BigDecimal getHealthPlanValue() { return healthPlanValue; }
+    public void setHealthPlanValue(BigDecimal healthPlanValue) { this.healthPlanValue = healthPlanValue; }
+
+    public Boolean getDentalPlan() { return dentalPlan; }
+    public void setDentalPlan(Boolean dentalPlan) { this.dentalPlan = dentalPlan; }
+
+    public BigDecimal getDentalPlanValue() { return dentalPlanValue; }
+    public void setDentalPlanValue(BigDecimal dentalPlanValue) { this.dentalPlanValue = dentalPlanValue; }
+
+    public Boolean getGym() { return gym; }
+    public void setGym(Boolean gym) { this.gym = gym; }
+
+    public BigDecimal getGymValue() { return gymValue; }
+    public void setGymValue(BigDecimal gymValue) { this.gymValue = gymValue; }
+
+    public Boolean getTimeBank() { return timeBank; }
+    public void setTimeBank(Boolean timeBank) { this.timeBank = timeBank; }
+
+    public BigDecimal getTimeBankHours() { return timeBankHours; }
+    public void setTimeBankHours(BigDecimal timeBankHours) { this.timeBankHours = timeBankHours; }
+
+    public Boolean getOvertimeEligible() { return overtimeEligible; }
+    public void setOvertimeEligible(Boolean overtimeEligible) { this.overtimeEligible = overtimeEligible; }
+
+    public BigDecimal getOvertimeHours() { return overtimeHours; }
+    public void setOvertimeHours(BigDecimal overtimeHours) { this.overtimeHours = overtimeHours; }
+
+    public Boolean getTransportVoucher() { return transportVoucher; }
+    public void setTransportVoucher(Boolean transportVoucher) { this.transportVoucher = transportVoucher; }
+
+    public BigDecimal getTransportVoucherValue() { return transportVoucherValue; }
+    public void setTransportVoucherValue(BigDecimal transportVoucherValue) { this.transportVoucherValue = transportVoucherValue; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

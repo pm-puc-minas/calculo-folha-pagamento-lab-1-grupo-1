@@ -81,12 +81,25 @@ public class EmployeeService implements IEmployeeService {
             employee.setSalary(employeeDetails.getSalary());
             employee.setWeeklyHours(employeeDetails.getWeeklyHours());
             employee.setTransportVoucher(employeeDetails.getTransportVoucher());
+            employee.setTransportVoucherValue(employeeDetails.getTransportVoucherValue());
             employee.setMealVoucher(employeeDetails.getMealVoucher());
             employee.setMealVoucherValue(employeeDetails.getMealVoucherValue());
             employee.setDangerousWork(employeeDetails.getDangerousWork());
             employee.setDangerousPercentage(employeeDetails.getDangerousPercentage());
             employee.setUnhealthyWork(employeeDetails.getUnhealthyWork());
             employee.setUnhealthyLevel(employeeDetails.getUnhealthyLevel());
+            
+            employee.setHealthPlan(employeeDetails.getHealthPlan());
+            employee.setHealthPlanValue(employeeDetails.getHealthPlanValue());
+            employee.setDentalPlan(employeeDetails.getDentalPlan());
+            employee.setDentalPlanValue(employeeDetails.getDentalPlanValue());
+            employee.setGym(employeeDetails.getGym());
+            employee.setGymValue(employeeDetails.getGymValue());
+            employee.setTimeBank(employeeDetails.getTimeBank());
+            employee.setTimeBankHours(employeeDetails.getTimeBankHours());
+            employee.setOvertimeEligible(employeeDetails.getOvertimeEligible());
+            employee.setOvertimeHours(employeeDetails.getOvertimeHours());
+            
             return employeeRepository.save(employee);
         } catch (DataIntegrityViolationException e) {
             throw new DataIntegrityBusinessException("Violação de integridade ao atualizar funcionário", e);
@@ -131,5 +144,16 @@ public class EmployeeService implements IEmployeeService {
             boolean invalidHours = weeklyHours == null || weeklyHours < 1;
             return nonPositiveSalary || invalidHours;
         });
+    }
+
+    public List<Employee> searchEmployees(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return getAllEmployees();
+        }
+        try {
+            return employeeRepository.findByFullNameContainingIgnoreCase(query);
+        } catch (DataAccessResourceFailureException e) {
+            throw new DatabaseConnectionException("Falha de conexão ao buscar funcionários por nome", e);
+        }
     }
 }
