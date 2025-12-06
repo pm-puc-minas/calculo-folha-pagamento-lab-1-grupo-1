@@ -9,7 +9,7 @@ import { Calculator, Eye, EyeOff, Users, BarChart3, Shield } from "lucide-react"
 import { toast } from "sonner";
 
 interface AuthFormProps {
-  onLogin: (username: string, password: string) => void;
+  onLogin: (user: { username?: string | null; email?: string | null }) => void;
 }
 
 export const AuthForm = ({ onLogin }: AuthFormProps) => {
@@ -45,7 +45,7 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
       if (data?.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
       if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
       const user = data.user;
-      onLogin(user?.username || loginData.email, loginData.password);
+      onLogin({ username: user?.username, email: user?.email || loginData.email });
       toast.success("Login realizado com sucesso!");
     } catch (err:any) {
       toast.error(err.message || "Email ou senha inválidos");

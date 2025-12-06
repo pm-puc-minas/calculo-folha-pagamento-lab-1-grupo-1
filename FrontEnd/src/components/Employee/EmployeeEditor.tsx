@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, MapPin, Phone, Mail, Calendar, Briefcase, DollarSign, Users, Settings, Save, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { formatCPF, formatPhone } from "@/utils/formatters";
 
 interface EmployeeData {
   id: string;
@@ -202,7 +203,7 @@ export const EmployeeEditor = ({ employee, onSave, onCancel }: EmployeeEditorPro
                 <Input
                   id="cpf"
                   value={formData.cpf}
-                  onChange={(e) => handleInputChange('cpf', e.target.value)}
+                  onChange={(e) => handleInputChange('cpf', formatCPF(e.target.value))}
                   placeholder="000.000.000-00"
                 />
               </div>
@@ -220,7 +221,7 @@ export const EmployeeEditor = ({ employee, onSave, onCancel }: EmployeeEditorPro
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  onChange={(e) => handleInputChange('phone', formatPhone(e.target.value))}
                   placeholder="(00) 00000-0000"
                 />
               </div>
@@ -617,7 +618,7 @@ export const EmployeeEditor = ({ employee, onSave, onCancel }: EmployeeEditorPro
                 <Input
                   id="emergencyPhone"
                   value={formData.emergencyContact.phone}
-                  onChange={(e) => handleNestedInputChange('emergencyContact', 'phone', e.target.value)}
+                  onChange={(e) => handleNestedInputChange('emergencyContact', 'phone', formatPhone(e.target.value))}
                   placeholder="(00) 00000-0000"
                 />
               </div>

@@ -7,8 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Play, Save, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { UserBadge } from "@/components/Layout/UserBadge";
 
-export const PayrollCalculation = () => {
+interface PayrollCalculationProps {
+  user?: { username?: string | null; email?: string | null } | null;
+}
+
+export const PayrollCalculation = ({ user }: PayrollCalculationProps) => {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [payrollPeriod, setPayrollPeriod] = useState("");
   const [grossSalary, setGrossSalary] = useState("5000.00");
@@ -69,12 +74,7 @@ export const PayrollCalculation = () => {
               <FileDown className="w-4 h-4 mr-2" />
               Export PDF
             </Button>
-            <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">JA</span>
-              </div>
-              <span className="text-sm font-medium">John Admin</span>
-            </div>
+            <UserBadge name={user?.username} email={user?.email} />
           </div>
         </div>
       </header>

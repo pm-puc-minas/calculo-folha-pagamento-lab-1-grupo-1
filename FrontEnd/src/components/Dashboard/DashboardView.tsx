@@ -10,13 +10,15 @@ import {
   Settings,
   TrendingUp
 } from "lucide-react";
+import { UserBadge } from "@/components/Layout/UserBadge";
 
 interface DashboardViewProps {
+  user?: { username?: string | null; email?: string | null } | null;
   onViewChange: (view: string) => void;
   onLogout: () => void;
 }
 
-export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) => {
+export const DashboardView = ({ user, onViewChange, onLogout }: DashboardViewProps) => {
   return (
     <div className="flex-1 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -27,12 +29,7 @@ export const DashboardView = ({ onViewChange, onLogout }: DashboardViewProps) =>
             <p className="text-gray-600">Visão geral do sistema</p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">JA</span>
-              </div>
-              <span className="text-sm font-medium">John Admin</span>
-            </div>
+            <UserBadge name={user?.username} email={user?.email} />
             <Button variant="outline" onClick={onLogout}>
               Sair
             </Button>

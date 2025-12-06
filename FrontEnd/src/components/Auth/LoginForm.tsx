@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import rhProLogo from "@/assets/rh-pro-logo.png";
 
 interface LoginFormProps {
-  onLogin: (username: string, password: string) => void;
+  onLogin: (user: { username?: string; email?: string }) => void;
 }
 
 export const LoginForm = ({ onLogin }: LoginFormProps) => {
@@ -34,7 +34,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
     // Simulação de autenticação - em produção seria uma chamada à API
     setTimeout(() => {
       if (username === "admin" && password === "123456") {
-        onLogin(username, password);
+        onLogin({ username, email: username.includes("@") ? username : undefined });
         toast({
           title: "Login realizado com sucesso!",
           description: "Bem-vindo ao Sistema de Folha de Pagamento.",

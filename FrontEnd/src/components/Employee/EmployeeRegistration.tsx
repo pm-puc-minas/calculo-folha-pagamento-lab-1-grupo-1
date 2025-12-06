@@ -7,12 +7,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Save, X, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { UserBadge } from "@/components/Layout/UserBadge";
+import { formatCPF } from "@/utils/formatters";
 
 interface EmployeeRegistrationProps {
   onViewChange: (view: string) => void;
+  user?: { username?: string | null; email?: string | null } | null;
 }
 
-export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps) => {
+export const EmployeeRegistration = ({ onViewChange, user }: EmployeeRegistrationProps) => {
   const [formData, setFormData] = useState({
     fullName: "",
     cpf: "",
@@ -84,12 +87,7 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
             <h1 className="text-2xl font-bold text-gray-900">Registro de Funcionários</h1>
             <p className="text-gray-600">Adicionar novos funcionários</p>
           </div>
-          <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">AU</span>
-            </div>
-            <span className="text-sm font-medium">Admin User</span>
-          </div>
+          <UserBadge name={user?.username} email={user?.email} />
         </div>
       </header>
 
@@ -118,7 +116,7 @@ export const EmployeeRegistration = ({ onViewChange }: EmployeeRegistrationProps
                   id="cpf"
                   placeholder="000.000.000-00"
                   value={formData.cpf}
-                  onChange={(e) => handleInputChange("cpf", e.target.value)}
+                  onChange={(e) => handleInputChange("cpf", formatCPF(e.target.value))}
                 />
               </div>
             </div>

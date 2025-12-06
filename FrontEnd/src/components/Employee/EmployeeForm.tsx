@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Users, Plus, Edit } from "lucide-react";
 import { Employee } from "@/types/employee";
 import { useToast } from "@/hooks/use-toast";
+import { formatCPF } from "@/utils/formatters";
 
 interface EmployeeFormProps {
   onAddEmployee: (employee: Employee) => void;
@@ -194,7 +195,7 @@ export const EmployeeForm = ({ onAddEmployee, employees, onSelectEmployee }: Emp
                   <Input
                     id="cpf"
                     value={formData.cpf}
-                    onChange={(e) => handleInputChange('cpf', e.target.value)}
+                    onChange={(e) => handleInputChange('cpf', formatCPF(e.target.value))}
                     placeholder="000.000.000-00"
                     required
                   />

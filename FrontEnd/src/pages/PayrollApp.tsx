@@ -8,14 +8,19 @@ import ReportsPage from "@/pages/ReportsPage";
 import HistoryFilesPage from "@/pages/HistoryFilesPage";
 import SettingsPage from "@/pages/SettingsPage";
 
+type UserInfo = {
+  username?: string | null;
+  email?: string | null;
+};
+
 const PayrollApp = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ username: string } | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [activeView, setActiveView] = useState("dashboard");
 
-  const handleLogin = (username: string, password: string) => {
+  const handleLogin = (userInfo: UserInfo) => {
     setIsAuthenticated(true);
-    setUser({ username });
+    setUser(userInfo);
   };
 
   const handleLogout = () => {
@@ -27,9 +32,9 @@ const PayrollApp = () => {
   const renderContent = () => {
     switch (activeView) {
       case "employees":
-        return <EmployeeRegistration onViewChange={setActiveView} />;
+        return <EmployeeRegistration onViewChange={setActiveView} user={user} />;
       case "payroll":
-        return <PayrollCalculation />;
+        return <PayrollCalculation user={user} />;
       case "reports":
         return <ReportsPage />;
       case "history":
@@ -37,7 +42,7 @@ const PayrollApp = () => {
       case "settings":
         return <SettingsPage />;
       default:
-        return <DashboardView onViewChange={setActiveView} onLogout={handleLogout} />;
+        return <DashboardView user={user} onViewChange={setActiveView} onLogout={handleLogout} />;
     }
   };
 
