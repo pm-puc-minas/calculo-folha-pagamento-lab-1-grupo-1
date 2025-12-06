@@ -3,8 +3,8 @@ package com.payroll.controller;
 import com.payroll.entity.Employee;
 import com.payroll.service.EmployeeService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -29,12 +29,10 @@ class PayrollControllerTest {
     @Autowired
     private EmployeeService employeeService;
 
-
     private Employee employee;
 
     @BeforeEach
     void setUp() {
-        // Criar Employee válido
         employee = new Employee();
         employee.setCpf("12345678901");
         employee.setFullName("Bernardo Pereira");
@@ -52,8 +50,7 @@ class PayrollControllerTest {
     }
 
     @Test
-    @DisplayName("Lista folhas vazia quando sistema sem cálculos")
-    // Valida que a lista de folhas está vazia antes de qualquer cálculo
+    @DisplayName("Lista folhas vazia quando sistema sem calculos")
     void deveListarFolhasVazioInicialmente() {
         ResponseEntity<?> response = controller.payrollList();
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -61,11 +58,10 @@ class PayrollControllerTest {
     }
 
     @Test
-    @DisplayName("Erro ao calcular com employeeId inválido")
-    // Valida mensagem de erro e status 500 ao enviar employeeId inválido
+    @DisplayName("Erro ao calcular com employeeId invalido")
     void deveFalharCalculoFolhaComEmployeeIdInvalido() {
         Map<String, String> request = new HashMap<>();
-        request.put("employeeId", "abc"); // inválido
+        request.put("employeeId", "abc");
         request.put("referenceMonth", "2025-10");
 
         ResponseEntity<?> response = controller.calculatePayroll(request, null);
@@ -75,19 +71,17 @@ class PayrollControllerTest {
 
     @Test
     @DisplayName("Folha inexistente retorna 404")
-    // Valida retorno 404 ao consultar folha de pagamento inexistente
     void deveRetornar404AoVisualizarFolhaInexistente() {
         ResponseEntity<?> response = controller.viewPayroll(999L);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Folha de pagamento não encontrada", response.getBody());
+        assertEquals("Folha de pagamento nao encontrada", response.getBody());
     }
 
     @Test
-    @DisplayName("Folhas por funcionário inexistente retornam 404")
-    // Valida retorno 404 ao listar folhas para funcionário inexistente
+    @DisplayName("Folhas por funcionario inexistente retornam 404")
     void deveRetornar404AoListarFolhasDeFuncionarioInexistente() {
         ResponseEntity<?> response = controller.viewEmployeePayrolls(999L);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("Funcionário não encontrado", response.getBody());
+        assertEquals("Funcionario nao encontrado", response.getBody());
     }
 }

@@ -1,17 +1,19 @@
 package com.payroll.controller;
 
 import com.payroll.config.JwtUtil;
-
 import com.payroll.entity.User;
 import com.payroll.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
-import org.mockito.*;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -32,7 +34,6 @@ public class AuthControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        // Criação de um usuário 
         user = new User();
         user.setId(1L);
         user.setUsername("bernardo");
@@ -41,10 +42,8 @@ public class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("Login com credenciais válidas gera tokens")
-    // Valida que login com usuário e senha corretos retorna access e refresh tokens
+    @DisplayName("Login com credenciais validas gera tokens")
     void loginDeveGerarTokensComCredenciaisValidas() {
-        // Simula comportamento do serviço
         when(userService.findByUsername("bernardo")).thenReturn(Optional.of(user));
         when(userService.validatePassword("senha123", user.getPassword())).thenReturn(true);
         when(jwtUtil.generateAccessToken(eq("bernardo"), anyMap())).thenReturn("accessTokenGerado");
@@ -64,8 +63,7 @@ public class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("Falha no login com credenciais inválidas")
-    // Valida retorno UNAUTHORIZED e mensagem ao usar senha incorreta
+    @DisplayName("Falha no login com credenciais invalidas")
     void loginDeveFalharComCredenciaisInvalidas() {
         when(userService.findByUsername("bernardo")).thenReturn(Optional.of(user));
         when(userService.validatePassword("senhaErrada", user.getPassword())).thenReturn(false);
@@ -77,12 +75,11 @@ public class AuthControllerTest {
 
         ResponseEntity<?> response = authController.login(loginRequest);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("Credenciais inválidas", response.getBody());
+        assertEquals("Credenciais invalidas", response.getBody());
     }
 
     @Test
-    @DisplayName("Falha no login quando usuário não existe")
-    // Valida retorno UNAUTHORIZED ao tentar login para usuário não encontrado
+    @DisplayName("Falha no login quando usuario nao existe")
     void loginDeveFalharUsuarioInexistente() {
         when(userService.findByUsername("inexistente")).thenReturn(Optional.empty());
 
@@ -93,12 +90,11 @@ public class AuthControllerTest {
         ResponseEntity<?> response = authController.login(loginRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("Credenciais inválidas", response.getBody());
+        assertEquals("Credenciais invalidas", response.getBody());
     }
 
     @Test
-    @DisplayName("Refresh válido gera novo access token")
-    // Valida que um refresh token válido não expirado gera novo access token
+    @DisplayName("Refresh valido gera novo access token")
     void refreshDeveGerarNovoAccessToken() {
         String refreshToken = "refreshValido";
 
@@ -113,9 +109,9 @@ public class AuthControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().toString().contains("novoAccessToken"));
     }
+
     @Test
     @DisplayName("Refresh expirado retorna UNAUTHORIZED")
-    // Valida que refresh expirado retorna 401 com mensagem apropriada
     void refreshDeveFalharTokenExpirado() {
         when(jwtUtil.isTokenExpired("expirado")).thenReturn(true);
 
@@ -127,8 +123,7 @@ public class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("Refresh inválido para usuário inexistente")
-    // Valida que refresh para usuário inexistente retorna 401 com mensagem adequada
+    @DisplayName("Refresh invalido para usuario inexistente")
     void refreshDeveFalharUsuarioInexistente() {
         String refreshToken = "refreshTokenValido";
         when(jwtUtil.isTokenExpired(refreshToken)).thenReturn(false);
@@ -137,6 +132,6 @@ public class AuthControllerTest {
         Map<String, String> request = Map.of("refreshToken", refreshToken);
         ResponseEntity<?> response = authController.refresh(request);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("Usuário inválido", response.getBody());
+        assertEquals("Usuario invalido", response.getBody());
     }
 }

@@ -14,7 +14,7 @@ class PositionTest {
 
     @BeforeEach
     void setUp() {
-        position = new Position(1, "Analista", BigDecimal.valueOf(5000));
+        position = new Position(1L, "Analista", BigDecimal.valueOf(5000));
     }
 
     // Testa o ajuste do salário base de um cargo

@@ -1,11 +1,12 @@
 package com.payroll.controller;
 
+import com.payroll.dto.EmployeeDTO;
 import com.payroll.entity.Employee;
 import com.payroll.repository.EmployeeRepository;
 import com.payroll.service.EmployeeService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,75 +22,61 @@ import static org.junit.jupiter.api.Assertions.*;
 class EmployeeControllerTest {
 
     @Autowired
-    private EmployeeRepository employeeRepository; // repository real
+    private EmployeeRepository employeeRepository;
 
     private EmployeeService employeeService;
     private EmployeeController employeeController;
 
     @BeforeEach
     void setUp() throws Exception {
-        // Instancia normalmente
-        employeeService = new EmployeeService(); 
-        employeeController = new EmployeeController(); 
+        employeeService = new EmployeeService();
+        employeeController = new EmployeeController();
 
-        // Injeção do repository no service
         Field repoField = EmployeeService.class.getDeclaredField("employeeRepository");
         repoField.setAccessible(true);
         repoField.set(employeeService, employeeRepository);
 
-        // Injeção do service no controller
         Field serviceField = EmployeeController.class.getDeclaredField("employeeService");
         serviceField.setAccessible(true);
         serviceField.set(employeeController, employeeService);
     }
 
+    private EmployeeDTO buildDTO(String cpf, String position, String name) {
+        EmployeeDTO dto = new EmployeeDTO();
+        dto.cpf = cpf;
+        dto.position = position;
+        dto.name = name;
+        dto.admissionDate = LocalDate.of(2020, 1, 1).toString();
+        dto.baseSalary = new BigDecimal("3000.00");
+        dto.weeklyHours = 40;
+        return dto;
+    }
+
     @Test
     @DisplayName("Lista colaboradores com sucesso")
-    // Valida retorno 200 e corpo não nulo ao listar colaboradores
     void deveListarColaboradoresComSucesso() {
-        ResponseEntity<?> response = employeeController.listEmployees();
+        ResponseEntity<List<EmployeeDTO>> response = employeeController.listEmployees();
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
     }
 
     @Test
     @DisplayName("Cria colaborador com dados obrigatórios")
-    // Valida criação de colaborador com campos mínimos obrigatórios retornando 201
     void deveCriarColaboradorComDadosObrigatorios() {
-        Employee employee = new Employee();
-        employee.setCpf("12345678901");
-        employee.setPosition("Developer");
+        EmployeeDTO dto = buildDTO("12345678901", "Developer", "Bernardo Pereira");
 
-        // Campos obrigatórios para não gerar erro de validação JPA/Hibernate
-        employee.setFullName("Bernardo Pereira"); // usado para não dar erro @NotBlank
-        employee.setRg("MG123456");               // usado para não dar erro @NotBlank
-        employee.setAdmissionDate(LocalDate.of(2020, 1, 1)); // usado para não dar erro @NotNull
-        employee.setSalary(new BigDecimal("3000"));          // usado para não dar erro @NotNull
-        employee.setWeeklyHours(40);                         // usado para não dar erro @NotNull
-
-        ResponseEntity<?> response = employeeController.createEmployee(employee, null);
+        ResponseEntity<?> response = employeeController.createEmployee(dto, null);
 
         assertEquals(201, response.getStatusCode().value());
         assertNotNull(response.getBody());
+        assertTrue(response.getBody() instanceof EmployeeDTO);
     }
 
     @Test
     @DisplayName("Visualiza colaborador por ID retorna 200 ou 404")
-    // Valida que consultar colaborador por ID retorna sucesso ou 404 quando ausente
     void deveVisualizarColaboradorPorIdRetorna200Ou404() {
-        // Primeiro cria um Employee real
-        Employee employee = new Employee();
-        employee.setCpf("12345678902");
-        employee.setPosition("Tester");
-
-        // Campos obrigatórios
-        employee.setFullName("Lucas Silva"); 
-        employee.setRg("MG654321");               
-        employee.setAdmissionDate(LocalDate.of(2021, 5, 10)); 
-        employee.setSalary(new BigDecimal("2500"));          
-        employee.setWeeklyHours(40);                        
-
-        Employee saved = employeeService.createEmployee(employee, null);
+        Employee toPersist = EmployeeDTO.toEntity(buildDTO("12345678902", "Tester", "Lucas Silva"));
+        Employee saved = employeeService.createEmployee(toPersist, null);
 
         ResponseEntity<?> response = employeeController.viewEmployee(saved.getId());
         assertTrue(response.getStatusCode().value() == 200 || response.getStatusCode().value() == 404);
@@ -96,58 +84,25 @@ class EmployeeControllerTest {
 
     @Test
     @DisplayName("Atualiza colaborador e persiste alteração")
-    // Valida atualização de colaborador e persistência do novo cargo
     void deveAtualizarColaboradorComSucesso() {
-        // Criar Employee real
-        Employee employee = new Employee();
-        employee.setCpf("12345678903");
-        employee.setPosition("Intern");
+        Employee base = EmployeeDTO.toEntity(buildDTO("12345678903", "Intern", "Maria Oliveira"));
+        Employee saved = employeeService.createEmployee(base, null);
 
-        // Campos obrigatórios
-        employee.setFullName("Maria Oliveira"); 
-        employee.setRg("MG987654");               
-        employee.setAdmissionDate(LocalDate.of(2022, 3, 15)); 
-        employee.setSalary(new BigDecimal("2000"));          
-        employee.setWeeklyHours(20);                        
+        EmployeeDTO updateDTO = buildDTO("12345678903", "Junior Developer", "Maria Oliveira");
 
-        Employee saved = employeeService.createEmployee(employee, null);
-
-        // Alterações
-        Employee update = new Employee();
-        update.setCpf("12345678903");
-        update.setPosition("Junior Developer");
-
-        // Campos obrigatórios para atualização
-        update.setFullName("Maria Oliveira"); 
-        update.setRg("MG987654");               
-        update.setAdmissionDate(LocalDate.of(2022, 3, 15)); 
-        update.setSalary(new BigDecimal("2000"));          
-        update.setWeeklyHours(20);                        
-
-        ResponseEntity<?> response = employeeController.updateEmployee(saved.getId(), update);
+        ResponseEntity<?> response = employeeController.updateEmployee(saved.getId(), updateDTO);
 
         assertEquals(200, response.getStatusCode().value());
-        Employee updatedEmployee = (Employee) response.getBody();
-        assertEquals("Junior Developer", updatedEmployee.getPosition());
+        EmployeeDTO updatedEmployee = (EmployeeDTO) response.getBody();
+        assertNotNull(updatedEmployee);
+        assertEquals("Junior Developer", updatedEmployee.position);
     }
 
     @Test
     @DisplayName("Deleta colaborador com sucesso")
-    // Valida exclusão de colaborador retornando 200 e mensagem de sucesso
     void deveDeletarColaboradorComSucesso() {
-        // Criar Employee real
-        Employee employee = new Employee();
-        employee.setCpf("12345678904");
-        employee.setPosition("Analyst");
-
-        // Campos obrigatórios
-        employee.setFullName("João Santos"); 
-        employee.setRg("MG112233");               
-        employee.setAdmissionDate(LocalDate.of(2019, 8, 20)); 
-        employee.setSalary(new BigDecimal("2800"));          
-        employee.setWeeklyHours(40);                        
-
-        Employee saved = employeeService.createEmployee(employee, null);
+        Employee base = EmployeeDTO.toEntity(buildDTO("12345678904", "Analyst", "Joao Santos"));
+        Employee saved = employeeService.createEmployee(base, null);
 
         ResponseEntity<?> response = employeeController.deleteEmployee(saved.getId());
 
