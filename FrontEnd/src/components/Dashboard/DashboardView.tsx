@@ -1,16 +1,18 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  Calendar, 
-  Clock, 
-  UserPlus, 
-  Calculator, 
-  FileText, 
+import {
+  Users,
+  Calendar,
+  Clock,
+  UserPlus,
+  Calculator,
+  FileText,
   Settings,
-  TrendingUp
 } from "lucide-react";
 import { UserBadge } from "@/components/Layout/UserBadge";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchDashboardData } from "@/store/slices/dashboardSlice";
 
 interface DashboardViewProps {
   user?: { username?: string | null; email?: string | null } | null;
@@ -19,6 +21,17 @@ interface DashboardViewProps {
 }
 
 export const DashboardView = ({ user, onViewChange, onLogout }: DashboardViewProps) => {
+  const dispatch = useAppDispatch();
+  const { data: dashboard, isLoading } = useAppSelector((state) => state.dashboard);
+
+  useEffect(() => {
+    dispatch(fetchDashboardData());
+  }, [dispatch]);
+
+  const totalEmployees = dashboard?.totalEmployees ?? 0;
+  const lastPayroll = dashboard?.lastPayrollDate ?? "N/A";
+  const pending = dashboard?.pendingCalculations ?? 0;
+
   return (
     <div className="flex-1 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -46,7 +59,9 @@ export const DashboardView = ({ user, onViewChange, onLogout }: DashboardViewPro
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Total de funcionários</p>
-                  <p className="text-3xl font-bold text-gray-900">124</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {isLoading ? "..." : totalEmployees}
+                  </p>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-lg">
                   <Users className="w-6 h-6 text-blue-600" />
@@ -60,7 +75,9 @@ export const DashboardView = ({ user, onViewChange, onLogout }: DashboardViewPro
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Última folha de pagamento</p>
-                  <p className="text-3xl font-bold text-gray-900">Dec 2024</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {isLoading ? "..." : lastPayroll}
+                  </p>
                 </div>
                 <div className="bg-green-100 p-3 rounded-lg">
                   <Calendar className="w-6 h-6 text-green-600" />
@@ -74,7 +91,9 @@ export const DashboardView = ({ user, onViewChange, onLogout }: DashboardViewPro
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Cálculos pendentes</p>
-                  <p className="text-3xl font-bold text-gray-900">8</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {isLoading ? "..." : pending}
+                  </p>
                 </div>
                 <div className="bg-yellow-100 p-3 rounded-lg">
                   <Clock className="w-6 h-6 text-yellow-600" />

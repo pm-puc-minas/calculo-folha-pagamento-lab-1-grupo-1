@@ -186,7 +186,7 @@ export const ReportHistory = ({ items, totalEmployees = 0, loading = false, onDo
                       <Button variant="ghost" size="sm" onClick={() => handleViewReport(report.id)} className="text-primary hover:text-primary">
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onDownload(report.id)} className="text-accent hover:text-accent" disabled={report.status !== 'completed'}>
+                      <Button variant="ghost" size="sm" onClick={() => onDownload(report.id)} className="text-accent hover:text-accent">
                         <Download className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => onDelete(report.id)} className="text-destructive hover:text-destructive">

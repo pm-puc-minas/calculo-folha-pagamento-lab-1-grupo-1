@@ -1,71 +1,68 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, File, Trash2, Download } from "lucide-react";
 
-interface FileEntry {
-  id: string;
-  name: string;
-  uploadedAt: string;
-  size: number;
-}
+import { useEffect, useState } from "react";
+import { ReportHistory, ReportHistoryEntry } from "@/components/Reports/ReportHistory";
+import { reportService } from "@/services/reportService";
+import { employeeService } from "@/services/employeeService";
+import { useToast } from "@/hooks/use-toast";
 
 const HistoryFilesPage = () => {
-  const [reports] = useState<any[]>([]); // TODO: carregar hist�rico real se necess�rio
-  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [items, setItems] = useState<ReportHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const { toast } = useToast();
+
+  const loadHistory = async () => {
+    setLoading(true);
+    try {
+      const data = await reportService.getHistory();
+      setItems(data);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar histórico",
+        description: "Não foi possível carregar os relatórios.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // TODO: Integrar com API: GET /files
-    setFiles([]);
+    loadHistory();
+    employeeService
+      .search("")
+      .then((res) => setTotalEmployees(res.length))
+      .catch(() => setTotalEmployees(0));
   }, []);
+
+  const handleDownload = async (id: string) => {
+    try {
+      await reportService.download(id);
+      toast({ title: "Download iniciado", description: "O arquivo está sendo baixado." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro no download", description: "Não foi possível baixar o relatório." });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await reportService.delete(id);
+      toast({ title: "Relatório excluído", description: "Removido do histórico." });
+      loadHistory();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível excluir o relatório." });
+    }
+  };
 
   return (
     <div className="flex-1 bg-gray-50 min-h-screen p-6 space-y-6">
-      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle>Hist�rico & Arquivos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex items-center gap-2">
-            <Button variant="outline" disabled>
-              <Upload className="w-4 h-4 mr-2" />
-              Enviar Arquivo (aguardando API)
-            </Button>
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Arquivo</TableHead>
-                <TableHead>Enviado em</TableHead>
-                <TableHead>Tamanho</TableHead>
-                <TableHead className="text-right">A��es</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {files.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-sm text-muted-foreground">
-                    Nenhum arquivo enviado ainda
-                  </TableCell>
-                </TableRow>
-              )}
-              {files.map((f) => (
-                <TableRow key={f.id}>
-                  <TableCell className="flex items-center gap-2"><File className="w-4 h-4" /> {f.name}</TableCell>
-                  <TableCell>{new Date(f.uploadedAt).toLocaleString()}</TableCell>
-                  <TableCell>{(f.size / 1024).toFixed(1)} KB</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="sm" disabled><Download className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="sm" disabled><Trash2 className="w-4 h-4" /></Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <ReportHistory
+        items={items}
+        totalEmployees={totalEmployees}
+        loading={loading}
+        onDownload={handleDownload}
+        onDelete={handleDelete}
+      />
     </div>
   );
 };
