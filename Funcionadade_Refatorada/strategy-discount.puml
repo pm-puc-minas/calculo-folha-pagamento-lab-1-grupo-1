@@ -1,0 +1,74 @@
+@startuml
+title Descontos da Folha - Strategy (completo)
+
+
+Atualização com as informações do DIAGRMAA FEITO
+interface DiscountStrategy {
+  +getType(): DiscountType
+  +calculate(ctx: DiscountCalculationContext): BigDecimal
+}
+
+enum DiscountType {
+  INSS
+  IRRF
+  TRANSPORT
+}
+
+class DiscountCalculationContext {
+  grossSalary: BigDecimal
+  inssDiscount: BigDecimal
+  dependents: int
+  transportVoucherValue: BigDecimal
+  transportEnabled: boolean
+  pensionAlimony: BigDecimal
+}
+
+class InssDiscountStrategy {
+  +getType(): DiscountType
+  +calculate(ctx): BigDecimal
+}
+class IrrfDiscountStrategy {
+  +getType(): DiscountType
+  +calculate(ctx): BigDecimal
+}
+class TransportDiscountStrategy {
+  +getType(): DiscountType
+  +calculate(ctx): BigDecimal
+}
+
+class PayrollService {
+  -discountStrategies: List<DiscountStrategy>
+  -discountStrategyMap: Map<DiscountType, DiscountStrategy>
+  +calculatePayroll(employeeId: Long, referenceMonth: String, calculatedBy: Long): PayrollCalculation
+  -strategy(type: DiscountType): DiscountStrategy
+}
+
+class PayrollCalculation {
+  grossSalary: BigDecimal
+  netSalary: BigDecimal
+  inssDiscount: BigDecimal
+  irrfDiscount: BigDecimal
+  transportDiscount: BigDecimal
+}
+
+class Employee {
+  id: Long
+  salary: BigDecimal
+  weeklyHours: int
+  dependents: int
+  transportVoucher: boolean
+  transportVoucherValue: BigDecimal
+}
+
+DiscountStrategy <|.. InssDiscountStrategy
+DiscountStrategy <|.. IrrfDiscountStrategy
+DiscountStrategy <|.. TransportDiscountStrategy
+DiscountStrategy <.. DiscountCalculationContext
+DiscountType <.. DiscountStrategy
+PayrollService "1" o-- "1..*" DiscountStrategy
+PayrollService ..> DiscountCalculationContext
+PayrollService ..> PayrollCalculation : produz
+PayrollService ..> Employee : usa
+DiscountCalculationContext "1" --> "1" PayrollCalculation : preenche dados de cálculo
+
+@enduml

@@ -55,7 +55,7 @@ class EmployeeControllerTest {
     @Test
     @DisplayName("Lista colaboradores com sucesso")
     void deveListarColaboradoresComSucesso() {
-        ResponseEntity<List<EmployeeDTO>> response = employeeController.listEmployees();
+        ResponseEntity<List<EmployeeDTO>> response = employeeController.listEmployees(null);
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
     }

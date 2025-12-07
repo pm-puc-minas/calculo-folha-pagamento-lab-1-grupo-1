@@ -1,7 +1,6 @@
 package com.payroll.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Entity
