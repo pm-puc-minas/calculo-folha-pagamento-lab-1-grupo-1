@@ -35,7 +35,7 @@ export const loginUser = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Login failed');
+      throw new Error('Falha no login');
     }
     
     return response.json();
@@ -52,7 +52,7 @@ export const registerUser = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Registration failed');
+      throw new Error('Falha no registro');
     }
     
     return response.json();
@@ -100,7 +100,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message || 'Login failed';
+        state.error = action.error.message || 'Falha no login';
       })
       // Register cases
       .addCase(registerUser.pending, (state) => {
@@ -112,7 +112,7 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message || 'Registration failed';
+        state.error = action.error.message || 'Falha no registro';
       })
       // Logout cases
       .addCase(logoutUser.fulfilled, (state) => {

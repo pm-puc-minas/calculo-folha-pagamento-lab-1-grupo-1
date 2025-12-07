@@ -91,7 +91,7 @@ const authHeader = () => {
 export const fetchEmployees = createAsyncThunk('employee/fetchEmployees', async () => {
   const response = await fetch('/api/employees', { headers: authHeader() });
   if (!response.ok) {
-    throw new Error('Failed to fetch employees');
+    throw new Error('Não foi possível carregar os funcionários.');
   }
   const data = await response.json();
   return (Array.isArray(data) ? data : []).map(fromApi);
@@ -110,13 +110,13 @@ export const createEmployee = createAsyncThunk(
 
       if (!response.ok) {
         const text = await response.text();
-        return rejectWithValue(text || 'Failed to create employee');
+        return rejectWithValue(text || 'N�o foi poss�vel criar o funcion�rio.');
       }
 
       const data = await response.json();
       return fromApi(data);
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to create employee');
+      return rejectWithValue(err.message || 'N�o foi poss�vel criar o funcion�rio.');
     }
   }
 );
@@ -130,7 +130,7 @@ export const updateEmployee = createAsyncThunk(
       body: JSON.stringify(toApiPayload({ ...data, id } as Employee)),
     });
     if (!response.ok) {
-      throw new Error('Failed to update employee');
+      throw new Error('Não foi possível atualizar o funcionário.');
     }
     const updated = await response.json();
     return fromApi(updated);
@@ -143,7 +143,7 @@ export const deleteEmployee = createAsyncThunk('employee/deleteEmployee', async 
     headers: authHeader(),
   });
   if (!response.ok) {
-    throw new Error('Failed to delete employee');
+    throw new Error('Não foi possível excluir o funcionário.');
   }
   return id;
 });
@@ -151,7 +151,7 @@ export const deleteEmployee = createAsyncThunk('employee/deleteEmployee', async 
 export const fetchEmployeeById = createAsyncThunk('employee/fetchEmployeeById', async (id: number) => {
   const response = await fetch(`/api/employees/${id}`, { headers: authHeader() });
   if (!response.ok) {
-    throw new Error('Failed to fetch employee');
+    throw new Error('Não foi possível carregar o funcionário.');
   }
   const data = await response.json();
   return fromApi(data);
@@ -183,7 +183,7 @@ const employeeSlice = createSlice({
       })
       .addCase(fetchEmployees.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message || 'Failed to fetch employees';
+        state.error = action.error.message || 'Não foi possível carregar os funcionários.';
       })
       .addCase(createEmployee.pending, (state) => {
         state.isLoading = true;
@@ -195,7 +195,7 @@ const employeeSlice = createSlice({
       })
       .addCase(createEmployee.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message || 'Failed to create employee';
+        state.error = action.error.message || 'Não foi possível criar o funcionário.';
       })
       .addCase(updateEmployee.fulfilled, (state, action) => {
         const index = state.employees.findIndex((emp) => emp.id === action.payload.id);

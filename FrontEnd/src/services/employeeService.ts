@@ -1,4 +1,4 @@
-import { Employee } from '@/types/employee';
+import { ReportHistoryEntry } from "@/components/Reports/ReportHistory";
 
 const API_URL = '/api/employees';
 
@@ -8,7 +8,7 @@ const authHeader = () => {
 };
 
 export const employeeService = {
-  search: async (query: string): Promise<Employee[]> => {
+  search: async (query: string): Promise<any[]> => {
     const url = query ? `${API_URL}?search=${encodeURIComponent(query)}` : API_URL;
     const response = await fetch(url, {
       headers: {
@@ -16,10 +16,7 @@ export const employeeService = {
         'Content-Type': 'application/json',
       },
     });
-    if (!response.ok) throw new Error('Falha ao buscar funcionÃ¡rios');
-    
-    // Need to transform the data to match the Employee type if the API returns a DTO
-    // Assuming the API returns a compatible structure or we just use what we need (id, name)
+    if (!response.ok) throw new Error('Não foi possível buscar funcionários.');
     const data = await response.json();
     return data; 
   }

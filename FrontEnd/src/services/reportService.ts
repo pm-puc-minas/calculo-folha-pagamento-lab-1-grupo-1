@@ -25,7 +25,7 @@ export const reportService = {
         'Content-Type': 'application/json',
       },
     });
-    if (!response.ok) throw new Error('Falha ao buscar hist贸rico de relat贸rios');
+    if (!response.ok) throw new Error('N鉶 foi poss韛el carregar o hist髍ico de relat髍ios.');
     return response.json();
   },
 
@@ -38,7 +38,7 @@ export const reportService = {
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Falha ao gerar relat贸rio');
+    if (!response.ok) throw new Error('Erro ao gerar relat髍io. Verifique os campos e tente novamente.');
     return response.json();
   },
 
@@ -49,7 +49,7 @@ export const reportService = {
         ...authHeader(),
       },
     });
-    if (!response.ok) throw new Error('Falha ao excluir relat贸rio');
+    if (!response.ok) throw new Error('N鉶 foi poss韛el excluir o relat髍io.');
   },
 
   download: async (id: string): Promise<void> => {
@@ -58,7 +58,7 @@ export const reportService = {
         ...authHeader(),
       },
     });
-    if (!response.ok) throw new Error('Falha ao baixar relat贸rio');
+    if (!response.ok) throw new Error('N鉶 foi poss韛el baixar o relat髍io.');
     
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);

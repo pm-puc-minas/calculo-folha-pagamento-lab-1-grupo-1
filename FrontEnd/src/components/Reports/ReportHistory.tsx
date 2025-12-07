@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 export interface ReportHistoryEntry {
   id: string;
   employeeId: string;
-  reportType: 'payroll' | 'employee' | 'summary';
+  reportType: "payroll" | "employee" | "summary";
   employeeName: string;
   referenceMonth: string;
   generatedAt: string;
@@ -19,72 +20,87 @@ export interface ReportHistoryEntry {
     email: string;
     role: string;
   };
-  status: 'completed' | 'pending' | 'error';
+  status: "completed" | "pending" | "error";
 }
 
-export const ReportHistory = ({ items, totalEmployees = 0, loading = false, onDownload, onDelete }: { 
-  items: ReportHistoryEntry[]; 
+export const ReportHistory = ({ items, totalEmployees = 0, loading = false, onDownload, onDelete }: {
+  items: ReportHistoryEntry[];
   totalEmployees?: number;
   loading?: boolean;
   onDownload: (id: string) => void;
   onDelete: (id: string) => void;
 }) => {
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateStr).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const formatMonth = (monthStr: string) => {
-    if (!monthStr || !monthStr.includes('-')) return 'MÃªs invÃ¡lido';
-    const [year, month] = monthStr.split('-');
+    if (!monthStr || !monthStr.includes("-")) return "Mês inválido";
+    const [year, month] = monthStr.split("-");
     const date = new Date(parseInt(year), parseInt(month) - 1);
-    return new Intl.DateTimeFormat('pt-BR', { year: 'numeric', month: 'long' }).format(date);
+    return new Intl.DateTimeFormat("pt-BR", { year: "numeric", month: "long" }).format(date);
   };
 
   const getReportTypeLabel = (type: string) => {
     switch (type) {
-      case 'payroll':
-        return 'Folha de Pagamento';
-      case 'employee':
-        return 'Dados do FuncionÃ¡rio';
-      case 'summary':
-        return 'RelatÃ³rio Resumido';
+      case "payroll":
+        return "Folha de Pagamento";
+      case "employee":
+        return "Dados do Funcionário";
+      case "summary":
+        return "Relatório Resumido";
       default:
-        return 'RelatÃ³rio';
+        return "Relatório";
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed':
-        return <Badge className="bg-success text-success-foreground">ConcluÃ­dos</Badge>;
-      case 'pending':
+      case "completed":
+        return <Badge className="bg-success text-success-foreground">Concluídos</Badge>;
+      case "pending":
         return <Badge variant="secondary">Pendente</Badge>;
-      case 'error':
+      case "error":
         return <Badge variant="destructive">Erro</Badge>;
       default:
         return <Badge variant="outline">Desconhecido</Badge>;
     }
   };
 
-  const getUserInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const getUserInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase();
 
-  const handleViewReport = (reportId: string) => {
-    // Implementar visualizaÃ§Ã£o quando API estiver disponÃ­vel
-    toast({
-      title: "Visualizar RelatÃ³rio",
-      description: "Funcionalidade de visualizaÃ§Ã£o serÃ¡ implementada em breve."
-    });
+  const authHeader = () => {
+    const token = localStorage.getItem("accessToken");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const handleViewReport = async (reportId: string) => {
+    try {
+      const response = await fetch(`/api/reports/${reportId}/download`, {
+        headers: { ...authHeader() },
+      });
+      if (!response.ok) throw new Error("Não foi possível baixar o relatório");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      toast({ title: "Relatório aberto", description: "O PDF foi aberto em nova aba." });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error?.message || "Não foi possível visualizar o relatório.",
+      });
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center space-x-3">
@@ -92,68 +108,64 @@ export const ReportHistory = ({ items, totalEmployees = 0, loading = false, onDo
               <FileText className="w-6 h-6 text-white" />
             </div>
             <div>
-              <CardTitle className="text-2xl">HistÃ³rico de RelatÃ³rios</CardTitle>
-              <p className="text-muted-foreground">Acompanhe todos os relatÃ³rios gerados no sistema</p>
+              <CardTitle className="text-2xl">Histórico de Relatórios</CardTitle>
+              <p className="text-muted-foreground">Acompanhe todos os relatórios gerados no sistema</p>
             </div>
           </div>
         </CardHeader>
       </Card>
 
-      {/* Filters and Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardContent className="p-6 text-center">
             <div className="text-2xl font-bold text-primary">{items.length}</div>
-            <div className="text-sm text-muted-foreground">Total de RelatÃ³rios</div>
+            <div className="text-sm text-muted-foreground">Total de Relatórios</div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardContent className="p-6 text-center">
-            <div className="text-2xl font-bold text-success">{items.filter(r => r.status === 'completed').length}</div>
-            <div className="text-sm text-muted-foreground">ConcluÃ­dos</div>
+            <div className="text-2xl font-bold text-success">{items.filter((r) => r.status === "completed").length}</div>
+            <div className="text-sm text-muted-foreground">Concluídos</div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardContent className="p-6 text-center">
             <div className="text-2xl font-bold text-warning">
-              {Math.max(0, totalEmployees - new Set(items.map(r => r.employeeId)).size)}
+              {Math.max(0, totalEmployees - new Set(items.map((r) => r.employeeId)).size)}
             </div>
-            <div className="text-sm text-muted-foreground">FuncionÃ¡rios Pendentes</div>
+            <div className="text-sm text-muted-foreground">Funcionários Pendentes</div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardContent className="p-6 text-center">
-            <div className="text-2xl font-bold text-accent">{new Set(items.map(r => r.generatedBy.id)).size}</div>
-            <div className="text-sm text-muted-foreground">UsuÃ¡rios Ativos</div>
+            <div className="text-2xl font-bold text-accent">{new Set(items.map((r) => r.generatedBy.id)).size}</div>
+            <div className="text-sm text-muted-foreground">Usuários Ativos</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Report History Table */}
       <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Calendar className="w-5 h-5" />
-            <span>HistÃ³rico Detalhado</span>
+            <span>Histórico Detalhado</span>
           </CardTitle>
         </CardHeader>
-        {items.length === 0 && (
-          <div className="text-sm text-muted-foreground p-2">Nenhum relatÃ³rio disponÃ­vel</div>
-        )}
+        {items.length === 0 && <div className="text-sm text-muted-foreground p-2">Nenhum relatório disponível</div>}
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Tipo</TableHead>
-                <TableHead>FuncionÃ¡rio</TableHead>
-                <TableHead>MÃªs ReferÃªncia</TableHead>
+                <TableHead>Funcionário</TableHead>
+                <TableHead>Mês Referência</TableHead>
                 <TableHead>Gerado por</TableHead>
                 <TableHead>Data/Hora</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">AÃ§Ãµes</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -169,9 +181,7 @@ export const ReportHistory = ({ items, totalEmployees = 0, loading = false, onDo
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Avatar className="w-8 h-8">
-                        <AvatarFallback className="text-xs">
-                          {getUserInitials(report.generatedBy.name)}
-                        </AvatarFallback>
+                        <AvatarFallback className="text-xs">{getUserInitials(report.generatedBy.name)}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{report.generatedBy.name}</span>

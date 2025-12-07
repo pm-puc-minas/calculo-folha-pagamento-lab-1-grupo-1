@@ -1,4 +1,4 @@
-ï»¿import { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ const SettingsPage = () => {
     setError(null);
 
     if (newPassword && newPassword !== confirmPassword) {
-      setError("Senhas nao conferem");
+      setError("Senhas não conferem.");
       return;
     }
 
@@ -36,7 +36,7 @@ const SettingsPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Falha ao atualizar perfil");
+        throw new Error("Falha ao atualizar perfil. Verifique a conexão ou o token de acesso.");
       }
 
       const updated = await response.json();
@@ -45,7 +45,7 @@ const SettingsPage = () => {
       setNewPassword("");
       setConfirmPassword("");
     } catch (e: any) {
-      setError(e?.message || "Erro ao salvar dados");
+      setError(e?.message || "Erro ao salvar dados. Tente novamente.");
     }
   };
 
@@ -54,7 +54,7 @@ const SettingsPage = () => {
       <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm max-w-3xl">
         <CardHeader>
           <CardTitle>Meus Dados</CardTitle>
-          <p className="text-sm text-muted-foreground">Edite seus dados de usuario.</p>
+          <p className="text-sm text-muted-foreground">Edite seus dados de usuário.</p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,7 +72,7 @@ const SettingsPage = () => {
           {error && <p className="text-sm text-destructive mt-4">{error}</p>}
 
           <div className="mt-6">
-            <Button onClick={handleSave}>Salvar alteracoes</Button>
+            <Button onClick={handleSave}>Salvar alterações</Button>
           </div>
         </CardContent>
       </Card>

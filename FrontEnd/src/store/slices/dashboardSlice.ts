@@ -46,7 +46,7 @@ export const fetchDashboardData = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Failed to fetch dashboard data');
+      throw new Error('Falha ao carregar dados do dashboard.');
     }
     
     return response.json();
@@ -73,7 +73,7 @@ const dashboardSlice = createSlice({
       })
       .addCase(fetchDashboardData.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message || 'Failed to fetch dashboard data';
+        state.error = action.error.message || 'Falha ao carregar dados do dashboard.';
       });
   },
 });

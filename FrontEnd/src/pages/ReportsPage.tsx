@@ -24,11 +24,11 @@ const ReportsPage = () => {
     try {
       const data = await reportService.getHistory(month);
       setItems(data);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Erro ao carregar histÃ³rico",
-        description: "NÃ£o foi possÃ­vel carregar o histÃ³rico de relatÃ³rios."
+        title: "Erro ao carregar histórico",
+        description: error?.message || "Não foi possível carregar o histórico de relatórios. Verifique a conexão e tente novamente.",
       });
     } finally {
       setLoading(false);
@@ -52,11 +52,16 @@ const ReportsPage = () => {
   }, [month]);
 
   const handleGenerate = async () => {
-    if (!employeeId || !month || !type) {
+    const faltantes: string[] = [];
+    if (!employeeId) faltantes.push("Funcionário");
+    if (!month) faltantes.push("Mês de referência");
+    if (!type) faltantes.push("Tipo de relatório");
+
+    if (faltantes.length > 0) {
       toast({
         variant: "destructive",
-        title: "Campos obrigatÃ³rios",
-        description: "Preencha todos os campos para gerar o relatÃ³rio."
+        title: "Campos obrigatórios",
+        description: `Preencha: ${faltantes.join(", ")}.`,
       });
       return;
     }
@@ -65,18 +70,18 @@ const ReportsPage = () => {
       await reportService.generate({
         employeeId,
         referenceMonth: month,
-        reportType: type
+        reportType: type,
       });
       toast({
         title: "Sucesso",
-        description: "RelatÃ³rio gerado com sucesso!"
+        description: "Relatório gerado com sucesso!",
       });
       fetchHistory();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Falha ao gerar o relatÃ³rio."
+        description: error?.message || "Falha ao gerar o relatório. Tente novamente.",
       });
     }
   };
@@ -86,13 +91,13 @@ const ReportsPage = () => {
       await reportService.download(id);
       toast({
         title: "Download iniciado",
-        description: "O arquivo estÃ¡ sendo baixado."
+        description: "O arquivo está sendo baixado.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erro no download",
-        description: "NÃ£o foi possÃ­vel baixar o relatÃ³rio."
+        description: error?.message || "Não foi possível baixar o relatório.",
       });
     }
   };
@@ -101,15 +106,15 @@ const ReportsPage = () => {
     try {
       await reportService.delete(id);
       toast({
-        title: "RelatÃ³rio excluÃ­do",
-        description: "O relatÃ³rio foi removido do histÃ³rico."
+        title: "Relatório excluído",
+        description: "O relatório foi removido do histórico.",
       });
       fetchHistory();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Erro na exclusÃ£o",
-        description: "NÃ£o foi possÃ­vel excluir o relatÃ³rio."
+        title: "Erro na exclusão",
+        description: error?.message || "Não foi possível excluir o relatório.",
       });
     }
   };
@@ -120,53 +125,46 @@ const ReportsPage = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FileText className="w-5 h-5" />
-            <span>Gerar RelatÃ³rio</span>
+            <span>Gerar Relatório</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div className="space-y-2">
-              <label className="text-sm font-medium">MÃªs de ReferÃªncia</label>
-              <Input 
-                type="month" 
-                value={month} 
-                onChange={(e) => setMonth(e.target.value)} 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">FuncionÃ¡rio</label>
-              <EmployeeCombobox 
-                value={employeeId} 
-                onChange={setEmployeeId} 
-              />
+              <label className="text-sm font-medium">Mês de Referência</label>
+              <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de RelatÃ³rio</label>
+              <label className="text-sm font-medium">Funcionário</label>
+              <EmployeeCombobox value={employeeId} onChange={setEmployeeId} />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de Relatório</label>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="payroll">Folha de Pagamento</SelectItem>
-                  <SelectItem value="employee">Dados do FuncionÃ¡rio</SelectItem>
+                  <SelectItem value="employee">Dados do Funcionário</SelectItem>
                   <SelectItem value="summary">Resumido</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <Button onClick={handleGenerate} className="w-full">
-              Gerar RelatÃ³rio
+              Gerar Relatório
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      <ReportHistory 
-        items={items} 
+      <ReportHistory
+        items={items}
         totalEmployees={totalEmployees}
-        loading={loading} 
+        loading={loading}
         onDownload={handleDownload}
         onDelete={handleDelete}
       />

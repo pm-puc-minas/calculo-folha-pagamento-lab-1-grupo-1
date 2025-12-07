@@ -75,7 +75,7 @@ export const fetchPayrolls = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Failed to fetch payrolls');
+      throw new Error('Não foi possível carregar folhas');
     }
     
     return response.json();
@@ -93,7 +93,7 @@ export const calculatePayroll = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Failed to calculate payroll');
+      throw new Error('Não foi possível calcular a folha');
     }
     
     return response.json();
@@ -109,7 +109,7 @@ export const fetchPayrollById = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Failed to fetch payroll');
+      throw new Error('Não foi possível carregar a folha');
     }
     
     return response.json();
@@ -125,7 +125,7 @@ export const fetchPayrollsByEmployee = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Failed to fetch employee payrolls');
+      throw new Error('Não foi possível carregar as folhas do funcionário');
     }
     
     return response.json();
@@ -142,7 +142,7 @@ export const fetchReports = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Failed to fetch reports');
+      throw new Error('Não foi possível carregar relatórios');
     }
     
     // Backend returns List<Report> directly, not { data: ... } envelope unless configured otherwise
@@ -169,7 +169,7 @@ export const generateReport = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Failed to generate report');
+      throw new Error('Não foi possível gerar o relatório');
     }
     
     return response.json();
@@ -186,7 +186,7 @@ export const deleteReport = createAsyncThunk(
     });
     
     if (!response.ok) {
-      throw new Error('Failed to delete report');
+      throw new Error('Não foi possível excluir o relatório');
     }
     
     return id;
@@ -227,7 +227,7 @@ const payrollSlice = createSlice({
       })
       .addCase(fetchPayrolls.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message || 'Failed to fetch payrolls';
+        state.error = action.error.message || 'Não foi possível carregar folhas';
       })
       // Calculate payroll
       .addCase(calculatePayroll.pending, (state) => {
@@ -241,7 +241,7 @@ const payrollSlice = createSlice({
       })
       .addCase(calculatePayroll.rejected, (state, action) => {
         state.calculationInProgress = false;
-        state.error = action.error.message || 'Failed to calculate payroll';
+        state.error = action.error.message || 'Não foi possível calcular a folha';
       })
       // Fetch payroll by ID
       .addCase(fetchPayrollById.fulfilled, (state, action) => {
@@ -267,7 +267,7 @@ const payrollSlice = createSlice({
       })
       .addCase(fetchReports.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message || 'Failed to fetch reports';
+        state.error = action.error.message || 'Não foi possível carregar relatórios';
       })
       .addCase(generateReport.fulfilled, (state, action) => {
         state.reportHistory.unshift(action.payload);
