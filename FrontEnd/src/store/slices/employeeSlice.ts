@@ -97,19 +97,29 @@ export const fetchEmployees = createAsyncThunk('employee/fetchEmployees', async 
   return (Array.isArray(data) ? data : []).map(fromApi);
 });
 
-export const createEmployee = createAsyncThunk('employee/createEmployee', async (employeeData: Employee) => {
-  const payload = toApiPayload(employeeData);
-  const response = await fetch('/api/employees', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeader() },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to create employee');
+export const createEmployee = createAsyncThunk(
+  'employee/createEmployee',
+  async (employeeData: Employee, { rejectWithValue }) => {
+    try {
+      const payload = toApiPayload(employeeData);
+      const response = await fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        return rejectWithValue(text || 'Failed to create employee');
+      }
+
+      const data = await response.json();
+      return fromApi(data);
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to create employee');
+    }
   }
-  const data = await response.json();
-  return fromApi(data);
-});
+);
 
 export const updateEmployee = createAsyncThunk(
   'employee/updateEmployee',

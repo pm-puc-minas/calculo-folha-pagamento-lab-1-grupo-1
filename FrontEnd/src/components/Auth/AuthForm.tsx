@@ -175,18 +175,13 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="remember"
-                        checked={rememberMe}
-                        onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                      />
-                      <Label htmlFor="remember" className="text-sm">Lembrar-me</Label>
-                    </div>
-                    <Button variant="link" className="text-sm text-blue-600 p-0">
-                      Esqueceu a senha?
-                    </Button>
+                  <div className="flex items-center">
+                    <Checkbox
+                      id="remember"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    />
+                    <Label htmlFor="remember" className="text-sm ml-2">Lembrar-me</Label>
                   </div>
                   
                   <Button type="submit" className="w-full" disabled={isLoading}>

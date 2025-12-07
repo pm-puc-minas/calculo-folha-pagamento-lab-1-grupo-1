@@ -236,7 +236,8 @@ export const EmployeeRegistration = ({ onViewChange, user }: EmployeeRegistratio
         });
         setNetSalary("0.00");
       } else {
-        toast.error("Erro ao salvar funcionário: " + (resultAction.payload || "Erro desconhecido"));
+        const msg = (resultAction.payload as string) || resultAction.error?.message || "Erro desconhecido";
+        toast.error("Erro ao salvar funcionário: " + msg);
       }
     } catch (error) {
       console.error("Failed to save employee:", error);
