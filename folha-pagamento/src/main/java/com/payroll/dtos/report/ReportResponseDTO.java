@@ -24,6 +24,7 @@ public class ReportResponseDTO {
         public Long getId() { return id; }
         public String getName() { return name; }
         public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
     }
 
     // Getters and Setters

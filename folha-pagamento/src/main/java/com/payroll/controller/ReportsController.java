@@ -1,6 +1,7 @@
 package com.payroll.controller;
 
-import com.payroll.entity.Report;
+import com.payroll.dtos.report.ReportRequestDTO;
+import com.payroll.dtos.report.ReportResponseDTO;
 import com.payroll.service.ReportsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -8,6 +9,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -19,25 +22,35 @@ public class ReportsController {
     private ReportsService reportsService;
 
     @GetMapping("/history")
-    public ResponseEntity<List<Report>> getHistory(
+    public ResponseEntity<List<ReportResponseDTO>> getHistory(
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) String referenceMonth,
             @RequestParam(required = false) String type) {
         return ResponseEntity.ok(reportsService.getHistory(employeeId, referenceMonth, type));
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<Report> createReport(
-            @RequestBody com.payroll.dtos.ReportRequestDTO request,
+    @PostMapping({"", "/", "/create"})
+    public ResponseEntity<ReportResponseDTO> createReport(
+            @RequestBody ReportRequestDTO request,
             Authentication authentication) {
-        String username = authentication.getName();
+        // Pode chegar sem autenticaçãõ, pois /api/reports é liberado no SecurityConfig.
+        String username = authentication != null ? authentication.getName() : null;
+        if (request.getEmployeeId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "employeeId é obrigatório");
+        }
         String referenceMonth = request.getReferenceMonth();
+        String type = request.getType();
         
         // If type is EMPLOYEE, referenceMonth might be null or current month
-        if (referenceMonth == null) {
+        if (referenceMonth == null || referenceMonth.isBlank()) {
             referenceMonth = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
         }
-        return ResponseEntity.ok(reportsService.createReport(request.getEmployeeId(), referenceMonth, request.getType(), username));
+        if (type == null || type.isBlank()) {
+            type = "PAYROLL";
+        }
+
+        return ResponseEntity.ok(
+                reportsService.createReportDto(request.getEmployeeId(), referenceMonth, type, username));
     }
 
     @GetMapping("/{id}/download")
@@ -68,7 +81,7 @@ public class ReportsController {
         }
     }
 
-    @DeleteMapping("/{id}/delete")
+    @DeleteMapping({"/{id}", "/{id}/delete"})
     public ResponseEntity<Void> deleteReport(@PathVariable Long id) {
         reportsService.deleteReport(id);
         return ResponseEntity.ok().build();
