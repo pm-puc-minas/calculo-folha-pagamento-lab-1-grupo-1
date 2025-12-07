@@ -5,71 +5,27 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Interface para serviço de usuários
+ * Interface para serviÇõÃ§o de usuÃ¡rios
  */
 public interface IUserService {
-    
-    /**
-     * Cria novo usuário
-     * @param user Dados do usuário
-     * @param adminId ID do admin que criou
-     * @return Usuário criado
-     */
+
     User createUser(User user, Long adminId);
-    
-    /**
-     * Busca usuário por username
-     * @param username Username a buscar
-     * @return Optional com usuário
-     */
     Optional<User> findByUsername(String username);
-    
-    /**
-     * Busca usuário por email
-     * @param email Email a ser buscado
-     * @return Optional com usuário
-     */
     Optional<User> findByEmail(String email);
-    
-    /**
-     * Lista todos os usuários
-     * @return listagem dos usuários
-     */
     List<User> getAllUsers();
-    
-    /**
-     * Verifica se username já existe
-     * @param username Username a verificar
-     * @return true se existe
-     */
     boolean existsByUsername(String username);
-    
-    /**
-     * Verifica se tememail 
-     * @param email Email a verificacao
-     * @return true se tem email
-     */
     boolean existsByEmail(String email);
-    
-    /**
-     * Valida senha
-     * @param rawPassword Senha 
-     * @param encodedPassword Senha codificada
-     * @return true se senha for realmente válida
-     */
     boolean validatePassword(String rawPassword, String encodedPassword);
-    
-    /**
-     * att usuário
-     * @param id id usuario pra att
-     * @param userDetails Dados atualizados
-     * @return Usuário att
-     */
     User updateUser(Long id, User userDetails);
-    
-    /**
-     * Deleta usuário
-     * @param id id usuario pra delete
-     */
     void deleteUser(Long id);
+
+    User updateUsernamePassword(String currentUsername, String newUsername, String newPassword);
+
+    /**
+     * Atualiza apenas a senha do usuario autenticado.
+     * @param currentUsername username atual (do token)
+     * @param newPassword nova senha (obrigatoria)
+     * @return usuario atualizado
+     */
+    User updatePassword(String currentUsername, String newPassword);
 }
