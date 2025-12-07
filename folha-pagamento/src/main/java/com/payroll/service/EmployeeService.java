@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.payroll.collections.CollectionOps;
-import com.payroll.collections.FilterSpec;
 import com.payroll.collections.GroupBySpec;
 
 @Service
@@ -31,7 +30,7 @@ public class EmployeeService implements IEmployeeService {
             employee.setCreatedBy(createdBy);
             return employeeRepository.save(employee);
         } catch (DataIntegrityViolationException e) {
-            throw new DataIntegrityBusinessException("Violação de integridade ao criar funcionário", e);
+            throw new DataIntegrityBusinessException("Funcionario com CPF ja cadastrado", e);
         } catch (DataAccessResourceFailureException e) {
             throw new DatabaseConnectionException("Falha de conexão ao criar funcionário", e);
         }

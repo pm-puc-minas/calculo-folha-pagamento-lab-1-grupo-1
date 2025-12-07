@@ -16,13 +16,15 @@ import com.payroll.entity.Employee;
 import com.payroll.repository.PayrollCalculationRepository;
 import com.payroll.repository.EmployeeRepository;
 import com.payroll.collections.CollectionOps;
-import com.payroll.collections.FilterSpec;
 import com.payroll.collections.GroupBySpec;
 import com.payroll.exception.DataIntegrityBusinessException;
 import com.payroll.exception.DatabaseConnectionException;
 import com.payroll.exception.InputValidationException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
+import com.payroll.service.discount.DiscountCalculationContext;
+import com.payroll.service.discount.DiscountStrategy;
+import com.payroll.service.discount.DiscountType;
 
 @Service
 public class PayrollService implements IPayrollService {
@@ -35,6 +37,11 @@ public class PayrollService implements IPayrollService {
 
     @Autowired
     private ReportsService reportsService;
+
+    @Autowired
+    private List<DiscountStrategy> discountStrategies;
+
+    private Map<DiscountType, DiscountStrategy> discountStrategyMap;
 
     @Override
     public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long calculatedBy) {
@@ -90,13 +97,22 @@ public class PayrollService implements IPayrollService {
 
         BigDecimal grossSalary = baseSalary.add(dangerousBonus).add(unhealthyBonus).add(mealVoucher).add(overtimeValue);
 
-        BigDecimal inssDiscount = calcularINSS(grossSalary);
-        BigDecimal transportVoucher = employee.getTransportVoucher() != null && employee.getTransportVoucher()
-                ? grossSalary.multiply(PayrollConstants.TRANSPORTE_RATE)
-                : BigDecimal.ZERO;
+        DiscountCalculationContext ctx = new DiscountCalculationContext()
+                .setGrossSalary(grossSalary)
+                .setDependents(dependents)
+                .setTransportEnabled(Boolean.TRUE.equals(employee.getTransportVoucher()))
+                .setPensionAlimony(BigDecimal.ZERO);
 
-        BigDecimal irrfDiscount = calcularIRRF(grossSalary, inssDiscount, dependents, BigDecimal.ZERO);
-        BigDecimal transportDiscount = calcularDescontoValeTransporte(grossSalary, transportVoucher);
+        BigDecimal transportValue = nz(employee.getTransportVoucherValue());
+        if (transportValue.compareTo(BigDecimal.ZERO) <= 0) {
+            transportValue = grossSalary.multiply(PayrollConstants.TRANSPORTE_RATE);
+        }
+        ctx.setTransportVoucherValue(transportValue);
+
+        BigDecimal inssDiscount = strategy(DiscountType.INSS).calculate(ctx);
+        ctx.setInssDiscount(inssDiscount);
+        BigDecimal irrfDiscount = strategy(DiscountType.IRRF).calculate(ctx);
+        BigDecimal transportDiscount = strategy(DiscountType.TRANSPORT).calculate(ctx);
 
         calculation.setHourlyWage(hourlyWage);
         calculation.setDangerousBonus(dangerousBonus.setScale(2, RoundingMode.HALF_UP));
@@ -195,9 +211,11 @@ public class PayrollService implements IPayrollService {
 
     @Override
     public BigDecimal calcularDescontoValeTransporte(BigDecimal salarioBruto, BigDecimal valorEntregue) {
-        if (salarioBruto == null || valorEntregue == null) return BigDecimal.ZERO;
-        BigDecimal descontoMaximo = salarioBruto.multiply(PayrollConstants.TRANSPORTE_RATE);
-        return valorEntregue.min(descontoMaximo).setScale(2, RoundingMode.HALF_UP);
+        DiscountCalculationContext ctx = new DiscountCalculationContext()
+                .setGrossSalary(salarioBruto)
+                .setTransportVoucherValue(valorEntregue)
+                .setTransportEnabled(valorEntregue != null && valorEntregue.compareTo(BigDecimal.ZERO) > 0);
+        return strategy(DiscountType.TRANSPORT).calculate(ctx);
     }
 
     @Override
@@ -208,25 +226,8 @@ public class PayrollService implements IPayrollService {
 
     @Override
     public BigDecimal calcularINSS(BigDecimal salarioContribuicao) {
-        if (salarioContribuicao == null || salarioContribuicao.compareTo(BigDecimal.ZERO) <= 0)
-            return BigDecimal.ZERO;
-
-        BigDecimal totalDesconto = BigDecimal.ZERO;
-        BigDecimal salarioRestante = salarioContribuicao;
-
-        for (int i = 0; i < PayrollConstants.INSS_LIMITS.length && salarioRestante.compareTo(BigDecimal.ZERO) > 0; i++) {
-            BigDecimal limite = PayrollConstants.INSS_LIMITS[i];
-            BigDecimal limiteAnterior = i > 0 ? PayrollConstants.INSS_LIMITS[i - 1] : BigDecimal.ZERO;
-            BigDecimal valorTributavel = salarioRestante.min(limite.subtract(limiteAnterior));
-
-            if (valorTributavel.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal desconto = valorTributavel.multiply(PayrollConstants.INSS_RATES[i]);
-                totalDesconto = totalDesconto.add(desconto);
-                salarioRestante = salarioRestante.subtract(valorTributavel);
-            }
-        }
-
-        return totalDesconto.setScale(2, RoundingMode.HALF_UP);
+        DiscountCalculationContext ctx = new DiscountCalculationContext().setGrossSalary(salarioContribuicao);
+        return strategy(DiscountType.INSS).calculate(ctx);
     }
 
     @Override
@@ -238,37 +239,12 @@ public class PayrollService implements IPayrollService {
 
     @Override
     public BigDecimal calcularIRRF(BigDecimal salarioBruto, BigDecimal descontoINSS, int numDependentes, BigDecimal pensaoAlimenticia) {
-        if (salarioBruto == null || descontoINSS == null) return BigDecimal.ZERO;
-
-        BigDecimal deducaoDependentes = PayrollConstants.DEDUCAO_DEPENDENTE.multiply(new BigDecimal(numDependentes));
-        BigDecimal pensao = pensaoAlimenticia != null ? pensaoAlimenticia : BigDecimal.ZERO;
-        BigDecimal baseCalculo = salarioBruto.subtract(descontoINSS).subtract(deducaoDependentes).subtract(pensao);
-
-        if (baseCalculo.compareTo(PayrollConstants.IRPF_ISENTO) <= 0) return BigDecimal.ZERO;
-
-        BigDecimal totalIRRF = BigDecimal.ZERO;
-        BigDecimal baseRestante = baseCalculo;
-
-        for (int i = 0; i < PayrollConstants.IRPF_LIMITS.length && baseRestante.compareTo(BigDecimal.ZERO) > 0; i++) {
-            BigDecimal limite = PayrollConstants.IRPF_LIMITS[i];
-            BigDecimal limiteAnterior = i > 0 ? PayrollConstants.IRPF_LIMITS[i - 1] : BigDecimal.ZERO;
-
-            if (baseCalculo.compareTo(limite) > 0) {
-                BigDecimal valorTributavel = limite.subtract(limiteAnterior);
-                totalIRRF = totalIRRF.add(valorTributavel.multiply(PayrollConstants.IRPF_RATES[i]));
-                baseRestante = baseRestante.subtract(valorTributavel);
-            } else {
-                BigDecimal valorTributavel = baseCalculo.subtract(limiteAnterior);
-                totalIRRF = totalIRRF.add(valorTributavel.multiply(PayrollConstants.IRPF_RATES[i]));
-                break;
-            }
-        }
-
-        if (baseRestante.compareTo(BigDecimal.ZERO) > 0) {
-            totalIRRF = totalIRRF.add(baseRestante.multiply(PayrollConstants.IRPF_RATES[PayrollConstants.IRPF_RATES.length - 1]));
-        }
-
-        return totalIRRF.setScale(2, RoundingMode.HALF_UP);
+        DiscountCalculationContext ctx = new DiscountCalculationContext()
+                .setGrossSalary(salarioBruto)
+                .setInssDiscount(descontoINSS)
+                .setDependents(numDependentes)
+                .setPensionAlimony(pensaoAlimenticia);
+        return strategy(DiscountType.IRRF).calculate(ctx);
     }
 
     @Override
@@ -343,5 +319,13 @@ public class PayrollService implements IPayrollService {
             if (fgts != null) total = total.add(fgts);
             return total;
         });
+    }
+
+    private DiscountStrategy strategy(DiscountType type) {
+        if (discountStrategyMap == null) {
+            discountStrategyMap = discountStrategies.stream()
+                    .collect(Collectors.toMap(DiscountStrategy::getType, s -> s));
+        }
+        return discountStrategyMap.get(type);
     }
 }
