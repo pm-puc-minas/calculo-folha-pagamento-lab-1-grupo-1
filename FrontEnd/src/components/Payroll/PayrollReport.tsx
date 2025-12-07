@@ -1,11 +1,11 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Download, User, Calendar, Building } from "lucide-react";
+import { FileText, Download, User, Calendar } from "lucide-react";
 import { PayrollCalculation } from "@/types/employee";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { toast } from "@/hooks/use-toast";
 
 interface PayrollReportProps {
@@ -14,43 +14,43 @@ interface PayrollReportProps {
 
 export const PayrollReport = ({ calculation }: PayrollReportProps) => {
   const { employee } = calculation;
-  
+
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
   const formatPercentage = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'percent',
+    return new Intl.NumberFormat("pt-BR", {
+      style: "percent",
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(value);
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR');
+    return new Date(dateStr).toLocaleDateString("pt-BR");
   };
 
   const formatMonth = (monthStr: string) => {
-    if (!monthStr || !monthStr.includes('-')) {
-      return 'Mês inválido';
+    if (!monthStr || !monthStr.includes("-")) {
+      return "Mês inválido";
     }
-    
-    const [year, month] = monthStr.split('-');
-    const yearNum = parseInt(year);
-    const monthNum = parseInt(month);
-    
+
+    const [year, month] = monthStr.split("-");
+    const yearNum = parseInt(year, 10);
+    const monthNum = parseInt(month, 10);
+
     if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
-      return 'Mês inválido';
+      return "Mês inválido";
     }
-    
+
     const date = new Date(yearNum, monthNum - 1);
-    return new Intl.DateTimeFormat('pt-BR', { 
-      year: 'numeric', 
-      month: 'long' 
+    return new Intl.DateTimeFormat("pt-BR", {
+      year: "numeric",
+      month: "long",
     }).format(date);
   };
 
@@ -60,54 +60,48 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
 
   const handleExportPDF = async () => {
     try {
-      // Show loading toast
       toast({
         title: "Gerando PDF",
         description: "Por favor, aguarde enquanto o PDF é gerado...",
       });
 
-      // Create the PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const element = document.getElementById('payroll-report-content');
-      
+      const pdf = new jsPDF("p", "mm", "a4");
+      const element = document.getElementById("payroll-report-content");
+
       if (!element) {
-        throw new Error('Elemento do relatório não encontrado');
+        throw new Error("Elemento do relatório não encontrado");
       }
 
-      // Generate canvas from HTML element
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff',
+        backgroundColor: "#ffffff",
         height: element.scrollHeight,
-        width: element.scrollWidth
+        width: element.scrollWidth,
       });
 
-      const imgData = canvas.toDataURL('image/png');
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = 210;
+      const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
-
       let position = 0;
 
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
-      // Add additional pages if needed
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
 
-      // Generate filename
-      const filename = `folha-pagamento-${calculation.employee.name.replace(/\s+/g, '-').toLowerCase()}-${calculation.referenceMonth}.pdf`;
-      
-      // Download the PDF
+      const filename = `folha-pagamento-${calculation.employee.name
+        .replace(/\s+/g, "-")
+        .toLowerCase()}-${calculation.referenceMonth}.pdf`;
+
       pdf.save(filename);
 
       toast({
@@ -115,11 +109,11 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
         description: `O relatório foi baixado como "${filename}"`,
       });
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      console.error("Erro ao gerar PDF:", error);
       toast({
         title: "Erro ao gerar PDF",
         description: "Ocorreu um erro durante a geração do PDF. Tente novamente.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -142,18 +136,14 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button 
-                onClick={handleExportPDF} 
+              <Button
+                onClick={handleExportPDF}
                 className="bg-gradient-to-r from-primary to-accent text-white hover:opacity-90"
               >
                 <Download className="w-4 h-4 mr-2" />
                 <span>Exportar PDF</span>
               </Button>
-              <Button 
-                onClick={handlePrint} 
-                variant="outline"
-                className="hidden md:flex items-center space-x-2"
-              >
+              <Button onClick={handlePrint} variant="outline" className="hidden md:flex items-center space-x-2">
                 <FileText className="w-4 h-4" />
                 <span>Imprimir</span>
               </Button>
@@ -214,7 +204,7 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
         {/* Income */}
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-success">💰 Proventos</CardTitle>
+            <CardTitle className="text-lg text-success">Proventos</CardTitle>
             <CardDescription>Valores que compõem o salário bruto</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -222,21 +212,21 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
               <span>Salário Base</span>
               <span className="font-semibold text-success">{formatCurrency(employee.grossSalary)}</span>
             </div>
-            
+
             {calculation.dangerousBonus > 0 && (
               <div className="flex justify-between items-center">
                 <span>Adicional de Periculosidade (30%)</span>
                 <span className="font-semibold text-success">{formatCurrency(calculation.dangerousBonus)}</span>
               </div>
             )}
-            
+
             {calculation.unhealthyBonus > 0 && (
               <div className="flex justify-between items-center">
                 <span>Adicional de Insalubridade</span>
                 <span className="font-semibold text-success">{formatCurrency(calculation.unhealthyBonus)}</span>
               </div>
             )}
-            
+
             <Separator />
             <div className="flex justify-between items-center font-bold text-lg">
               <span>Total Bruto</span>
@@ -248,44 +238,42 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
         {/* Deductions */}
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-destructive">📉 Descontos</CardTitle>
+            <CardTitle className="text-lg text-destructive">Descontos</CardTitle>
             <CardDescription>Valores descontados do salário</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <div>
                 <span>INSS</span>
-                <span className="text-xs text-muted-foreground ml-1">
-                  ({formatPercentage(calculation.inssEffectiveRate)})
-                </span>
+                <span className="text-xs text-muted-foreground ml-1">({formatPercentage(calculation.inssEffectiveRate)})</span>
               </div>
               <span className="font-semibold text-destructive">-{formatCurrency(calculation.inssDiscount)}</span>
             </div>
-            
+
             {calculation.irpfDiscount > 0 && (
               <div className="flex justify-between items-center">
                 <div>
                   <span>IRRF</span>
-                  <span className="text-xs text-muted-foreground ml-1">
-                    ({formatPercentage(calculation.irpfEffectiveRate)})
-                  </span>
+                  <span className="text-xs text-muted-foreground ml-1">({formatPercentage(calculation.irpfEffectiveRate)})</span>
                 </div>
                 <span className="font-semibold text-destructive">-{formatCurrency(calculation.irpfDiscount)}</span>
               </div>
             )}
-            
+
             {calculation.transportVoucherDiscount > 0 && (
               <div className="flex justify-between items-center">
                 <span>Vale Transporte (máx. 6%)</span>
                 <span className="font-semibold text-destructive">-{formatCurrency(calculation.transportVoucherDiscount)}</span>
               </div>
             )}
-            
+
             <Separator />
             <div className="flex justify-between items-center font-bold text-lg">
               <span>Total Descontos</span>
               <span className="text-destructive">
-                -{formatCurrency(calculation.inssDiscount + calculation.irpfDiscount + calculation.transportVoucherDiscount)}
+                -{formatCurrency(
+                  calculation.inssDiscount + calculation.irpfDiscount + calculation.transportVoucherDiscount
+                )}
               </span>
             </div>
           </CardContent>
@@ -296,7 +284,7 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
       {(calculation.transportVoucher > 0 || calculation.mealVoucher > 0) && (
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-accent">🎁 Benefícios</CardTitle>
+            <CardTitle className="text-lg text-accent">Benefícios</CardTitle>
             <CardDescription>Benefícios concedidos ao funcionário</CardDescription>
           </CardHeader>
           <CardContent>
@@ -310,13 +298,13 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
                   </div>
                 </div>
               )}
-              
+
               {calculation.mealVoucher > 0 && (
                 <div className="space-y-2">
                   <p className="font-medium">Vale Alimentação</p>
                   <div className="text-sm text-muted-foreground">
                     <p>Valor mensal: {formatCurrency(calculation.mealVoucher)}</p>
-                    <p>Diário: {formatCurrency(employee.mealVoucherDaily)} × {employee.workDaysInMonth} dias</p>
+                    <p>Diário: {formatCurrency(employee.mealVoucherDaily)} — {employee.workDaysInMonth} dias</p>
                   </div>
                 </div>
               )}
@@ -330,7 +318,7 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
         {/* Final Summary */}
         <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
           <CardHeader>
-            <CardTitle className="text-xl">💼 Resumo Final</CardTitle>
+            <CardTitle className="text-xl">Resumo Final</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
@@ -341,7 +329,9 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
               <div className="flex justify-between items-center text-lg">
                 <span className="font-medium">Total Descontos</span>
                 <span className="font-bold text-destructive">
-                  -{formatCurrency(calculation.inssDiscount + calculation.irpfDiscount + calculation.transportVoucherDiscount)}
+                  -{formatCurrency(
+                    calculation.inssDiscount + calculation.irpfDiscount + calculation.transportVoucherDiscount
+                  )}
                 </span>
               </div>
               <Separator className="bg-primary/20" />
@@ -356,7 +346,7 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
         {/* Calculation Details */}
         <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg">⏰ Detalhes do Cálculo</CardTitle>
+            <CardTitle className="text-lg">Detalhes do Cálculo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3 text-sm">
@@ -400,18 +390,11 @@ export const PayrollReport = ({ calculation }: PayrollReportProps) => {
 
       {/* Action buttons for mobile */}
       <div className="md:hidden space-y-2">
-        <Button 
-          onClick={handleExportPDF} 
-          className="w-full bg-gradient-to-r from-primary to-accent"
-        >
+        <Button onClick={handleExportPDF} className="w-full bg-gradient-to-r from-primary to-accent">
           <Download className="w-4 h-4 mr-2" />
           Exportar PDF
         </Button>
-        <Button 
-          onClick={handlePrint} 
-          variant="outline"
-          className="w-full"
-        >
+        <Button onClick={handlePrint} variant="outline" className="w-full">
           <FileText className="w-4 h-4 mr-2" />
           Imprimir Demonstrativo
         </Button>

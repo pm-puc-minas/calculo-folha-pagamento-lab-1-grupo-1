@@ -582,7 +582,33 @@ export const EmployeeRegistration = ({ onViewChange, user }: EmployeeRegistratio
                   <Save className="w-4 h-4 mr-2" />
                   {isSubmitting ? "Salvando..." : "Salvar funcionário"}
                 </Button>
-                <Button variant="outline">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!formData.fullName || !formData.cpf || !formData.position || !formData.grossSalary) {
+                      toast.error("Preencha os dados principais (nome, CPF, cargo, salário) para gerar o contracheque.");
+                      return;
+                    }
+                    const linhas = [
+                      `Contracheque`,
+                      `Nome: ${formData.fullName}`,
+                      `CPF: ${formData.cpf}`,
+                      `Cargo: ${formData.position}`,
+                      `Salário Bruto: R$ ${formData.grossSalary}`,
+                      `Salário Líquido (simulado): R$ ${netSalary}`,
+                    ];
+                    const blob = new Blob([linhas.join("\n")], { type: "text/plain" });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `contracheque-${formData.fullName.replace(/\s+/g, "-").toLowerCase()}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    toast.success("Contracheque gerado para download.");
+                  }}
+                >
                   <Eye className="w-4 h-4 mr-2" />
                   Contracheque
                 </Button>

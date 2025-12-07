@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Play, Save, FileDown, Calculator, Check, ChevronsUpDown, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { UserBadge } from "@/components/Layout/UserBadge";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchEmployees } from "@/store/slices/employeeSlice";
@@ -98,8 +100,45 @@ export const PayrollCalculation = ({ user }: PayrollCalculationProps) => {
     toast.success("Cálculo salvo com sucesso!");
   };
 
-  const handleExportPDF = () => {
-    toast.success("PDF exportado com sucesso!");
+  const handleExportPDF = async () => {
+    if (!calculationResult) {
+      toast.error("Calcule a folha antes de exportar o PDF.");
+      return;
+    }
+
+    try {
+      toast.success("Gerando PDF...");
+      const element = document.getElementById("payroll-calculation-content");
+      if (!element) {
+        throw new Error("Conteúdo do cálculo não encontrado.");
+      }
+
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const filename = `calculo-folha-${calculationResult.employee?.name || "funcionario"}-${payrollPeriod || "mes"}.pdf`;
+      pdf.save(filename);
+      toast.success("PDF exportado com sucesso!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Erro ao exportar PDF.");
+    }
   };
 
   // Derived values for display
@@ -136,7 +175,7 @@ export const PayrollCalculation = ({ user }: PayrollCalculationProps) => {
   const baseSalary = parseFloat(grossSalary);
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen">
+    <div className="flex-1 bg-gray-50 min-h-screen" id="payroll-calculation-content">
       {/* Header */}
       <header className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
