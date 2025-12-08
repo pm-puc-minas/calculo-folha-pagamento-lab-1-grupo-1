@@ -1,18 +1,34 @@
 package com.payroll.dtos.dashboard;
 
+/*
+ * Objeto de Transferência de Dados (DTO) para o Dashboard Principal.
+ * Agrega indicadores chave de desempenho (KPIs), métricas financeiras
+ * e resumos estatísticos para fornecer uma visão geral do sistema na tela inicial.
+ */
+
 import java.util.List;
 
 public class DashboardDTO {
+    
+    // Identificação do contexto do usuário
     private String currentUser;
+    
+    // Métricas gerais de contagem e valores monetários
     private Long totalEmployees;
-    private String lastPayrollDate; // Format: dd/MM/yyyy HH:mm
     private java.math.BigDecimal totalSalaries;
-    private Long pendingCalculations; // Removed from UI but kept in DTO if needed, or can be ignored
+    private Long totalPayrolls;
+    
+    // Informações de status e controle temporal
+    private String lastPayrollDate; // Formato esperado pelo front: dd/MM/yyyy HH:mm
+    private Long pendingCalculations; // Mantido para compatibilidade, indica pendências de processamento
+    
+    // Estruturas de dados complexas para gráficos e listas
     private List<SalaryDistributionDTO> salaryDistribution;
     private List<RecentEmployeeDTO> recentEmployees;
-    private Long totalPayrolls;
 
     public DashboardDTO() {}
+
+    // --- Getters e Setters ---
 
     public java.math.BigDecimal getTotalSalaries() { return totalSalaries; }
     public void setTotalSalaries(java.math.BigDecimal totalSalaries) { this.totalSalaries = totalSalaries; }
