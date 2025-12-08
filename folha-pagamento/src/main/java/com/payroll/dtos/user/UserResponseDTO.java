@@ -1,20 +1,33 @@
 package com.payroll.dtos.user;
 
+/*
+ * Objeto de Transferência de Dados (DTO) para resposta de dados de usuário.
+ * Utilizado para retornar informações de cadastro de usuários (admin ou comum)
+ * para a interface, omitindo dados sensíveis como a senha.
+ */
+
 public class UserResponseDTO {
 
     private Long id;
+    
+    // --- Dados de Identificação ---
     private String username;
     private String email;
-    private String role;
+    
+    // --- Permissões ---
+    private String role; // Define o nível de acesso (ex: ADMIN, USER)
     
     public UserResponseDTO() {}
 
+    // Construtor completo para mapeamento de entidades
     public UserResponseDTO(Long id, String username, String email, String role) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.role = role;
     }
+
+    // --- Getters e Setters ---
 
     public Long getId() {
         return id;
