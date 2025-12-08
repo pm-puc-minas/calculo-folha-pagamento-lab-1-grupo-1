@@ -1,5 +1,11 @@
 package com.payroll.entity;
 
+/*
+ * Entidade de persistência para o Cálculo da Folha (Holerite).
+ * Armazena o resultado processado (snapshot) dos pagamentos de um mês específico,
+ * consolidando proventos, descontos e totais para histórico e consulta.
+ */
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,54 +20,72 @@ public class PayrollCalculation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // --- Dados de Vinculação ---
+    
+    // Funcionário ao qual este cálculo se refere
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private Employee employee;
 
+    // Competência do cálculo (Formato: YYYY-MM)
     @Column(name = "reference_month", nullable = false)
-    @NotBlank // not blank
+    @NotBlank
     private String referenceMonth;
 
+    // --- Totais Financeiros ---
+    
     @Column(name = "gross_salary", nullable = false)
-    @NotNull // not blank
-    private BigDecimal grossSalary;
+    @NotNull
+    private BigDecimal grossSalary; // Bruto (Soma de todos os proventos)
 
     @Column(name = "net_salary", nullable = false)
-    @NotNull // not blank
-    private BigDecimal netSalary;
+    @NotNull
+    private BigDecimal netSalary;   // Líquido (A receber após descontos)
 
+    // --- Descontos Legais (Obrigatórios) ---
+    
     @Column(name = "inss_discount", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal inssDiscount;
 
     @Column(name = "irpf_discount", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal irpfDiscount;
 
     @Column(name = "transport_discount", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal transportDiscount;
 
+    // --- Informativos e Bases de Cálculo ---
+    
+    // Valor recolhido de FGTS (não é descontado do funcionário)
     @Column(name = "fgts_value", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal fgtsValue;
 
+    @Column(name = "hourly_wage", nullable = false)
+    @NotNull
+    private BigDecimal hourlyWage;
+
+    // --- Adicionais e Proventos ---
+    
     @Column(name = "dangerous_bonus", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal dangerousBonus;
 
     @Column(name = "unhealthy_bonus", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal unhealthyBonus;
+    
+    @Column(name = "overtime_value")
+    private BigDecimal overtimeValue;
+
+    // --- Benefícios e Convênios (Descontos/Coparticipação) ---
 
     @Column(name = "meal_voucher_value", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private BigDecimal mealVoucherValue;
-
-    @Column(name = "hourly_wage", nullable = false)
-    @NotNull // not blank
-    private BigDecimal hourlyWage;
 
     @Column(name = "health_plan_discount")
     private BigDecimal healthPlanDiscount;
@@ -72,23 +96,23 @@ public class PayrollCalculation {
     @Column(name = "gym_discount")
     private BigDecimal gymDiscount;
 
-    @Column(name = "overtime_value")
-    private BigDecimal overtimeValue;
-
+    // --- Auditoria ---
+    
     @Column(name = "created_at", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private LocalDateTime createdAt;
 
     @Column(name = "created_by", nullable = false)
-    @NotNull // not blank
+    @NotNull
     private Long createdBy;
 
-    // Constructors
+    // Construtor padrão com timestamp automático
     public PayrollCalculation() {
         this.createdAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
+    // --- Getters e Setters ---
+    
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

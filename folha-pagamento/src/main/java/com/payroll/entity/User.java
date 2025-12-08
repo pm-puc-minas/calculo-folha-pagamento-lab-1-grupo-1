@@ -1,5 +1,11 @@
 package com.payroll.entity;
 
+/*
+ * Entidade de persistência para Usuários do sistema.
+ * Responsável por armazenar as credenciais de acesso (login), 
+ * perfis de permissão (Roles) e dados de auditoria para o Spring Security.
+ */
+
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -22,27 +28,29 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // --- Credenciais e Identificação ---
+    
     @NotBlank
     @Size(min = 3, max = 50)
-    @Column(unique = true)
+    @Column(unique = true) // Garante que o nome de usuário seja exclusivo no sistema
     private String username;
 
     @NotBlank
     @Email
-    @Column(unique = true)
+    @Column(unique = true) // Garante que o e-mail não possa ser reutilizado
     private String email;
 
     @NotBlank
     @Size(min = 6)
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @com.fasterxml.jackson.annotation.JsonIgnore // Segurança: Impede que o hash da senha seja serializado em respostas JSON
     private String password;
 
-    @Enumerated(EnumType.STRING)
+    // --- Permissões e Controle de Acesso ---
+    
+    @Enumerated(EnumType.STRING) // Grava o nome do Enum (ex: "ADMIN") no banco, facilitando leitura
     private Role role = Role.USER;
 
-    public String getName() {
-        return username;
-    }
+    // --- Auditoria e Status ---
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -50,9 +58,9 @@ public class User {
     @Column(name = "created_by")
     private Long createdBy;
 
-    private boolean active = true;
+    private boolean active = true; // Flag para exclusão lógica (Soft Delete)
 
-    // Constructors
+    // Construtores
     public User() {
         this.createdAt = LocalDateTime.now();
     }
@@ -65,7 +73,13 @@ public class User {
         this.role = role;
     }
 
-    // Getters and Setters
+    // Método auxiliar para compatibilidade com UserDetails (Spring Security)
+    public String getName() {
+        return username;
+    }
+
+    // --- Getters e Setters ---
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -90,6 +104,7 @@ public class User {
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
 
+    // Definição dos perfis de acesso disponíveis
     public enum Role {
         ADMIN, USER
     }

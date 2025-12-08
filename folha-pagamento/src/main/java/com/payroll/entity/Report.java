@@ -1,5 +1,11 @@
 package com.payroll.entity;
 
+/*
+ * Entidade de persistência para Relatórios gerados.
+ * Armazena o histórico de arquivos (PDFs), metadados de geração e status,
+ * permitindo auditoria e download posterior dos documentos processados.
+ */
+
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -11,38 +17,45 @@ public class Report {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // --- Contexto do Relatório ---
+    
     @Column(name = "employee_id")
-    private Long employeeId;
+    private Long employeeId; // Mantém o ID histórico mesmo se o funcionário for removido
 
     @Column(name = "employee_name")
-    private String employeeName;
+    private String employeeName; // Snapshot do nome no momento da geração
 
     @Column(name = "reference_month")
     private String referenceMonth;
 
     @Column(name = "report_type")
-    private String reportType;
+    private String reportType; // Ex: FOLHA_PAGAMENTO, FERIAS, RENDIMENTOS
 
+    // --- Auditoria e Controle de Estado ---
+    
     @Column(name = "generated_at")
     private LocalDateTime generatedAt;
 
     @ManyToOne
     @JoinColumn(name = "created_by_user_id")
-    private User generatedBy;
+    private User generatedBy; // Rastreabilidade do usuário solicitante
 
     @Column(name = "status")
-    private String status; // completed, pending, error
+    private String status; // Estados possíveis: COMPLETED, PENDING, ERROR
 
-    @Lob
+    // --- Conteúdo do Arquivo ---
+    
+    @Lob // Large Object: Mapeia para BLOB no banco para armazenar o binário do PDF
     @Column(name = "file_content", length = 10000000)
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @com.fasterxml.jackson.annotation.JsonIgnore // Evita trafegar o arquivo pesado em listagens JSON (performance)
     private byte[] fileContent;
 
     public Report() {
         this.generatedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
+    // --- Getters e Setters ---
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
