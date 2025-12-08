@@ -1,5 +1,11 @@
 package com.payroll.controller;
 
+/*
+ * Controlador REST para gerenciamento de relatórios do sistema.
+ * Disponibiliza endpoints para consulta de histórico, solicitação de
+ * novos relatórios e download dos arquivos gerados (PDF).
+ */
+
 import com.payroll.dtos.report.ReportRequestDTO;
 import com.payroll.dtos.report.ReportResponseDTO;
 import com.payroll.service.ReportsService;
@@ -26,6 +32,7 @@ public class ReportsController {
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) String referenceMonth,
             @RequestParam(required = false) String type) {
+        // Consultar histórico de relatórios com filtros opcionais (funcionário, período, tipo)
         return ResponseEntity.ok(reportsService.getHistory(employeeId, referenceMonth, type));
     }
 
@@ -33,22 +40,28 @@ public class ReportsController {
     public ResponseEntity<ReportResponseDTO> createReport(
             @RequestBody ReportRequestDTO request,
             Authentication authentication) {
-        // Pode chegar sem autenticaçãõ, pois /api/reports é liberado no SecurityConfig.
+        // Capturar usuário logado para auditoria (pode ser nulo dependendo da configuração de segurança)
         String username = authentication != null ? authentication.getName() : null;
+
+        // Validar parâmetros obrigatórios da requisição
         if (request.getEmployeeId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "employeeId é obrigatório");
         }
+
         String referenceMonth = request.getReferenceMonth();
         String type = request.getType();
         
-        // If type is EMPLOYEE, referenceMonth might be null or current month
+        // Definir mês atual como padrão caso a referência não seja informada
         if (referenceMonth == null || referenceMonth.isBlank()) {
             referenceMonth = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
         }
+
+        // Definir tipo padrão (Folha de Pagamento) caso não informado
         if (type == null || type.isBlank()) {
             type = "PAYROLL";
         }
 
+        // Processar a criação e persistência do relatório via serviço
         return ResponseEntity.ok(
                 reportsService.createReportDto(request.getEmployeeId(), referenceMonth, type, username));
     }
@@ -56,25 +69,17 @@ public class ReportsController {
     @GetMapping("/{id}/download")
     public ResponseEntity<byte[]> downloadReport(@PathVariable Long id) {
         try {
-            // Check type of report first? Or service handles it?
-            // Since service methods are split, I need to know the type.
-            // But I only have ID.
-            // I should add a generic download method in Service that delegates.
-            // For now, let's look up the report to check type.
-            // Actually, let's add a generic method in service.
-            // Wait, I can just query the report here.
+            // Gerar o conteúdo binário do PDF através do serviço
+            byte[] content = reportsService.generateReportContent(id);
             
-            // Let's update Service to have a generic download method or expose getReport.
-            // For simplicity, I'll rely on the service having a way.
-            // I'll update ReportsService to have a `downloadReport(Long id)` method that checks type.
-            
-            byte[] content = reportsService.generateReportContent(id); // Need to add this to service
-            
+            // Configurar cabeçalhos de resposta para forçar o download do arquivo (attachment)
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=report_" + id + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(content);
+
         } catch (Exception e) {
+            // Tratamento de erros críticos durante a geração do arquivo
             e.printStackTrace();
             return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(("Erro ao gerar relatorio: " + e.getMessage()).getBytes());
@@ -83,6 +88,7 @@ public class ReportsController {
 
     @DeleteMapping({"/{id}", "/{id}/delete"})
     public ResponseEntity<Void> deleteReport(@PathVariable Long id) {
+        // Remover permanentemente um relatório do histórico pelo ID
         reportsService.deleteReport(id);
         return ResponseEntity.ok().build();
     }
