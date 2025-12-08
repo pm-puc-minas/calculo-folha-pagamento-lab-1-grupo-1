@@ -1,6 +1,13 @@
 package com.payroll.model;
 
+/*
+ * Modelo de domínio para gerenciamento de dados de Autenticação.
+ * Encapsula as credenciais (login/senha) e o perfil de acesso do usuário,
+ * centralizando a lógica básica de comparação para validação de identidade.
+ */
+
 public class Authentication {
+    
     private int idUsuario;
     private String login;
     private String senha;
@@ -16,11 +23,13 @@ public class Authentication {
         this.perfil = perfil;
     }
 
+    // Verificar se as credenciais fornecidas correspondem aos dados armazenados
     public boolean autenticar(String login, String senha) {
         return this.login.equals(login) && this.senha.equals(senha);
     }
 
-    // Getters e Setters
+    // --- Getters e Setters ---
+
     public int getIdUsuario() {
         return idUsuario;
     }

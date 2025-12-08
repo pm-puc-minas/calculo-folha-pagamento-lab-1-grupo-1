@@ -1,5 +1,11 @@
 package com.payroll.model;
 
+/*
+ * Modelo de domínio que representa um Funcionário (Business Object).
+ * Diferente da entidade de persistência, esta classe foca na lógica
+ * e comportamento do funcionário em memória para cálculos e validações.
+ */
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
@@ -7,36 +13,48 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Employee {
+
+    // --- Dados Pessoais e Contratuais ---
     private String nome;
     private String cpf;
     private String cargo;
     private LocalDate dataAdmissao;
+    
+    // --- Dados Financeiros Base ---
     private BigDecimal salarioBaseFuncionario;
-    private int numeroDependentes;
+    private int numeroDependentes; // Utilizado para cálculo de IRRF
+
+    // --- Adicionais e Condições de Trabalho ---
     private boolean recebeAdicionalPericulosidade;
     private GrauInsalubridade grauInsalubridade;
+
+    // --- Benefícios e Jornada ---
     private BigDecimal valorValeTransporteEntregue;
     private BigDecimal valorDiarioValeAlimentacao;
     private int diasTrabalhadosMes;
     private int horasSemana;
+    
+    // Lista genérica para outros benefícios não mapeados explicitamente
     private List<String> beneficios;
 
+    // Enum para tipificar o nível de insalubridade (regra de cálculo de %)
     public enum GrauInsalubridade {
         NENHUM, BAIXO, MEDIO, ALTO
     }
 
     // Construtores
     public Employee() {
+        // Inicialização de valores padrão e listas seguras
         this.beneficios = new ArrayList<>();
         this.grauInsalubridade = GrauInsalubridade.NENHUM;
         this.recebeAdicionalPericulosidade = false;
         this.numeroDependentes = 0;
-        this.diasTrabalhadosMes = 22;
+        this.diasTrabalhadosMes = 22; // Média comercial padrão
         this.horasSemana = 40;
     }
 
     public Employee(String nome, String cpf, String cargo, LocalDate dataAdmissao, BigDecimal salarioBaseFuncionario) {
-        this();
+        this(); // Chama o construtor padrão para garantir as inicializações
         this.nome = nome;
         this.cpf = cpf;
         this.cargo = cargo;
@@ -44,29 +62,35 @@ public class Employee {
         this.salarioBaseFuncionario = salarioBaseFuncionario;
     }
 
+    // Exibe um resumo textual para fins de debug ou log simples
     public String exibirDados() {
         return "Nome: " + nome + ", CPF: " + cpf + ", Position: " + cargo +
                 ", Salário Base: R$ " + salarioBaseFuncionario +
                 ", Data Admissão: " + dataAdmissao;
     }
 
+    // Regra de negócio: verifica se há insalubridade configurada
     public boolean temDireitoInsalubridade() {
         return grauInsalubridade != GrauInsalubridade.NENHUM;
     }
 
+    // Calcula o tempo de casa em anos (para lógica de biênios/quinquênios)
     public int calcularTempo() {
         return Period.between(dataAdmissao, LocalDate.now()).getYears();
     }
 
+    // Gestão da lista de benefícios
     public void adicionarBeneficio(String beneficio) {
         beneficios.add(beneficio);
     }
 
     public List<String> listarBeneficios() {
+        // Retorna uma cópia defensiva para proteger a lista original
         return new ArrayList<>(beneficios);
     }
 
-    // Getters e Setters
+    // --- Getters e Setters ---
+
     public String getNome() {
         return nome;
     }
