@@ -1,33 +1,48 @@
 package com.payroll.dtos.report;
 
+/*
+ * Objeto de Transferência de Dados (DTO) para resposta de relatórios.
+ * Representa o registro histórico de um relatório gerado, contendo metadados
+ * sobre quem solicitou, quando foi processado e o status da geração (sucesso/erro).
+ */
+
 import java.time.LocalDateTime;
 
 public class ReportResponseDTO {
+
     private Long id;
-    private String reportType;
-    private String employeeName;
-    private String referenceMonth;
+    private String reportType;     // Tipo do relatório (ex: FOLHA, FERIAS)
+    private String employeeName;   // Nome do funcionário alvo do relatório
+    private String referenceMonth; // Mês de referência dos dados
     private LocalDateTime generatedAt;
-    private String status;
+    private String status;         // Status do processamento (ex: COMPLETED)
+    
+    // Objeto aninhado com dados do responsável pela geração
     private GeneratedByDTO generatedBy;
 
+    /*
+     * DTO interno estático para encapsular dados básicos do usuário gerador.
+     * Evita expor a entidade User completa na resposta do relatório.
+     */
     public static class GeneratedByDTO {
         private Long id;
         private String name;
-        private String role = "User"; // Default
+        private String role = "User"; // Valor padrão caso não seja informado
 
         public GeneratedByDTO(Long id, String name) {
             this.id = id;
             this.name = name;
         }
-        // getters setters
+        
+        // --- Getters e Setters Internos ---
         public Long getId() { return id; }
         public String getName() { return name; }
         public String getRole() { return role; }
         public void setRole(String role) { this.role = role; }
     }
 
-    // Getters and Setters
+    // --- Getters e Setters Principais ---
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
