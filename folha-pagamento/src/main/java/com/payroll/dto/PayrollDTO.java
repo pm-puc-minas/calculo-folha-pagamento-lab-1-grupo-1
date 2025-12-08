@@ -120,7 +120,8 @@ public class PayrollDTO {
         
         return dto;
     }
+    
 
-    // Utilitário: Trata valores nulos retornando Zero (evita NullPointerException em somas)
+    // Utilitário: Trata valores nulos retornando Zero (evita NullPointerException em somas) 
     private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 }
