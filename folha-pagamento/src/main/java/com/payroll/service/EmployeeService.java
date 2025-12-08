@@ -1,5 +1,11 @@
 package com.payroll.service;
 
+/*
+ * Serviço responsável pela gestão de funcionários.
+ * Implementa as regras de negócio para cadastro, atualização, consulta e remoção (CRUD),
+ * além de fornecer filtros e agrupamentos em memória para relatórios e validações.
+ */
+
 import com.payroll.entity.Employee;
 import com.payroll.repository.EmployeeRepository;
 import com.payroll.exception.DataIntegrityBusinessException;
@@ -24,27 +30,34 @@ public class EmployeeService implements IEmployeeService {
 
     @Autowired
     private EmployeeRepository employeeRepository;
-@Override
+
+    @Override
     public Employee createEmployee(Employee employee, Long createdBy) {
         try {
+            // Vincular o ID do usuário responsável pela criação (Auditoria)
             employee.setCreatedBy(createdBy);
             return employeeRepository.save(employee);
         } catch (DataIntegrityViolationException e) {
+            // Tratar erro de duplicidade (ex: CPF já existente)
             throw new DataIntegrityBusinessException("Funcionario com CPF ja cadastrado", e);
         } catch (DataAccessResourceFailureException e) {
+            // Tratar falhas de comunicação com o banco de dados
             throw new DatabaseConnectionException("Falha de conexão ao criar funcionário", e);
         }
     }
-@Override
+
+    @Override
     public List<Employee> getAllEmployees() {
         try {
+            // Recuperar lista completa e filtrar nulos para garantir integridade
             List<Employee> all = employeeRepository.findAll();
             return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
         } catch (DataAccessResourceFailureException e) {
             throw new DatabaseConnectionException("Falha de conexão ao listar funcionários", e);
         }
     }
-@Override
+
+    @Override
     public Optional<Employee> getEmployeeById(Long id) {
         try {
             return employeeRepository.findById(id);
@@ -52,7 +65,8 @@ public class EmployeeService implements IEmployeeService {
             throw new DatabaseConnectionException("Falha de conexão ao buscar funcionário por ID", e);
         }
     }
-@Override
+
+    @Override
     public Optional<Employee> getEmployeeByCpf(String cpf) {
         try {
             return employeeRepository.findByCpf(cpf);
@@ -60,7 +74,8 @@ public class EmployeeService implements IEmployeeService {
             throw new DatabaseConnectionException("Falha de conexão ao buscar funcionário por CPF", e);
         }
     }
-@Override
+
+    @Override
     public boolean existsByCpf(String cpf) {
         try {
             return employeeRepository.existsByCpf(cpf);
@@ -68,10 +83,15 @@ public class EmployeeService implements IEmployeeService {
             throw new DatabaseConnectionException("Falha de conexão ao verificar CPF", e);
         }
     }
-@Override
+
+    @Override
     public Employee updateEmployee(Long id, Employee employeeDetails) {
         try {
-            Employee employee = employeeRepository.findById(id).orElseThrow(() -> new NotFoundBusinessException("Funcionário não encontrado: " + id));
+            // Verificar existência antes de atualizar
+            Employee employee = employeeRepository.findById(id)
+                    .orElseThrow(() -> new NotFoundBusinessException("Funcionário não encontrado: " + id));
+
+            // Atualização manual dos campos cadastrais e contratuais
             employee.setFullName(employeeDetails.getFullName());
             employee.setCpf(employeeDetails.getCpf());
             employee.setRg(employeeDetails.getRg());
@@ -79,21 +99,28 @@ public class EmployeeService implements IEmployeeService {
             employee.setAdmissionDate(employeeDetails.getAdmissionDate());
             employee.setSalary(employeeDetails.getSalary());
             employee.setWeeklyHours(employeeDetails.getWeeklyHours());
+
+            // Atualização de benefícios de transporte e alimentação
             employee.setTransportVoucher(employeeDetails.getTransportVoucher());
             employee.setTransportVoucherValue(employeeDetails.getTransportVoucherValue());
             employee.setMealVoucher(employeeDetails.getMealVoucher());
             employee.setMealVoucherValue(employeeDetails.getMealVoucherValue());
+
+            // Atualização de adicionais de risco
             employee.setDangerousWork(employeeDetails.getDangerousWork());
             employee.setDangerousPercentage(employeeDetails.getDangerousPercentage());
             employee.setUnhealthyWork(employeeDetails.getUnhealthyWork());
             employee.setUnhealthyLevel(employeeDetails.getUnhealthyLevel());
             
+            // Atualização de planos de saúde e bem-estar
             employee.setHealthPlan(employeeDetails.getHealthPlan());
             employee.setHealthPlanValue(employeeDetails.getHealthPlanValue());
             employee.setDentalPlan(employeeDetails.getDentalPlan());
             employee.setDentalPlanValue(employeeDetails.getDentalPlanValue());
             employee.setGym(employeeDetails.getGym());
             employee.setGymValue(employeeDetails.getGymValue());
+
+            // Atualização de controle de jornada
             employee.setTimeBank(employeeDetails.getTimeBank());
             employee.setTimeBankHours(employeeDetails.getTimeBankHours());
             employee.setOvertimeEligible(employeeDetails.getOvertimeEligible());
@@ -106,15 +133,18 @@ public class EmployeeService implements IEmployeeService {
             throw new DatabaseConnectionException("Falha de conexão ao atualizar funcionário", e);
         }
     }
-@Override
+
+    @Override
     public void deleteEmployee(Long id) {
         try {
+            // Remover registro físico do banco de dados
             employeeRepository.deleteById(id);
         } catch (DataAccessResourceFailureException e) {
             throw new DatabaseConnectionException("Falha de conexão ao deletar funcionário", e);
         }
     }
 
+    // Filtrar funcionários com salário base superior a um valor específico (lógica em memória)
     public List<Employee> filterEmployeesBySalaryMin(BigDecimal minSalary) {
         List<Employee> all = getAllEmployees();
         return CollectionOps.filter(all, e -> {
@@ -124,6 +154,7 @@ public class EmployeeService implements IEmployeeService {
         });
     }
 
+    // Agrupar funcionários por cargo (Position) para visualização categorizada
     public Map<String, List<Employee>> groupEmployeesByPosition() {
         List<Employee> all = getAllEmployees();
         return CollectionOps.groupBy(all, new GroupBySpec<String, Employee>() {
@@ -134,6 +165,7 @@ public class EmployeeService implements IEmployeeService {
         });
     }
 
+    // Identificar funcionários com dados inconsistentes (salário ou carga horária inválidos)
     public List<Employee> findInvalidEmployees() {
         List<Employee> all = getAllEmployees();
         return CollectionOps.filter(all, e -> {
@@ -145,6 +177,7 @@ public class EmployeeService implements IEmployeeService {
         });
     }
 
+    // Buscar funcionários por nome (busca parcial) ou retornar todos caso o termo seja vazio
     public List<Employee> searchEmployees(String query) {
         if (query == null || query.trim().isEmpty()) {
             return getAllEmployees();

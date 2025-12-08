@@ -1,5 +1,11 @@
 package com.payroll.service;
 
+/*
+ * Serviço de agregação de dados para o Dashboard.
+ * Coleta e processa indicadores chave (KPIs), estatísticas de funcionários
+ * e resumos financeiros para alimentação da tela inicial do sistema.
+ */
+
 import com.payroll.dtos.dashboard.DashboardDTO;
 import com.payroll.dtos.dashboard.RecentEmployeeDTO;
 import com.payroll.dtos.dashboard.SalaryDistributionDTO;
@@ -28,32 +34,31 @@ public class DashboardService {
     public DashboardDTO getDashboardData(String currentUsername) {
         DashboardDTO dashboard = new DashboardDTO();
         
-        // 1. Current User
+        // 1. Identificar o usuário atual da sessão
         dashboard.setCurrentUser(currentUsername);
 
-        // 2. Total Employees
+        // 2. Contabilizar total de funcionários ativos no banco
         long totalEmployees = employeeRepository.count();
         dashboard.setTotalEmployees(totalEmployees);
 
-        // 3. Last Payroll Date
+        // 3. Buscar a data/hora do último processamento de folha realizado
         dashboard.setLastPayrollDate(
             payrollRepository.findTopByOrderByCreatedAtDesc()
                 .map(p -> p.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
                 .orElse("N/A")
         );
 
-        // 4. Total Payrolls (Current Month)
-        // Calculate current month string YYYY-MM
+        // 4. Contar folhas processadas na competência atual (Mês vigente)
         String currentMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         long totalPayrolls = payrollRepository.countByReferenceMonth(currentMonth);
         dashboard.setTotalPayrolls(totalPayrolls);
 
-        // 5. Pending Calculations
-        // Only consider pending if totalEmployees > totalPayrolls, else 0 (avoid negative if logic changes)
+        // 5. Calcular pendências (Funcionários totais - Folhas geradas no mês atual)
+        // Garante que o valor não seja negativo caso haja inconsistência temporária
         long pending = Math.max(0, totalEmployees - totalPayrolls);
         dashboard.setPendingCalculations(pending);
 
-        // 6. Recent Employees
+        // 6. Listar as contratações mais recentes (Top 5) para o widget de novidades
         List<Employee> recent = employeeRepository.findTop5ByOrderByAdmissionDateDesc();
         List<RecentEmployeeDTO> recentDTOs = recent.stream().map(e -> new RecentEmployeeDTO(
             e.getId(),
@@ -64,11 +69,11 @@ public class DashboardService {
         )).collect(Collectors.toList());
         dashboard.setRecentEmployees(recentDTOs);
 
-        // 7. Salary Distribution
+        // 7. Calcular distribuição salarial para renderização de gráficos
         List<Employee> allEmployees = employeeRepository.findAll();
         dashboard.setSalaryDistribution(calculateSalaryDistribution(allEmployees));
 
-        // 8. Total Salaries
+        // 8. Somar o montante total de salários base da empresa (Folha bruta estimada)
         BigDecimal totalSalaries = allEmployees.stream()
             .map(e -> e.getSalary() != null ? e.getSalary() : BigDecimal.ZERO)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -77,6 +82,7 @@ public class DashboardService {
         return dashboard;
     }
 
+    // Método auxiliar para agrupar funcionários em faixas salariais (Histograma)
     private List<SalaryDistributionDTO> calculateSalaryDistribution(List<Employee> employees) {
         long range1 = 0; // Até 2.000
         long range2 = 0; // 2.001 – 4.000

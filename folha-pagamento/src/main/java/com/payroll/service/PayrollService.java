@@ -1,5 +1,12 @@
 package com.payroll.service;
 
+/*
+ * Serviço principal de processamento da Folha de Pagamento (Core Business Logic).
+ * Orquestra todo o fluxo de cálculo, desde a recuperação dos dados do funcionário,
+ * aplicação de regras trabalhistas (CLT), cálculo de impostos via estratégias (Strategy Pattern)
+ * e persistência final do holerite gerado.
+ */
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -38,14 +45,17 @@ public class PayrollService implements IPayrollService {
     @Autowired
     private ReportsService reportsService;
 
+    // Injeção de todas as estratégias de desconto disponíveis no contexto do Spring
     @Autowired
     private List<DiscountStrategy> discountStrategies;
 
+    // Mapa para acesso rápido às estratégias por tipo (cache local)
     private Map<DiscountType, DiscountStrategy> discountStrategyMap;
 
     @Override
     public PayrollCalculation calculatePayroll(Long employeeId, String referenceMonth, Long calculatedBy) {
         try {
+            // Verificar idempotência: se já existe folha para este mês, retorna a existente
             Optional<PayrollCalculation> existing = payrollRepository.findByEmployeeIdAndReferenceMonth(employeeId, referenceMonth);
             if (existing.isPresent()) return existing.get();
         } catch (DataAccessResourceFailureException e) {
@@ -66,16 +76,20 @@ public class PayrollService implements IPayrollService {
         }
         calculation.setEmployee(employee);
 
+        // --- Passo 1: Definição de Bases e Proventos ---
         BigDecimal baseSalary = nz(employee.getSalary());
         int weeklyHours = employee.getWeeklyHours() != null ? employee.getWeeklyHours() : 40;
         int workDaysMonth = 22;
         int dependents = employee.getDependents() != null ? employee.getDependents() : 0;
 
         BigDecimal hourlyWage = calcularSalarioHora(baseSalary, weeklyHours);
+        
+        // Cálculo de Adicional de Periculosidade (geralmente 30%)
         BigDecimal dangerousBonus = employee.getDangerousWork() != null && employee.getDangerousWork()
                 ? baseSalary.multiply(employee.getDangerousPercentage() != null ? employee.getDangerousPercentage() : new BigDecimal("0.30"))
                 : BigDecimal.ZERO;
 
+        // Cálculo de Adicional de Insalubridade (baseado no nível de exposição)
         BigDecimal unhealthyBonus = BigDecimal.ZERO;
         String level = employee.getUnhealthyLevel() != null ? employee.getUnhealthyLevel().toUpperCase() : "NONE";
         switch (level) {
@@ -87,7 +101,7 @@ public class PayrollService implements IPayrollService {
 
         BigDecimal mealVoucher = employee.getMealVoucherValue() != null ? employee.getMealVoucherValue() : BigDecimal.ZERO;
 
-        // Overtime Calculation
+        // Cálculo de Horas Extras (Adicional de 50%)
         BigDecimal overtimeHours = employee.getOvertimeHours() != null ? employee.getOvertimeHours() : BigDecimal.ZERO;
         BigDecimal overtimeValue = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(employee.getOvertimeEligible()) && overtimeHours.compareTo(BigDecimal.ZERO) > 0) {
@@ -95,25 +109,31 @@ public class PayrollService implements IPayrollService {
         }
         calculation.setOvertimeValue(overtimeValue);
 
+        // Totalizar Salário Bruto
         BigDecimal grossSalary = baseSalary.add(dangerousBonus).add(unhealthyBonus).add(mealVoucher).add(overtimeValue);
 
+        // --- Passo 2: Contexto para Cálculo de Descontos ---
         DiscountCalculationContext ctx = new DiscountCalculationContext()
                 .setGrossSalary(grossSalary)
                 .setDependents(dependents)
                 .setTransportEnabled(Boolean.TRUE.equals(employee.getTransportVoucher()))
                 .setPensionAlimony(BigDecimal.ZERO);
 
+        // Configurar Valor do Vale Transporte (Valor fixo ou percentual legal)
         BigDecimal transportValue = nz(employee.getTransportVoucherValue());
         if (transportValue.compareTo(BigDecimal.ZERO) <= 0) {
             transportValue = grossSalary.multiply(PayrollConstants.TRANSPORTE_RATE);
         }
         ctx.setTransportVoucherValue(transportValue);
 
+        // --- Passo 3: Execução das Estratégias de Desconto (Chain of Responsibility/Strategy) ---
         BigDecimal inssDiscount = strategy(DiscountType.INSS).calculate(ctx);
-        ctx.setInssDiscount(inssDiscount);
+        ctx.setInssDiscount(inssDiscount); // Atualizar contexto pois o IRRF depende do INSS
+        
         BigDecimal irrfDiscount = strategy(DiscountType.IRRF).calculate(ctx);
         BigDecimal transportDiscount = strategy(DiscountType.TRANSPORT).calculate(ctx);
 
+        // Preenchimento dos resultados na entidade
         calculation.setHourlyWage(hourlyWage);
         calculation.setDangerousBonus(dangerousBonus.setScale(2, RoundingMode.HALF_UP));
         calculation.setUnhealthyBonus(unhealthyBonus.setScale(2, RoundingMode.HALF_UP));
@@ -127,7 +147,7 @@ public class PayrollService implements IPayrollService {
 
         calculation.setMealVoucherValue(mealVoucher.setScale(2, RoundingMode.HALF_UP));
 
-        // Benefits Discounts
+        // --- Passo 4: Descontos de Benefícios Complementares (Planos) ---
         BigDecimal healthPlanDiscount = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(employee.getHealthPlan())) {
             healthPlanDiscount = nz(employee.getHealthPlanValue());
@@ -146,9 +166,11 @@ public class PayrollService implements IPayrollService {
         }
         calculation.setGymDiscount(gymDiscount);
 
+        // Totalizar Descontos
         BigDecimal totalDiscounts = inssDiscount.add(irrfDiscount).add(fgts).add(transportDiscount)
-                                    .add(healthPlanDiscount).add(dentalPlanDiscount).add(gymDiscount);
+                                            .add(healthPlanDiscount).add(dentalPlanDiscount).add(gymDiscount);
 
+        // Validações Finais de Integridade Financeira
         if (grossSalary.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InputValidationException("Salario bruto deve ser maior que zero",
                 Map.of("grossSalary", grossSalary));
@@ -161,15 +183,15 @@ public class PayrollService implements IPayrollService {
         BigDecimal netSalary = grossSalary.subtract(totalDiscounts);
         calculation.setNetSalary(netSalary.setScale(2, RoundingMode.HALF_UP));
 
+        // --- Passo 5: Persistência e Auditoria ---
         try {
             PayrollCalculation saved = payrollRepository.save(calculation);
             
-            // Create a Report entry for this payroll
+            // Gerar relatório PDF automaticamente
             try {
                 reportsService.createReport(employeeId, referenceMonth, "PAYROLL", calculatedBy);
             } catch (Exception e) {
-                // Log error but don't fail the transaction? 
-                // Ideally should be transactional, but for now let's just print stack trace
+                // Logar falha no relatório sem abortar a transação principal
                 e.printStackTrace();
             }
             
@@ -269,6 +291,8 @@ public class PayrollService implements IPayrollService {
         return all.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
+    // Filtros de Relatórios e Auditoria
+    
     public List<PayrollCalculation> filterPayrollsByNetSalaryRange(BigDecimal min, BigDecimal max) {
         List<PayrollCalculation> all = getAllPayrolls();
         return CollectionOps.filter(all, pc -> {
@@ -290,6 +314,7 @@ public class PayrollService implements IPayrollService {
         });
     }
 
+    // Busca de casos extremos (Salário Negativo ou Desconto Total) para auditoria
     public List<PayrollCalculation> findEdgeCasePayrolls() {
         List<PayrollCalculation> all = getAllPayrolls();
         return CollectionOps.filter(all, pc -> {
@@ -305,6 +330,7 @@ public class PayrollService implements IPayrollService {
         });
     }
 
+    // Soma total de descontos aplicados a um funcionário em todo o histórico
     public BigDecimal totalDiscountsForEmployee(Long employeeId) {
         List<PayrollCalculation> list = getEmployeePayrolls(employeeId);
         return CollectionOps.sum(list, pc -> {
@@ -321,6 +347,7 @@ public class PayrollService implements IPayrollService {
         });
     }
 
+    // Helper para selecionar a estratégia correta no mapa
     private DiscountStrategy strategy(DiscountType type) {
         if (discountStrategyMap == null) {
             discountStrategyMap = discountStrategies.stream()
